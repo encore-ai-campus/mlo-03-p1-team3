@@ -1,0 +1,5 @@
+line-length = 120
+
+[lint]
+# FastAPI는 Depends(...)를 기본값으로 쓰는 것이 표준 문법이다.
+extend-ignore = ["B008"]
