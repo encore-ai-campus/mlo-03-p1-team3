@@ -1,0 +1,16 @@
+[Unit]
+Description=PodoBank FastAPI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=podobank
+Group=podobank
+WorkingDirectory=/opt/podobank/backend
+EnvironmentFile=/etc/podobank/api.env
+ExecStart=/opt/podobank/backend/.venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

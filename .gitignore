@@ -317,3 +317,6 @@ nginx.pid
 
 # superpowers plan workspace
 .superpowers/
+
+### VM 설치 값 (IP·비밀번호) ###
+deploy/vm/vm.env
