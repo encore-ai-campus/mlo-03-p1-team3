@@ -1,0 +1,374 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1490" height="1133" viewBox="0 0 1490 1133" font-family="Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif">
+<rect width="1490" height="1133" fill="#FFFFFF"/>
+<text x="40" y="44" font-size="20" font-weight="800" fill="#0F172A" text-anchor="start">포도뱅크 ERD — MariaDB 테이블 11개</text>
+<text x="40" y="66" font-size="13" font-weight="400" fill="#64748B" text-anchor="start">돈은 accounts.balance와 ledger_entries에 남기고, 이벤트는 커밋 뒤 app.log·MongoDB에 바로 쓴다</text>
+<rect x="40" y="80" width="300" height="352" rx="12" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.6"/>
+<path d="M40,92 a12,12 0 0 1 12,-12 h276 a12,12 0 0 1 12,12 v32 h-300 z" fill="#2563EB"/>
+<text x="54" y="108" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">users</text>
+<text x="326" y="108" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">사용자</text>
+<rect x="52" y="129" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="65" y="140.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="116" y="141" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="326" y="141" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="41" y="149" width="298" height="25" fill="#EFF6FF"/>
+<rect x="52" y="154" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="65" y="165.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="116" y="166" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">kakao_subject</text>
+<text x="326" y="166" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="52" y="179" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="65" y="190.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="116" y="191" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">phone_number</text>
+<text x="326" y="191" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="41" y="199" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="216" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">password_hash</text>
+<text x="326" y="216" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="116" y="241" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">name</text>
+<text x="326" y="241" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="41" y="249" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="266" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">birth_year</text>
+<text x="326" y="266" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">smallint</text>
+<text x="116" y="291" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">gender</text>
+<text x="326" y="291" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="41" y="299" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="316" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">marital_status</text>
+<text x="326" y="316" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="116" y="341" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">is_employed</text>
+<text x="326" y="341" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">boolean</text>
+<rect x="41" y="349" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="366" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">role</text>
+<text x="326" y="366" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="116" y="391" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">failed_login_count</text>
+<text x="326" y="391" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">smallint</text>
+<rect x="41" y="399" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="416" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">locked_until</text>
+<text x="326" y="416" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="400" y="80" width="300" height="177" rx="12" fill="#FFFFFF" stroke="#059669" stroke-width="1.6"/>
+<path d="M400,92 a12,12 0 0 1 12,-12 h276 a12,12 0 0 1 12,12 v32 h-300 z" fill="#059669"/>
+<text x="414" y="108" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">accounts</text>
+<text x="686" y="108" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">계좌</text>
+<rect x="412" y="129" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="425" y="140.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="476" y="141" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="686" y="141" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="401" y="149" width="298" height="25" fill="#ECFDF5"/>
+<rect x="412" y="154" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="425" y="165.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<rect x="442" y="154" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="455" y="165.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="476" y="166" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">user_id</text>
+<text x="686" y="166" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="412" y="179" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="425" y="190.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="476" y="191" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">account_number</text>
+<text x="686" y="191" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="401" y="199" width="298" height="25" fill="#ECFDF5"/>
+<text x="476" y="216" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">balance</text>
+<text x="686" y="216" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<text x="476" y="241" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">created_at</text>
+<text x="686" y="241" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="400" y="306" width="300" height="152" rx="12" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.6"/>
+<path d="M400,318 a12,12 0 0 1 12,-12 h276 a12,12 0 0 1 12,12 v32 h-300 z" fill="#0891B2"/>
+<text x="414" y="334" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">cards</text>
+<text x="686" y="334" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">체크카드</text>
+<rect x="412" y="355" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="425" y="366.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="476" y="367" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="686" y="367" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="401" y="375" width="298" height="25" fill="#ECFEFF"/>
+<rect x="412" y="380" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="425" y="391.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<rect x="442" y="380" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="455" y="391.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="476" y="392" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">account_id</text>
+<text x="686" y="392" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="412" y="405" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="425" y="416.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="476" y="417" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">card_number</text>
+<text x="686" y="417" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="401" y="425" width="298" height="25" fill="#ECFEFF"/>
+<text x="476" y="442" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">created_at</text>
+<text x="686" y="442" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="760" y="80" width="320" height="227" rx="12" fill="#FFFFFF" stroke="#059669" stroke-width="1.6"/>
+<path d="M760,92 a12,12 0 0 1 12,-12 h296 a12,12 0 0 1 12,12 v32 h-320 z" fill="#059669"/>
+<text x="774" y="108" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">ledger_entries</text>
+<text x="1066" y="108" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">원장</text>
+<rect x="772" y="129" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="785" y="140.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="836" y="141" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="1066" y="141" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="761" y="149" width="318" height="25" fill="#ECFDF5"/>
+<text x="836" y="166" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">transaction_id</text>
+<text x="1066" y="166" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">char</text>
+<rect x="772" y="179" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="785" y="190.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="836" y="191" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">account_id</text>
+<text x="1066" y="191" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="761" y="199" width="318" height="25" fill="#ECFDF5"/>
+<text x="836" y="216" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">entry_type</text>
+<text x="1066" y="216" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="836" y="241" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">amount</text>
+<text x="1066" y="241" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="761" y="249" width="318" height="25" fill="#ECFDF5"/>
+<text x="836" y="266" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">balance_after</text>
+<text x="1066" y="266" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<text x="836" y="291" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">created_at</text>
+<text x="1066" y="291" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="760" y="330" width="320" height="202" rx="12" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.6"/>
+<path d="M760,342 a12,12 0 0 1 12,-12 h296 a12,12 0 0 1 12,12 v32 h-320 z" fill="#0891B2"/>
+<text x="774" y="358" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">card_payments</text>
+<text x="1066" y="358" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">카드 결제</text>
+<rect x="772" y="379" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="785" y="390.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="836" y="391" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="1066" y="391" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="761" y="399" width="318" height="25" fill="#ECFEFF"/>
+<rect x="772" y="404" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="785" y="415.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="836" y="416" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">card_id</text>
+<text x="1066" y="416" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="772" y="429" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="785" y="440.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="836" y="441" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">merchant_id</text>
+<text x="1066" y="441" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="761" y="449" width="318" height="25" fill="#ECFEFF"/>
+<text x="836" y="466" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">transaction_id</text>
+<text x="1066" y="466" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">char</text>
+<text x="836" y="491" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">amount</text>
+<text x="1066" y="491" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="761" y="499" width="318" height="25" fill="#ECFEFF"/>
+<text x="836" y="516" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">created_at</text>
+<text x="1066" y="516" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="1140" y="330" width="310" height="202" rx="12" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.6"/>
+<path d="M1140,342 a12,12 0 0 1 12,-12 h286 a12,12 0 0 1 12,12 v32 h-310 z" fill="#0891B2"/>
+<text x="1154" y="358" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">merchants</text>
+<text x="1436" y="358" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">가맹점</text>
+<rect x="1152" y="379" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="1165" y="390.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="1216" y="391" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="1436" y="391" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="1141" y="399" width="308" height="25" fill="#ECFEFF"/>
+<text x="1216" y="416" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">name</text>
+<text x="1436" y="416" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="1216" y="441" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">category</text>
+<text x="1436" y="441" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="1141" y="449" width="308" height="25" fill="#ECFEFF"/>
+<text x="1216" y="466" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">region</text>
+<text x="1436" y="466" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="1216" y="491" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">lat</text>
+<text x="1436" y="491" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">decimal</text>
+<rect x="1141" y="499" width="308" height="25" fill="#ECFEFF"/>
+<text x="1216" y="516" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">lng</text>
+<text x="1436" y="516" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">decimal</text>
+<rect x="400" y="610" width="300" height="227" rx="12" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.6"/>
+<path d="M400,622 a12,12 0 0 1 12,-12 h276 a12,12 0 0 1 12,12 v32 h-300 z" fill="#EA580C"/>
+<text x="414" y="638" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">loan_products</text>
+<text x="686" y="638" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">대출 상품</text>
+<rect x="412" y="659" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="425" y="670.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="476" y="671" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="686" y="671" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="401" y="679" width="298" height="25" fill="#FFF7ED"/>
+<rect x="412" y="684" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="425" y="695.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="476" y="696" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">code</text>
+<text x="686" y="696" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="476" y="721" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">name</text>
+<text x="686" y="721" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="401" y="729" width="298" height="25" fill="#FFF7ED"/>
+<text x="476" y="746" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">min_amount</text>
+<text x="686" y="746" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<text x="476" y="771" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">max_amount</text>
+<text x="686" y="771" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="401" y="779" width="298" height="25" fill="#FFF7ED"/>
+<text x="476" y="796" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">amount_step</text>
+<text x="686" y="796" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<text x="476" y="821" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">term_options</text>
+<text x="686" y="821" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">json</text>
+<rect x="760" y="576" width="320" height="302" rx="12" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.6"/>
+<path d="M760,588 a12,12 0 0 1 12,-12 h296 a12,12 0 0 1 12,12 v32 h-320 z" fill="#EA580C"/>
+<text x="774" y="604" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">loan_applications</text>
+<text x="1066" y="604" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">대출 신청</text>
+<rect x="772" y="625" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="785" y="636.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="836" y="637" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="1066" y="637" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="761" y="645" width="318" height="25" fill="#FFF7ED"/>
+<rect x="772" y="650" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="785" y="661.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="836" y="662" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">user_id</text>
+<text x="1066" y="662" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="772" y="675" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="785" y="686.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="836" y="687" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">product_id</text>
+<text x="1066" y="687" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="761" y="695" width="318" height="25" fill="#FFF7ED"/>
+<text x="836" y="712" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">principal_amount</text>
+<text x="1066" y="712" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<text x="836" y="737" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">term_months</text>
+<text x="1066" y="737" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">smallint</text>
+<rect x="761" y="745" width="318" height="25" fill="#FFF7ED"/>
+<text x="836" y="762" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">monthly_installment</text>
+<text x="1066" y="762" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<text x="836" y="787" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">status</text>
+<text x="1066" y="787" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="761" y="795" width="318" height="25" fill="#FFF7ED"/>
+<rect x="772" y="800" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="785" y="811.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="836" y="812" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">reviewed_by</text>
+<text x="1066" y="812" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<text x="836" y="837" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">reviewed_at</text>
+<text x="1066" y="837" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="761" y="845" width="318" height="25" fill="#FFF7ED"/>
+<text x="836" y="862" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">approved_at</text>
+<text x="1066" y="862" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="1140" y="576" width="310" height="202" rx="12" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.6"/>
+<path d="M1140,588 a12,12 0 0 1 12,-12 h286 a12,12 0 0 1 12,12 v32 h-310 z" fill="#EA580C"/>
+<text x="1154" y="604" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">loan_repayments</text>
+<text x="1436" y="604" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">상환 회차</text>
+<rect x="1152" y="625" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="1165" y="636.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="1216" y="637" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="1436" y="637" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="1141" y="645" width="308" height="25" fill="#FFF7ED"/>
+<rect x="1152" y="650" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="1165" y="661.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="1216" y="662" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">loan_application_id</text>
+<text x="1436" y="662" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<text x="1216" y="687" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">installment_number</text>
+<text x="1436" y="687" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">smallint</text>
+<rect x="1141" y="695" width="308" height="25" fill="#FFF7ED"/>
+<text x="1216" y="712" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">due_date</text>
+<text x="1436" y="712" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">date</text>
+<text x="1216" y="737" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">amount</text>
+<text x="1436" y="737" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="1141" y="745" width="308" height="25" fill="#FFF7ED"/>
+<text x="1216" y="762" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">status</text>
+<text x="1436" y="762" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<path d="M 340,128 L 400,128" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="340" cy="128" r="4" fill="#475569"/>
+<circle cx="400" cy="128" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="343.0" y="99" width="54.0" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="370" y="114" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : 1</text>
+<path d="M 550,257 L 550,306" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="550" cy="257" r="4" fill="#475569"/>
+<circle cx="550" cy="306" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="555.0" y="270" width="54.0" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="582" y="285" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : 1</text>
+<path d="M 700,128 L 760,128" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="700" cy="128" r="4" fill="#475569"/>
+<circle cx="760" cy="128" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="703.0" y="99" width="54.0" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="730" y="114" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : N</text>
+<path d="M 700,380 L 760,380" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="700" cy="380" r="4" fill="#475569"/>
+<circle cx="760" cy="380" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="703.0" y="351" width="54.0" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="730" y="366" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : N</text>
+<path d="M 1140,420 L 1080,420" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="1140" cy="420" r="4" fill="#475569"/>
+<circle cx="1080" cy="420" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="1083.0" y="391" width="54.0" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="1110" y="406" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : N</text>
+<path d="M 340,396 L 370,396 L 370,548 L 900,548 L 900,576" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="340" cy="396" r="4" fill="#475569"/>
+<circle cx="900" cy="576" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="578.8" y="537" width="122.39999999999999" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="640" y="552" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : N  신청 · 심사</text>
+<path d="M 700,660 L 760,660" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="700" cy="660" r="4" fill="#475569"/>
+<circle cx="760" cy="660" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="703.0" y="631" width="54.0" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="730" y="646" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : N</text>
+<path d="M 1080,640 L 1140,640" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="1080" cy="640" r="4" fill="#475569"/>
+<circle cx="1140" cy="640" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="1083.0" y="611" width="54.0" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="1110" y="626" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : N</text>
+<rect x="40" y="470" width="300" height="327" rx="12" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.6"/>
+<path d="M40,482 a12,12 0 0 1 12,-12 h276 a12,12 0 0 1 12,12 v32 h-300 z" fill="#2563EB"/>
+<text x="54" y="498" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">sessions</text>
+<text x="326" y="498" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">로그인 세션</text>
+<rect x="52" y="519" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="65" y="530.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="116" y="531" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="326" y="531" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="41" y="539" width="298" height="25" fill="#EFF6FF"/>
+<rect x="52" y="544" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="65" y="555.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="116" y="556" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">token_hash</text>
+<text x="326" y="556" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">char</text>
+<rect x="52" y="569" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="65" y="580.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="116" y="581" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">user_id</text>
+<text x="326" y="581" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="41" y="589" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="606" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">device_id</text>
+<text x="326" y="606" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">char</text>
+<text x="116" y="631" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">client</text>
+<text x="326" y="631" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="41" y="639" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="656" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">user_agent</text>
+<text x="326" y="656" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="116" y="681" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">login_method</text>
+<text x="326" y="681" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="41" y="689" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="706" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">created_at</text>
+<text x="326" y="706" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<text x="116" y="731" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">last_seen_at</text>
+<text x="326" y="731" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="41" y="739" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="756" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">ended_at</text>
+<text x="326" y="756" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<text x="116" y="781" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">end_reason</text>
+<text x="326" y="781" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="40" y="825" width="300" height="202" rx="12" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.6"/>
+<path d="M40,837 a12,12 0 0 1 12,-12 h276 a12,12 0 0 1 12,12 v32 h-300 z" fill="#2563EB"/>
+<text x="54" y="853" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">kakao_signups</text>
+<text x="326" y="853" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="end">카카오 임시 가입</text>
+<rect x="52" y="874" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="65" y="885.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="116" y="886" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">id</text>
+<text x="326" y="886" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">bigint</text>
+<rect x="41" y="894" width="298" height="25" fill="#EFF6FF"/>
+<rect x="52" y="899" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="65" y="910.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="116" y="911" font-size="13" font-weight="600" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">token_hash</text>
+<text x="326" y="911" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">char</text>
+<text x="116" y="936" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">kakao_subject</text>
+<text x="326" y="936" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<rect x="41" y="944" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="961" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">name</text>
+<text x="326" y="961" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">varchar</text>
+<text x="116" y="986" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">created_at</text>
+<text x="326" y="986" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<rect x="41" y="994" width="298" height="25" fill="#EFF6FF"/>
+<text x="116" y="1011" font-size="13" font-weight="400" fill="#0F172A" text-anchor="start" font-family="'SF Mono', Menlo, Consolas, monospace">expires_at</text>
+<text x="326" y="1011" font-size="12" font-weight="400" fill="#64748B" text-anchor="end" font-family="'SF Mono', Menlo, Consolas, monospace">datetime</text>
+<path d="M 190,432 L 190,470" fill="none" stroke="#475569" stroke-width="1.8"/>
+<circle cx="190" cy="432" r="4" fill="#475569"/>
+<circle cx="190" cy="470" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<rect x="200.0" y="440" width="54.0" height="21" rx="10.5" fill="#FFFFFF" stroke="#CBD5E1"/>
+<text x="227" y="455" font-size="11.5" font-weight="700" fill="#334155" text-anchor="middle">1 : N</text>
+<rect x="40" y="1055" width="1410" height="60" rx="12" fill="#F8FAFC" stroke="#E2E8F0"/>
+<rect x="64" y="1075" width="14" height="14" rx="3" fill="#2563EB"/>
+<text x="86" y="1087" font-size="13" font-weight="600" fill="#334155" text-anchor="start">사용자·인증</text>
+<rect x="194" y="1075" width="14" height="14" rx="3" fill="#059669"/>
+<text x="216" y="1087" font-size="13" font-weight="600" fill="#334155" text-anchor="start">계좌·원장</text>
+<rect x="324" y="1075" width="14" height="14" rx="3" fill="#0891B2"/>
+<text x="346" y="1087" font-size="13" font-weight="600" fill="#334155" text-anchor="start">카드</text>
+<rect x="454" y="1075" width="14" height="14" rx="3" fill="#EA580C"/>
+<text x="476" y="1087" font-size="13" font-weight="600" fill="#334155" text-anchor="start">대출</text>
+<rect x="584" y="1074" width="26" height="15" rx="4" fill="#FEF3C7"/>
+<text x="597" y="1085.5" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">PK</text>
+<text x="616" y="1087" font-size="13" font-weight="400" fill="#334155" text-anchor="start">기본 키</text>
+<rect x="694" y="1074" width="26" height="15" rx="4" fill="#DBEAFE"/>
+<text x="707" y="1085.5" font-size="10" font-weight="700" fill="#1D4ED8" text-anchor="middle">FK</text>
+<text x="726" y="1087" font-size="13" font-weight="400" fill="#334155" text-anchor="start">외래 키</text>
+<rect x="804" y="1074" width="26" height="15" rx="4" fill="#EDE9FE"/>
+<text x="817" y="1085.5" font-size="10" font-weight="700" fill="#6D28D9" text-anchor="middle">UK</text>
+<text x="836" y="1087" font-size="13" font-weight="400" fill="#334155" text-anchor="start">고유값</text>
+<circle cx="918" cy="1081" r="4" fill="#475569"/>
+<path d="M922,1081 h28" stroke="#475569" stroke-width="1.8"/>
+<circle cx="954" cy="1081" r="4" fill="#FFFFFF" stroke="#475569" stroke-width="1.8"/>
+<text x="966" y="1087" font-size="13" font-weight="400" fill="#334155" text-anchor="start">● 쪽이 1, ○ 쪽이 N (또는 1)</text>
+</svg>

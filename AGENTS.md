@@ -78,11 +78,10 @@
 - 백엔드는 `app.log`에 이벤트가 정확히 한 번, 개인정보 없이 쌓이는지까지 테스트한다. Alloy·Loki·Prometheus·Grafana 설정과 패널 확인은 대시보드 담당이 한다.
 
 ### 4.4 명령
-- 테스트 DB: 테스트 전용 MariaDB·MongoDB 주소를 `TEST_MARIADB_URL`, `TEST_MONGODB_URL`로 준다(`backend/README.md` 5장).
+- 테스트 DB: 테스트 전용 MariaDB·MongoDB 주소를 `TEST_MARIADB_URL`, `TEST_MONGODB_URL`로 준다. 테스트가 테이블을 비우므로 운영 DB를 넣지 않는다.
 - 백엔드 테스트: `cd backend && .venv/bin/pytest tests`
 - 린트: `cd backend && .venv/bin/ruff check .` (mypy는 쓰지 않는다)
-- 통합: `backend/README.md` 순서로 FastAPI 2대를 띄운 뒤 `curl http://127.0.0.1:8001/api/v1/health`
-- 자세한 실행·배치 명령은 `backend/README.md`.
+- 통합: `python -m app.db.migrate` 후 FastAPI 2대(포트 8001·8002, 서버마다 `INSTANCE_NAME`·`EVENT_LOG_PATH`를 다르게)를 `uvicorn app.main:create_app --factory`로 띄우고 `curl http://127.0.0.1:8001/api/v1/health`
 - 프로젝트에 없는 도구의 명령은 실행하지 않는다. 먼저 설정 파일로 도구가 있는지 확인한다.
 
 ## 5. 코드 규칙
