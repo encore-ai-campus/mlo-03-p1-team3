@@ -1,0 +1,58 @@
+{
+  "version": 2,
+  "synthetic": true,
+  "seed": 20261105,
+  "credential_env": "SIMULATOR_USER_PASSWORD",
+  "timezone": "Asia/Seoul",
+  "runtime_rules": [
+    "비밀번호는 지정한 환경 변수에서만 읽습니다.",
+    "고객별 owner만 실행하며 담당 변경 전 실행 잠금을 인계합니다.",
+    "실제 잔액·세션·대출 상태와 발급된 계좌·카드 ID는 실행 상태 저장소에서 관리합니다.",
+    "초기 자금과 정기 충전은 입금 API로 처리하여 원장을 남깁니다.",
+    "일반 거래는 잔액에서 reserve_balance와 대출 repayment_reserve를 뺀 가용액 안에서 실행합니다.",
+    "잔액 부족 시 자동 무한 충전하지 않고 다음 충전까지 기다립니다.",
+    "수취인 조회 성공 후 송금하며 가맹점은 API가 반환한 업종과 ID에 매핑합니다.",
+    "배치 기준은 실제 한국 날짜입니다. 시간 압축만으로 상환일이 바뀌지 않습니다.",
+    "검증 상황은 명시적으로 활성화하고 평소 행동과 분리합니다.",
+    "실행 기록에는 시도·응답·request_id를 남기고 이벤트 스키마에 개인정보를 추가하지 않습니다."
+  ],
+  "total_customers": 300,
+  "profiles": [
+    {
+      "type": "salary",
+      "label": "월급 생활형",
+      "count": 80,
+      "file": "salary.json"
+    },
+    {
+      "type": "household",
+      "label": "생활비 관리형",
+      "count": 65,
+      "file": "household.json"
+    },
+    {
+      "type": "irregular_income",
+      "label": "비정기 수입형",
+      "count": 55,
+      "file": "irregular_income.json"
+    },
+    {
+      "type": "small_payments",
+      "label": "소액 결제형",
+      "count": 40,
+      "file": "small_payments.json"
+    },
+    {
+      "type": "occasional",
+      "label": "저빈도 이용형",
+      "count": 35,
+      "file": "occasional.json"
+    },
+    {
+      "type": "loan",
+      "label": "대출 이용형",
+      "count": 25,
+      "file": "loan.json"
+    }
+  ]
+}

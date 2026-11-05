@@ -1,0 +1,2031 @@
+{
+  "version": 2,
+  "synthetic": true,
+  "seed": 20261105,
+  "credential_env": "SIMULATOR_USER_PASSWORD",
+  "timezone": "Asia/Seoul",
+  "runtime_rules": [
+    "비밀번호는 지정한 환경 변수에서만 읽습니다.",
+    "고객별 owner만 실행하며 담당 변경 전 실행 잠금을 인계합니다.",
+    "실제 잔액·세션·대출 상태와 발급된 계좌·카드 ID는 실행 상태 저장소에서 관리합니다.",
+    "초기 자금과 정기 충전은 입금 API로 처리하여 원장을 남깁니다.",
+    "일반 거래는 잔액에서 reserve_balance와 대출 repayment_reserve를 뺀 가용액 안에서 실행합니다.",
+    "잔액 부족 시 자동 무한 충전하지 않고 다음 충전까지 기다립니다.",
+    "수취인 조회 성공 후 송금하며 가맹점은 API가 반환한 업종과 ID에 매핑합니다.",
+    "배치 기준은 실제 한국 날짜입니다. 시간 압축만으로 상환일이 바뀌지 않습니다.",
+    "검증 상황은 명시적으로 활성화하고 평소 행동과 분리합니다.",
+    "실행 기록에는 시도·응답·request_id를 남기고 이벤트 스키마에 개인정보를 추가하지 않습니다."
+  ],
+  "type": "loan",
+  "label": "대출 이용형",
+  "count": 25,
+  "customers": [
+    {
+      "id": "customer-276",
+      "signup": {
+        "name": "가상고객276",
+        "phone_number": "01000000276",
+        "birth_year": 1990,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "new",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          2,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          19
+        ],
+        "timing_jitter_minutes": 18,
+        "active_days_per_week": 4,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 1,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          53000,
+          99000
+        ],
+        "card_payment_amount_range": [
+          5000,
+          7000
+        ],
+        "withdrawal_amount_range": [
+          30000,
+          58000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "편의점"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 4436000,
+          "day_of_month": 10,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 0,
+        "reserve_balance": 327000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 8000000,
+          "term_months": 24,
+          "review_expected": "approved",
+          "repayment_reserve": 333334,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-006",
+          "customer-153",
+          "customer-254",
+          "customer-115",
+          "customer-009"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-277",
+      "signup": {
+        "name": "가상고객277",
+        "phone_number": "01000000277",
+        "birth_year": 1988,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "new",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          21
+        ],
+        "timing_jitter_minutes": 26,
+        "active_days_per_week": 3,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 1,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          21000,
+          41000
+        ],
+        "card_payment_amount_range": [
+          11000,
+          21000
+        ],
+        "withdrawal_amount_range": [
+          51000,
+          95000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3811000,
+          "day_of_month": 10,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 0,
+        "reserve_balance": 297000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "home",
+          "principal_amount": 7000000,
+          "term_months": 120,
+          "review_expected": "approved",
+          "repayment_reserve": 58334,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-272",
+          "customer-053",
+          "customer-006"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-278",
+      "signup": {
+        "name": "가상고객278",
+        "phone_number": "01000000278",
+        "birth_year": 1985,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          2,
+          3,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          21
+        ],
+        "timing_jitter_minutes": 23,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 2,
+          "card_payments": 2,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          16000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          6000,
+          12000
+        ],
+        "withdrawal_amount_range": [
+          65000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3838000,
+          "day_of_month": 20,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1463000,
+        "reserve_balance": 478000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 9000000,
+          "term_months": 12,
+          "review_expected": "approved",
+          "repayment_reserve": 750000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-027",
+          "customer-085"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-279",
+      "signup": {
+        "name": "가상고객279",
+        "phone_number": "01000000279",
+        "birth_year": 1958,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          21
+        ],
+        "timing_jitter_minutes": 25,
+        "active_days_per_week": 3,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 4,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          45000,
+          85000
+        ],
+        "card_payment_amount_range": [
+          25000,
+          40000
+        ],
+        "withdrawal_amount_range": [
+          58000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2890000,
+          "day_of_month": 20,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1016000,
+        "reserve_balance": 420000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 3000000,
+          "term_months": 12,
+          "review_expected": "approved",
+          "repayment_reserve": 250000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-077",
+          "customer-076",
+          "customer-006",
+          "customer-181",
+          "customer-299"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-280",
+      "signup": {
+        "name": "가상고객280",
+        "phone_number": "01000000280",
+        "birth_year": 1997,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 33,
+        "active_days_per_week": 4,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 2,
+          "ledger_views": 2,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          10000,
+          19000
+        ],
+        "card_payment_amount_range": [
+          24000,
+          40000
+        ],
+        "withdrawal_amount_range": [
+          51000,
+          97000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 4245000,
+          "day_of_month": 10,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1726000,
+        "reserve_balance": 378000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "car",
+          "principal_amount": 3000000,
+          "term_months": 60,
+          "review_expected": "approved",
+          "repayment_reserve": 50000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-003",
+          "customer-073",
+          "customer-009",
+          "customer-211"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-281",
+      "signup": {
+        "name": "가상고객281",
+        "phone_number": "01000000281",
+        "birth_year": 1958,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          3,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          21
+        ],
+        "timing_jitter_minutes": 38,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 4,
+          "ledger_views": 4,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          25000,
+          49000
+        ],
+        "card_payment_amount_range": [
+          10000,
+          20000
+        ],
+        "withdrawal_amount_range": [
+          30000,
+          56000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "마트"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2883000,
+          "day_of_month": 5,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1241000,
+        "reserve_balance": 387000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 9000000,
+          "term_months": 12,
+          "review_expected": "approved",
+          "repayment_reserve": 750000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-291",
+          "customer-093"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-282",
+      "signup": {
+        "name": "가상고객282",
+        "phone_number": "01000000282",
+        "birth_year": 1961,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          19
+        ],
+        "timing_jitter_minutes": 10,
+        "active_days_per_week": 4,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 2,
+          "card_payments": 3,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          16000,
+          32000
+        ],
+        "card_payment_amount_range": [
+          10000,
+          20000
+        ],
+        "withdrawal_amount_range": [
+          44000,
+          82000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "카페"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2556000,
+          "day_of_month": 20,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1000000,
+        "reserve_balance": 409000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 5000000,
+          "term_months": 24,
+          "review_expected": "approved",
+          "repayment_reserve": 208334,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-266",
+          "customer-183",
+          "customer-033"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-283",
+      "signup": {
+        "name": "가상고객283",
+        "phone_number": "01000000283",
+        "birth_year": 1989,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          2,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 8,
+        "active_days_per_week": 3,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 3,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          35000,
+          67000
+        ],
+        "card_payment_amount_range": [
+          11000,
+          23000
+        ],
+        "withdrawal_amount_range": [
+          67000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "마트"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2882000,
+          "day_of_month": 10,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1841000,
+        "reserve_balance": 427000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "home",
+          "principal_amount": 7000000,
+          "term_months": 360,
+          "review_expected": "approved",
+          "repayment_reserve": 19445,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-280",
+          "customer-295"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-284",
+      "signup": {
+        "name": "가상고객284",
+        "phone_number": "01000000284",
+        "birth_year": 1970,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          3,
+          4,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 13,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 2,
+          "card_payments": 4,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          64000,
+          100000
+        ],
+        "card_payment_amount_range": [
+          12000,
+          24000
+        ],
+        "withdrawal_amount_range": [
+          53000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "약국",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3587000,
+          "day_of_month": 5,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1664000,
+        "reserve_balance": 395000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 2000000,
+          "term_months": 12,
+          "review_expected": "approved",
+          "repayment_reserve": 166667,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-237",
+          "customer-047",
+          "customer-146"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-285",
+      "signup": {
+        "name": "가상고객285",
+        "phone_number": "01000000285",
+        "birth_year": 1999,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          5
+        ],
+        "preferred_hours": [
+          12,
+          21
+        ],
+        "timing_jitter_minutes": 34,
+        "active_days_per_week": 2,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 4,
+          "ledger_views": 2,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          64000,
+          100000
+        ],
+        "card_payment_amount_range": [
+          26000,
+          40000
+        ],
+        "withdrawal_amount_range": [
+          46000,
+          88000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3567000,
+          "day_of_month": 10,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 627000,
+        "reserve_balance": 323000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "home",
+          "principal_amount": 1000000,
+          "term_months": 360,
+          "review_expected": "approved",
+          "repayment_reserve": 2778,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-060",
+          "customer-045"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-286",
+      "signup": {
+        "name": "가상고객286",
+        "phone_number": "01000000286",
+        "birth_year": 1977,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          1,
+          2,
+          3,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          19
+        ],
+        "timing_jitter_minutes": 30,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 1,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          14000,
+          28000
+        ],
+        "card_payment_amount_range": [
+          23000,
+          40000
+        ],
+        "withdrawal_amount_range": [
+          19000,
+          37000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2502000,
+          "day_of_month": 10,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1091000,
+        "reserve_balance": 350000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "home",
+          "principal_amount": 5000000,
+          "term_months": 360,
+          "review_expected": "approved",
+          "repayment_reserve": 13889,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-039",
+          "customer-007"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-287",
+      "signup": {
+        "name": "가상고객287",
+        "phone_number": "01000000287",
+        "birth_year": 1981,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          6
+        ],
+        "preferred_hours": [
+          12,
+          21
+        ],
+        "timing_jitter_minutes": 9,
+        "active_days_per_week": 3,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 4,
+          "ledger_views": 4,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          24000,
+          46000
+        ],
+        "card_payment_amount_range": [
+          19000,
+          37000
+        ],
+        "withdrawal_amount_range": [
+          39000,
+          73000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "약국"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 4133000,
+          "day_of_month": 25,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1457000,
+        "reserve_balance": 421000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 2000000,
+          "term_months": 24,
+          "review_expected": "approved",
+          "repayment_reserve": 83334,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-064",
+          "customer-033",
+          "customer-034"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-288",
+      "signup": {
+        "name": "가상고객288",
+        "phone_number": "01000000288",
+        "birth_year": 2003,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          1,
+          4,
+          5
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 27,
+        "active_days_per_week": 3,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 2,
+          "card_payments": 2,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          58000,
+          100000
+        ],
+        "card_payment_amount_range": [
+          11000,
+          23000
+        ],
+        "withdrawal_amount_range": [
+          39000,
+          75000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2985000,
+          "day_of_month": 15,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1843000,
+        "reserve_balance": 223000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "car",
+          "principal_amount": 4000000,
+          "term_months": 24,
+          "review_expected": "approved",
+          "repayment_reserve": 166667,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-016",
+          "customer-144"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-289",
+      "signup": {
+        "name": "가상고객289",
+        "phone_number": "01000000289",
+        "birth_year": 2003,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          5,
+          6
+        ],
+        "preferred_hours": [
+          19,
+          21
+        ],
+        "timing_jitter_minutes": 13,
+        "active_days_per_week": 4,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 4,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          51000,
+          97000
+        ],
+        "card_payment_amount_range": [
+          11000,
+          21000
+        ],
+        "withdrawal_amount_range": [
+          55000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 4063000,
+          "day_of_month": 15,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 675000,
+        "reserve_balance": 395000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 8000000,
+          "term_months": 12,
+          "review_expected": "approved",
+          "repayment_reserve": 666667,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-296",
+          "customer-199",
+          "customer-031",
+          "customer-026"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-290",
+      "signup": {
+        "name": "가상고객290",
+        "phone_number": "01000000290",
+        "birth_year": 1992,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          2,
+          3,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          19
+        ],
+        "timing_jitter_minutes": 43,
+        "active_days_per_week": 3,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 2,
+          "card_payments": 2,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          49000,
+          91000
+        ],
+        "card_payment_amount_range": [
+          14000,
+          28000
+        ],
+        "withdrawal_amount_range": [
+          32000,
+          60000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "마트"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3747000,
+          "day_of_month": 5,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1180000,
+        "reserve_balance": 459000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "car",
+          "principal_amount": 3000000,
+          "term_months": 24,
+          "review_expected": "approved",
+          "repayment_reserve": 125000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-241",
+          "customer-054",
+          "customer-098",
+          "customer-069"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-291",
+      "signup": {
+        "name": "가상고객291",
+        "phone_number": "01000000291",
+        "birth_year": 2005,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          4,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          21
+        ],
+        "timing_jitter_minutes": 23,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 2,
+          "card_payments": 4,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          10000,
+          13000
+        ],
+        "card_payment_amount_range": [
+          13000,
+          25000
+        ],
+        "withdrawal_amount_range": [
+          18000,
+          36000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2839000,
+          "day_of_month": 5,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1371000,
+        "reserve_balance": 366000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 4000000,
+          "term_months": 24,
+          "review_expected": "approved",
+          "repayment_reserve": 166667,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-229",
+          "customer-007",
+          "customer-231",
+          "customer-183",
+          "customer-187"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-292",
+      "signup": {
+        "name": "가상고객292",
+        "phone_number": "01000000292",
+        "birth_year": 1975,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          5,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 21,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 4,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          43000,
+          81000
+        ],
+        "card_payment_amount_range": [
+          24000,
+          40000
+        ],
+        "withdrawal_amount_range": [
+          65000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "마트"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2735000,
+          "day_of_month": 10,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1390000,
+        "reserve_balance": 444000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "home",
+          "principal_amount": 3000000,
+          "term_months": 120,
+          "review_expected": "approved",
+          "repayment_reserve": 25000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-234",
+          "customer-045",
+          "customer-213",
+          "customer-029"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-293",
+      "signup": {
+        "name": "가상고객293",
+        "phone_number": "01000000293",
+        "birth_year": 1996,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          2,
+          5
+        ],
+        "preferred_hours": [
+          12,
+          19
+        ],
+        "timing_jitter_minutes": 20,
+        "active_days_per_week": 4,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 1,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          69000,
+          100000
+        ],
+        "card_payment_amount_range": [
+          13000,
+          25000
+        ],
+        "withdrawal_amount_range": [
+          56000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "마트"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3287000,
+          "day_of_month": 20,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1085000,
+        "reserve_balance": 299000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "car",
+          "principal_amount": 9000000,
+          "term_months": 120,
+          "review_expected": "approved",
+          "repayment_reserve": 75000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-008",
+          "customer-206",
+          "customer-208",
+          "customer-079",
+          "customer-168"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-294",
+      "signup": {
+        "name": "가상고객294",
+        "phone_number": "01000000294",
+        "birth_year": 2000,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          3,
+          4,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 5,
+        "active_days_per_week": 3,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 3,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          63000,
+          100000
+        ],
+        "card_payment_amount_range": [
+          28000,
+          40000
+        ],
+        "withdrawal_amount_range": [
+          10000,
+          15000
+        ],
+        "preferred_merchant_categories": [
+          "약국",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3309000,
+          "day_of_month": 5,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1359000,
+        "reserve_balance": 259000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "home",
+          "principal_amount": 6000000,
+          "term_months": 360,
+          "review_expected": "approved",
+          "repayment_reserve": 16667,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-151",
+          "customer-134",
+          "customer-167",
+          "customer-269"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-295",
+      "signup": {
+        "name": "가상고객295",
+        "phone_number": "01000000295",
+        "birth_year": 1980,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 37,
+        "active_days_per_week": 2,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 3,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          42000,
+          80000
+        ],
+        "card_payment_amount_range": [
+          21000,
+          39000
+        ],
+        "withdrawal_amount_range": [
+          53000,
+          99000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3956000,
+          "day_of_month": 10,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1890000,
+        "reserve_balance": 483000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "home",
+          "principal_amount": 7000000,
+          "term_months": 240,
+          "review_expected": "approved",
+          "repayment_reserve": 29167,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-105",
+          "customer-259",
+          "customer-162",
+          "customer-026",
+          "customer-169"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-296",
+      "signup": {
+        "name": "가상고객296",
+        "phone_number": "01000000296",
+        "birth_year": 1972,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          2,
+          4,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 9,
+        "active_days_per_week": 2,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 2,
+          "card_payments": 4,
+          "ledger_views": 4,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          64000,
+          100000
+        ],
+        "card_payment_amount_range": [
+          28000,
+          40000
+        ],
+        "withdrawal_amount_range": [
+          46000,
+          88000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3099000,
+          "day_of_month": 20,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1742000,
+        "reserve_balance": 265000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "car",
+          "principal_amount": 6000000,
+          "term_months": 48,
+          "review_expected": "approved",
+          "repayment_reserve": 125000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-156",
+          "customer-178"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-297",
+      "signup": {
+        "name": "가상고객297",
+        "phone_number": "01000000297",
+        "birth_year": 1988,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          4,
+          7
+        ],
+        "preferred_hours": [
+          19,
+          21
+        ],
+        "timing_jitter_minutes": 35,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 2,
+          "card_payments": 3,
+          "ledger_views": 4,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          29000,
+          55000
+        ],
+        "card_payment_amount_range": [
+          23000,
+          40000
+        ],
+        "withdrawal_amount_range": [
+          39000,
+          75000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3355000,
+          "day_of_month": 5,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1558000,
+        "reserve_balance": 489000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 7000000,
+          "term_months": 12,
+          "review_expected": "approved",
+          "repayment_reserve": 583334,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-156",
+          "customer-013"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-298",
+      "signup": {
+        "name": "가상고객298",
+        "phone_number": "01000000298",
+        "birth_year": 1972,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          3,
+          4,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 38,
+        "active_days_per_week": 4,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 2,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          46000,
+          86000
+        ],
+        "card_payment_amount_range": [
+          16000,
+          30000
+        ],
+        "withdrawal_amount_range": [
+          37000,
+          69000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 4226000,
+          "day_of_month": 20,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1097000,
+        "reserve_balance": 421000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 7000000,
+          "term_months": 12,
+          "review_expected": "approved",
+          "repayment_reserve": 583334,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-255",
+          "customer-173",
+          "customer-152",
+          "customer-266"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-299",
+      "signup": {
+        "name": "가상고객299",
+        "phone_number": "01000000299",
+        "birth_year": 1956,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          2,
+          3,
+          4
+        ],
+        "preferred_hours": [
+          19,
+          21
+        ],
+        "timing_jitter_minutes": 25,
+        "active_days_per_week": 2,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 3,
+          "ledger_views": 2,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          56000,
+          100000
+        ],
+        "card_payment_amount_range": [
+          21000,
+          39000
+        ],
+        "withdrawal_amount_range": [
+          39000,
+          73000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "편의점"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 2605000,
+          "day_of_month": 20,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 1614000,
+        "reserve_balance": 269000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "jeonse",
+          "principal_amount": 9000000,
+          "term_months": 24,
+          "review_expected": "approved",
+          "repayment_reserve": 375000,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-227",
+          "customer-057",
+          "customer-008",
+          "customer-151",
+          "customer-054"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-300",
+      "signup": {
+        "name": "가상고객300",
+        "phone_number": "01000000300",
+        "birth_year": 1998,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "loan",
+        "label": "대출 이용형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          4,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          19,
+          21
+        ],
+        "timing_jitter_minutes": 17,
+        "active_days_per_week": 3,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 2,
+          "ledger_views": 4,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          60000,
+          100000
+        ],
+        "card_payment_amount_range": [
+          11000,
+          21000
+        ],
+        "withdrawal_amount_range": [
+          32000,
+          62000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "monthly",
+          "amount": 3132000,
+          "day_of_month": 15,
+          "weekday": null,
+          "interval_days": null
+        },
+        "initial_funding_amount": 969000,
+        "reserve_balance": 252000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": {
+          "product_code": "home",
+          "principal_amount": 6000000,
+          "term_months": 360,
+          "review_expected": "approved",
+          "repayment_reserve": 16667,
+          "note": "승인은 직원 API, 상환은 일별 배치가 담당합니다."
+        },
+        "recipient_customer_ids": [
+          "customer-183",
+          "customer-020"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    }
+  ]
+}
