@@ -4,6 +4,29 @@ Analyzed on 2026-11-05 (Asia/Seoul). This document describes the existing host-s
 
 ## Start here
 
+### Monitoring extension (2026-11-06)
+
+The deployment now includes ten VMs. Terraform module `deploy/terraform/monitoring` manages the three monitoring clones: Prometheus `192.168.0.198:9090`, Loki `192.168.0.199:3100`, and Grafana `192.168.0.200:3000`. All three use a bridged VMnet0 primary NIC and a VMnet1 management NIC. The existing seven application/database VMs are not recreated by this module. Preserve the controller's Terraform state; state and VM disks are not Git artifacts. The provider's clone description is kept equal to the base template description because version 2.0.1 cannot reliably update that field.
+
+`deploy/ansible/monitoring.yml` installs the services and provisions both Grafana data sources. Node exporter runs on all ten VMs. Prometheus scrapes ten node exporters, itself, Loki and Grafana (13 targets total). This does not instrument FastAPI business/request metrics: the backend still has no `/metrics` endpoint. Prometheus retains metrics for 15 days. Loki stores logs under `/var/lib/loki`, with seven-day retention. Grafana persists its database under `/var/lib/grafana`. Reapplying installation/configuration does not reset these data directories.
+
+Alloy runs as a separate service on each API VM. It reads `/var/log/podobank/api-1.log` or `api-2.log`, plus the `podobank-api.service` journal. The labels `instance=api-1|api-2` and `log_type=event|service` distinguish these streams. Event JSON fields such as request IDs remain in the log body rather than becoming stream labels. The Grafana repository packages are installed only if absent; repeat runs do not implicitly upgrade them.
+
+Set `LOKI_PUSH_URL=http://192.168.0.199:3100/loki/api/v1/push` in private `deploy/vm/vm.env`. Copy `monitoring.env.example` to private `deploy/vm/monitoring.env` and configure `GRAFANA_ADMIN_PASSWORD`; this password is copied only to the Grafana VM's private `/etc/grafana/podobank.env`. Grafana login user is `admin`. That environment variable bootstraps a new Grafana database; changing it later does not automatically rotate an existing account password. No credential value belongs in Git or documentation.
+
+From the existing WSL controller repository, use:
+
+```bash
+bash deploy/monitoring.sh --verify
+```
+
+The wrapper validates inventory/settings, applies Terraform, applies Ansible, then verifies Prometheus targets and Grafana data sources. It issues real invalid-login API requests through nginx and checks the resulting events and service journal entries in Loki for both API instances. These are intentional failed-login events for nonexistent random users, not direct database inserts. Skip `--verify` to apply with only the service readiness checks. The full application `site.yml` can include this installation with `-e monitoring_enabled=true`; leave that flag off when deploying only the original application stack.
+
+In Grafana Explore, select Loki and query `{log_type="event"}` or `{log_type="service"}`. The Prometheus source supports `up` and standard `node_*` system metrics. Data sources are provisioned automatically; dashboards are not provisioned by this change. Monitoring interfaces are restricted by UFW to the assigned LAN; Loki and Prometheus currently use no application authentication, while Grafana requires login. Remote networks require an explicit network access design.
+
+Official references: [Grafana package installation](https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/), [Loki installation](https://grafana.com/docs/loki/latest/setup/install/local/), [Alloy journal collection](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.journal/).
+
+
 ### Current full-stack deployment (supersedes the nginx-only preview)
 
 Credential correction: the application database account and schema are `podobank`. The application password was subsequently changed to the value in the user's local `backend/.env`, replacing the separately generated application password used during initial setup. The master user change replicated to the replica; both API environment files and all installed role-installer environment files were synchronized, and both backend services were restarted. No password value is recorded here.

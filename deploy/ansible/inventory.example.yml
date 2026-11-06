@@ -38,3 +38,20 @@ all:
       hosts:
         mongodb197:
           ansible_host: 192.168.0.197
+    monitoring:
+      children:
+        prometheus:
+          hosts:
+            prometheus198:
+              ansible_host: 192.168.0.198
+              monitoring_port: 9090
+        loki:
+          hosts:
+            loki199:
+              ansible_host: 192.168.0.199
+              monitoring_port: 3100
+        grafana:
+          hosts:
+            grafana200:
+              ansible_host: 192.168.0.200
+              monitoring_port: 3000

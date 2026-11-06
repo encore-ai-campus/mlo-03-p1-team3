@@ -320,3 +320,13 @@ nginx.pid
 
 ### VM 설치 값 (IP·비밀번호) ###
 deploy/vm/vm.env
+
+### Terraform runtime state and local overrides ###
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+deploy/vm/monitoring.env

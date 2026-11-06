@@ -131,7 +131,7 @@
         or '27017/tcp' not in mongodb_firewall_status.stdout
 
 - name: Remove MongoDB deployment credentials from the other VMs
-  hosts: all:!mongodb
+  hosts: nginx:haproxy:api:mariadb_master:mariadb_replica
   become: true
   gather_facts: false
   tasks:

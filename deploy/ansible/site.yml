@@ -1,6 +1,6 @@
 ---
 - name: Prepare all existing bridged VMs for the role installers
-  hosts: all
+  hosts: nginx:haproxy:api:mariadb_master:mariadb_replica:mongodb
   become: true
   gather_facts: false
   tasks:
@@ -164,6 +164,10 @@
         - /openapi.json
         - /api/v1/health
 
+# Opt in after setting LOKI_PUSH_URL in private vm.env.
+- ansible.builtin.import_playbook: alloy.yml
+  when: (alloy_enabled | default(false) | bool) and not (monitoring_enabled | default(false) | bool)
+
 - name: Install HAProxy pointing at the API VMs
   hosts: haproxy
   become: true
@@ -196,3 +200,6 @@
         - /docs
         - /openapi.json
         - /api/v1/health
+
+- ansible.builtin.import_playbook: monitoring.yml
+  when: monitoring_enabled | default(false) | bool
