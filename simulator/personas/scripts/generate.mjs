@@ -132,10 +132,10 @@ assignments.push({ customer_id: loanCustomer.id, scenario: 'repayment_overdue_re
   preconditions: ['승인된 대출과 도래한 상환 회차를 준비합니다.', '납부액보다 적은 잔액으로 배치를 실행하고 다음 날 충분히 충전합니다.'],
   expected: '연체 후 다음 날 자동 재시도로 납부되며 원장과 잔액이 일치해야 합니다.' });
 const contract = {
-  version: 2, synthetic: true, seed: config.seed, credential_env: config.credential_env,
+  version: 2, synthetic: true, seed: config.seed,
   timezone: config.timezone,
   runtime_rules: [
-    '비밀번호는 지정한 환경 변수에서만 읽습니다.',
+    '기본 비밀번호는 고객 ID에서 파생하며, 필요하면 Git 제외 로컬 자격 증명 파일로 합성 고객별 값을 지정합니다. 로그에는 기록하지 않습니다.',
     '고객별 owner만 실행하며 담당 변경 전 실행 잠금을 인계합니다.',
     '실제 잔액·세션·대출 상태와 발급된 계좌·카드 ID는 실행 상태 저장소에서 관리합니다.',
     '초기 자금과 정기 충전은 입금 API로 처리하여 원장을 남깁니다.',
