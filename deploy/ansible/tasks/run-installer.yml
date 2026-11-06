@@ -1,0 +1,18 @@
+---
+- name: "Run existing installer: {{ role_script }}"
+  ansible.builtin.command:
+    argv:
+      - bash
+      - "/opt/podobank-installer/deploy/vm/{{ role_script }}"
+  environment:
+    VM_ENV: /opt/podobank-installer/deploy/vm/vm.env
+    DEBIAN_FRONTEND: noninteractive
+    INSTANCE_NAME: "{{ api_instance | default('') }}"
+    MIGRATE: "{{ migrate_schema | default('0') }}"
+  register: role_install_result
+  # SQL errors and package tooling can include credentials in their output.
+  no_log: true
+
+- name: "Confirm installer completed: {{ role_script }}"
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: {{ role_script }} exited with code {{ role_install_result.rc }}"

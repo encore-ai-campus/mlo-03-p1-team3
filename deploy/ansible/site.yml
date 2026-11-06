@@ -1,0 +1,198 @@
+---
+- name: Prepare all existing bridged VMs for the role installers
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Validate the actual vm.env against all inventory IPs before changes
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ playbook_dir }}/validate-env.py"
+          - "{{ playbook_dir }}/../vm/vm.env"
+          - "{{ expected_deployment_ips | to_json }}"
+      vars:
+        expected_deployment_ips:
+          NGINX_IP: "{{ hostvars[groups['nginx'][0]].ansible_host }}"
+          HAPROXY_IP: "{{ hostvars[groups['haproxy'][0]].ansible_host }}"
+          API1_IP: "{{ hostvars['api-1'].ansible_host }}"
+          API2_IP: "{{ hostvars['api-2'].ansible_host }}"
+          MARIADB_MASTER_IP: "{{ hostvars[groups['mariadb_master'][0]].ansible_host }}"
+          MARIADB_REPLICA_IP: "{{ hostvars[groups['mariadb_replica'][0]].ansible_host }}"
+          MONGODB_IP: "{{ hostvars[groups['mongodb'][0]].ansible_host }}"
+          MARIADB_CLIENT_SUBNET: 192.168.0.%
+          MONGODB_CLIENT_CIDR: 192.168.0.0/24
+      delegate_to: localhost
+      become: false
+      run_once: true
+      changed_when: false
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+    - name: Wait for cloud-init
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+    - name: Set the VM hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+    - name: Create installer directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /opt/podobank-installer/deploy
+        - /opt/podobank-installer/deploy/vm
+    - name: Copy existing role installation scripts and service definition
+      ansible.builtin.copy:
+        src: "../vm/{{ item }}"
+        dest: "/opt/podobank-installer/deploy/vm/{{ item }}"
+        mode: '0755'
+      loop:
+        - common.sh
+        - api.sh
+        - mariadb-master.sh
+        - mariadb-replica.sh
+        - mongodb.sh
+        - haproxy.sh
+        - nginx.sh
+        - podobank-api.service
+    - name: Copy proxy configuration templates
+      ansible.builtin.copy:
+        src: "../{{ item }}"
+        dest: "/opt/podobank-installer/deploy/{{ item }}"
+        mode: '0644'
+      loop:
+        - nginx.conf
+        - haproxy.cfg
+    - name: Copy private vm.env
+      ansible.builtin.copy:
+        content: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/../vm/vm.env') | regex_replace('(?m)^MONGODB_ADMIN_PASSWORD=[^\\r\\n]*\\r?\\n?', '') }}"
+        dest: /opt/podobank-installer/deploy/vm/vm.env
+        mode: '0600'
+      no_log: true
+
+- name: Install MariaDB master
+  hosts: mariadb_master
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.import_tasks: tasks/run-installer.yml
+      vars:
+        role_script: mariadb-master.sh
+
+- name: Install and connect the new MariaDB replica before schema migration
+  hosts: mariadb_replica
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.import_tasks: tasks/run-installer.yml
+      vars:
+        role_script: mariadb-replica.sh
+    - name: Verify both replication threads
+      ansible.builtin.command: mariadb -e "SHOW SLAVE STATUS\G"
+      register: replica_status
+      changed_when: false
+      failed_when: "'Slave_IO_Running: Yes' not in replica_status.stdout or 'Slave_SQL_Running: Yes' not in replica_status.stdout"
+      no_log: true
+
+- name: Install MongoDB
+  hosts: mongodb
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install the database firewall utility
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+        lock_timeout: 300
+    - name: Permit management SSH before enabling firewall
+      ansible.builtin.command: "ufw allow from {{ item }} to any port 22 proto tcp"
+      loop:
+        - 192.168.0.0/24
+        - 192.168.222.0/24
+    - name: Permit MongoDB clients from the configured LAN subnet
+      ansible.builtin.command: "ufw allow from 192.168.0.0/24 to any port 27017 proto tcp"
+      register: mongodb_firewall_rule
+      changed_when: "'Skipping adding existing rule' not in mongodb_firewall_rule.stdout"
+    - name: Enable the database firewall
+      ansible.builtin.command: ufw --force enable
+    - name: Copy MongoDB deployment credentials only to this VM
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../vm/vm.env"
+        dest: /opt/podobank-installer/deploy/vm/vm.env
+        mode: '0600'
+      no_log: true
+    - ansible.builtin.import_tasks: tasks/run-installer.yml
+      vars:
+        role_script: mongodb.sh
+
+- name: Deploy the real project backend to both API VMs
+  hosts: api
+  serial: 1
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Inspect the previous minimal preview service
+      ansible.builtin.stat:
+        path: /etc/systemd/system/fastapi-preview.service
+      register: preview_service
+    - name: Stop and disable the previous minimal preview
+      ansible.builtin.systemd:
+        name: fastapi-preview
+        state: stopped
+        enabled: false
+      when: preview_service.stat.exists
+    - ansible.builtin.import_tasks: tasks/run-installer.yml
+      vars:
+        role_script: api.sh
+    - name: Verify the backend entry point was installed
+      ansible.builtin.stat:
+        path: /opt/podobank/backend/app/main.py
+      register: backend_entrypoint
+    - name: Require the actual project code on the VM
+      ansible.builtin.assert:
+        that: backend_entrypoint.stat.exists
+    - name: Verify real backend docs and database health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8000{{ item }}"
+        status_code: 200
+      loop:
+        - /docs
+        - /openapi.json
+        - /api/v1/health
+
+- name: Install HAProxy pointing at the API VMs
+  hosts: haproxy
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.import_tasks: tasks/run-installer.yml
+      vars:
+        role_script: haproxy.sh
+    - name: Verify HAProxy backend routing
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/api/v1/health
+        status_code: 200
+      retries: 10
+      delay: 2
+      register: haproxy_health
+      until: haproxy_health.status == 200
+
+- ansible.builtin.import_playbook: nginx.yml
+
+- name: Verify the complete browser-facing backend route
+  hosts: nginx
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Verify docs, schema and health through nginx and HAProxy
+      ansible.builtin.uri:
+        url: "http://127.0.0.1{{ item }}"
+        status_code: 200
+      loop:
+        - /docs
+        - /openapi.json
+        - /api/v1/health

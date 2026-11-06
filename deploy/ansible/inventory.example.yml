@@ -1,0 +1,40 @@
+all:
+  vars:
+    ansible_user: playdata
+    ansible_ssh_private_key_file: /home/playdata/.config/vmware-workstation-demo/demo_ed25519
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_ssh_common_args: >-
+      -o StrictHostKeyChecking=accept-new
+      -o UserKnownHostsFile=/home/playdata/.config/vmware-workstation-demo/known_hosts-full-deploy
+      -o "ProxyCommand=bash /mnt/c/Users/Playdata/Documents/temp/vmware-workstation-wsl-example/guest-proxy.sh %h %p"
+  children:
+    nginx:
+      hosts:
+        nginx191:
+          ansible_host: 192.168.0.191
+    haproxy:
+      hosts:
+        haproxy192:
+          ansible_host: 192.168.0.192
+    api:
+      hosts:
+        api-1:
+          ansible_host: 192.168.0.193
+          api_instance: api-1
+          migrate_schema: '1'
+        api-2:
+          ansible_host: 192.168.0.194
+          api_instance: api-2
+          migrate_schema: '0'
+    mariadb_master:
+      hosts:
+        mariadb-master195:
+          ansible_host: 192.168.0.195
+    mariadb_replica:
+      hosts:
+        mariadb-replica196:
+          ansible_host: 192.168.0.196
+    mongodb:
+      hosts:
+        mongodb197:
+          ansible_host: 192.168.0.197

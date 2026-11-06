@@ -45,7 +45,7 @@ log "환경 변수 (${ENV_FILE}, 값은 출력하지 않음)"
 umask 027
 cat > "$ENV_FILE" <<EOF
 MARIADB_URL=mysql+pymysql://podobank:${MARIADB_PASSWORD}@${MARIADB_MASTER_IP}:3306/podobank
-MONGODB_URL=mongodb://${MONGODB_IP}:27017
+MONGODB_URL=mongodb://podobank:${MARIADB_PASSWORD}@${MONGODB_IP}:27017/podobank?authSource=podobank
 MONGODB_DB=podobank
 INSTANCE_NAME=${INSTANCE_NAME}
 EVENT_LOG_PATH=${LOG_DIR}/${INSTANCE_NAME}.log
