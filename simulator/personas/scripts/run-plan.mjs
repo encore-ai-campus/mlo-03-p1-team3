@@ -7,11 +7,12 @@ import {
   responseResult, submitAndWait, createWriteHooks, authenticate, logIn, accountBalance,
   deposit, transfer, viewLedger, createBrowserPage, closeSession, cleanError, routeUrl, navigatePage, waitForPageReady, waitForApiReads,
 } from './run-playwright.mjs'
-import { validatePlan, toCustomer, executePlan } from './plan.mjs'
+import { validatePlan, toCustomer, executePlan, withLoanApprovals } from './plan.mjs'
+import { loadEmployeeCredentials, makeEmployeeReviewer, verifyDisbursement } from './employee-review.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CATEGORY = { convenience: '편의점', cafe: '카페', restaurant: '음식점', grocery: '마트', gas_station: '주유소', pharmacy: '약국' }
-const HELP = '사용법: npm run simulate -- --plan planner/data/plan_YYYY-MM-DD.jsonl --concurrency 10 --allow-remote --headed\n옵션: --profiles FILE (기본: 계획과 같은 폴더의 profiles.json), --dry-run, --retry-failed-reads (실패한 조회만 재시도), --limit N (계획 사용자 수), --all, --once\n전체 계획을 빠르게 재생하며 실제 시각은 서버가 기록합니다. 첫 실행은 600명 가입·초기 입금을 준비합니다.'
+const HELP = '사용법: npm run simulate -- --plan planner/data/plan_YYYY-MM-DD.jsonl --concurrency 10 --allow-remote --headed\n옵션: --profiles FILE (기본: 계획과 같은 폴더의 profiles.json), --dry-run, --approve-loans (신청 후 직원 API 승인), --retry-failed-reads (실패한 조회만 재시도), --limit N (계획 사용자 수), --all, --once\n전체 계획을 빠르게 재생하며 실제 시각은 서버가 기록합니다. 첫 실행은 600명 가입·초기 입금을 준비합니다.'
 
 export function parsePlanArgs(args) {
   const o = { concurrency: 10, headed: false, allowRemote: false, dryRun: false }
@@ -24,6 +25,7 @@ export function parsePlanArgs(args) {
     } else if (a === '--headed') o.headed = true
     else if (a === '--allow-remote') o.allowRemote = true
     else if (a === '--dry-run') o.dryRun = true
+    else if (a === '--approve-loans') o.approveLoans = true
     else if (a === '--retry-failed-reads') o.retryFailedReads = true
     else if (a === '--help' || a === '-h') o.help = true
     else if (!['--all', '--once'].includes(a)) throw new SimulatorError('unsupported_plan_option')
@@ -34,6 +36,7 @@ export function parsePlanArgs(args) {
     o.limit = Number(o.limit)
     if (!Number.isSafeInteger(o.limit) || o.limit < 1) throw new SimulatorError('invalid_limit')
   }
+  if (o.approveLoans && o.retryFailedReads) throw new SimulatorError('approval_not_allowed_with_read_retry')
   if (!o.help && !o.plan) throw new SimulatorError('plan_file_required')
   return o
 }
@@ -87,7 +90,7 @@ export function selectLoanProduct(products, params) {
     && p.term_options.includes(params.preferred_term_months)) ?? null
 }
 
-export function makeDriver({ browser, base, state, seed, profiles, report }) {
+export function makeDriver({ browser, base, state, seed, profiles, report, reviewer }) {
   const customers = new Map(profiles.map(p => [p.sim_user_id, toCustomer(p)]))
   async function newSession(profile, deviceId) {
     const customer = customers.get(profile.sim_user_id)
@@ -107,7 +110,10 @@ export function makeDriver({ browser, base, state, seed, profiles, report }) {
         if (entry.write_in_flight) throw new SimulatorError('manual_review_required')
         const s = await newSession(profile, profile.primary_device_id)
         try {
-          const auth = await authenticate(s.page, base, s.customer, passwordFor(id, seed))
+          // A recorded backend mapping means this customer is already registered.
+          const auth = entry.backend_user_id
+            ? { created: false, result: await logIn(s.page, base, s.customer, passwordFor(id, seed)) }
+            : await authenticate(s.page, base, s.customer, passwordFor(id, seed))
           entry.session_status = 'authenticated'
           await s.page.waitForURL(routeUrl(base, '/'))
           const me = await navigateRead(s.page, base, '/me', '/auth/me')
@@ -156,6 +162,44 @@ export function makeDriver({ browser, base, state, seed, profiles, report }) {
       const entry = state.customers[customer.id]
       const hooks = createWriteHooks(customer, row.action, state)
       let result
+      if (row.action === 'loan_approve') {
+        if (!reviewer) throw new SimulatorError('employee_reviewer_required')
+        const application = state.plans[row.params.application_plan_id]
+        if (application?.outcome !== 'success' || !Number.isSafeInteger(application.application_id)) {
+          return { skipped: 'application_id_not_recorded_for_plan' }
+        }
+        const applicationId = application.application_id
+        const live = await loanScreen(page, base)
+        const loan = live.loans.body.find(l => l.application_id === applicationId)
+        if (!loan || loan.status !== 'pending') throw new SimulatorError('planned_loan_is_not_pending')
+        const before = await accountBalance(page, base)
+        const ledgerBefore = await viewLedger(page, base)
+        let approved
+        try { approved = await reviewer.approve(applicationId, { beforePost: () => hooks.begin() }) }
+        catch (e) { await hooks.fail(e); throw e }
+        // Preserve acknowledgement before UI checks; an interrupted verification must never resubmit approval.
+        state.loanApprovals ??= {}
+        state.loanApprovals[row.plan_id] = { application_id: applicationId, request_id: approved.requestId, status: 'confirmed' }
+        delete entry.write_in_flight
+        await saveState(state)
+        try {
+          const fresh = await loanScreen(page, base)
+          const updated = fresh.loans.body.find(l => l.application_id === applicationId)
+          if (updated?.status !== 'repaying' || updated.installments?.length !== loan.term_months) throw Error('loan_not_repaying')
+          let ledger, verified = false
+          for (let attempt = 0; attempt < 3 && !verified; attempt++) {
+            const balance = await accountBalance(page, base)
+            ledger = await viewLedger(page, base)
+            verified = verifyDisbursement(before, ledgerBefore.body.items, balance, ledger.body.items, loan.principal_amount)
+          }
+          if (!verified) throw Error('disbursement_or_balance_not_verified')
+          state.loanApprovals[row.plan_id].status = 'verified'
+          await saveState(state)
+          return { ...approved, applicationId, verificationRequestIds: [fresh.loans.requestId, ledger.requestId] }
+        } catch {
+          throw new SimulatorError('loan_approval_postcheck_failed', { requestId: approved.requestId, status: approved.status, uncertain: true })
+        }
+      }
       if (row.action === 'account_view') return navigateRead(page, base, '/accounts', '/accounts/me')
       if (row.action === 'history_view') return viewLedger(page, base)
       if (['transfer', 'withdrawal', 'card_payment'].includes(row.action)) {
@@ -212,7 +256,9 @@ export async function main(args) {
     const path = resolve(o.plan), profilePath = resolve(o.profiles ?? resolve(dirname(path), 'profiles.json'))
     const profiles = JSON.parse(await readFile(profilePath, 'utf8'))
     let rows = (await readFile(path, 'utf8')).split(/\r?\n/).filter(s => s.trim()).map(s => JSON.parse(s))
+    if (o.approveLoans) rows = withLoanApprovals(rows)
     validatePlan(profiles, rows)
+    if (rows.some(r => r.action === 'loan_approve') && !o.approveLoans) throw new SimulatorError('loan_approval_requires_flag')
     if (o.limit) {
       const ids = new Set([...new Set(rows.map(r => r.sim_user_id))].slice(0, o.limit))
       rows = rows.filter(r => ids.has(r.sim_user_id))
@@ -222,6 +268,7 @@ export async function main(args) {
       active_users: new Set(rows.map(r => r.sim_user_id)).size, plan_rows: rows.length,
       concurrency: o.concurrency, timing: 'accelerated_per_customer_order' }))
     if (o.dryRun) return
+    const credentials = o.approveLoans ? await loadEmployeeCredentials(resolve(ROOT, '../backend/.env')) : null
     const key = createHash('sha256').update(base).digest('hex').slice(0, 12)
     const stateDir = resolve(ROOT, 'planner/data'), stateFile = resolve(stateDir, `execution-${key}.json`)
     await mkdir(stateDir, { recursive: true })
@@ -236,10 +283,12 @@ export async function main(args) {
       try { state = JSON.parse(await readFile(stateFile, 'utf8')) }
       catch (e) { if (e.code !== 'ENOENT') throw e; state = { version: 1, customers: {}, plans: {} } }
       useStateFile(state, stateFile)
-      const { chromium } = await import('playwright')
+      const { chromium, request } = await import('playwright')
       const browser = await chromium.launch({ headless: !o.headed })
       try {
-        const driver = makeDriver({ browser, base, state, seed, profiles, report })
+        const reviewer = credentials ? makeEmployeeReviewer({ request, base, credentials, report }) : null
+        if (reviewer) await reviewer.verify()
+        const driver = makeDriver({ browser, base, state, seed, profiles, report, reviewer })
         const summary = await executePlan({ profiles, rows, concurrency: o.concurrency, state, save: saveState, report, driver, retryFailedReads: o.retryFailedReads })
         console.log(JSON.stringify({ phase: 'summary', ...summary }))
         if ((summary.outcomes.failed ?? 0) + (summary.outcomes.unknown ?? 0) > 0 || summary.prepared_users < profiles.length) process.exitCode = 1
@@ -248,7 +297,7 @@ export async function main(args) {
   } catch (e) {
     const known = e instanceof SimulatorError ? e.code : [
       'empty_plan_or_profiles', 'invalid_profile', 'invalid_plan_row', 'invalid_planned_amount',
-      'invalid_planned_recipient', 'invalid_merchant_category', 'invalid_loan_plan', 'invalid_plan_session',
+      'invalid_planned_recipient', 'invalid_merchant_category', 'invalid_loan_plan', 'invalid_loan_approval_plan', 'invalid_plan_session',
       'changed_plan_id_requires_new_plan', 'invalid_concurrency',
     ].includes(e.message) ? e.message : e.code === 'ENOENT' ? 'plan_or_profiles_file_missing' : 'plan_execution_failed'
     console.error('simulator plan error: ' + known)

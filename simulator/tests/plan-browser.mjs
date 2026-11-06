@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { resolve, extname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { chromium } from 'playwright'
-import { executePlan } from '../personas/scripts/plan.mjs'
+import { executePlan, withLoanApprovals } from '../personas/scripts/plan.mjs'
 import { makeDriver } from '../personas/scripts/run-plan.mjs'
 import { useStateFile, saveState } from '../personas/scripts/run-playwright.mjs'
 
@@ -44,7 +44,7 @@ const wrappedBrowser = { async newContext(options) {
     if (path === '/auth/signup') {
       if (accounts.has(body.phone_number)) { status = 409; response = { code: 'phone_already_registered' } }
       else {
-        user = { id: accounts.size + 1, name: body.name, role: 'customer', phone: body.phone_number, balance: 0, loans: [] }
+        user = { id: accounts.size + 1, name: body.name, role: 'customer', phone: body.phone_number, balance: 0, loans: [], ledger: [] }
         accounts.set(user.phone, user)
         const token = randomUUID(); sessions.set(token, user)
         extra['set-cookie'] = `test_session=${token}; Path=/; HttpOnly; SameSite=Lax`
@@ -62,7 +62,7 @@ const wrappedBrowser = { async newContext(options) {
     else if (path === '/auth/me') response = { id: user.id, name: user.name, role: user.role }
     else if (path === '/auth/logout') { sessions.delete(cookie); response = { status: 'logged_out' } }
     else if (path === '/accounts/me') response = { account_number: '100-0000-' + user.id, balance: user.balance }
-    else if (path === '/accounts/me/ledger') response = { items: [], limit: 50, offset: 0 }
+    else if (path === '/accounts/me/ledger') response = { items: user.ledger, limit: 50, offset: 0 }
     else if (path === '/cards/me') response = { card_last4: '1234' }
     else if (path === '/merchants') response = [{ id: 'live-cafe', name: '실제 화면 카페', category: '카페', region: '서울', lat: 37.5, lng: 127.0 }]
     else if (path === '/loans/products') response = [product]
@@ -95,20 +95,42 @@ try {
     ['card_payment', { amount_krw: 49000, merchant_category: 'cafe' }], ['deposit', { amount_krw: 73000 }],
     ['withdrawal', { amount_krw: 17000 }], ['loan_products', {}], ['loan_view', {}],
     ['loan_apply', { selection_strategy: 'choose_from_live_loan_products', requested_amount_krw: 21000000, preferred_term_months: 12 }], ['logout', {}] ]
-  const rows = operations.map(([action, params], i) => ({ plan_id: `browser-${i}`, sim_user_id: 'sim-0001', persona_type: 'P01',
-    session_key: 'browser-session', planned_at: `2026-11-06T12:${String(i).padStart(2, '0')}:00+09:00`, action, params, execution_status: 'PLANNED' }))
+  const rows = withLoanApprovals(operations.map(([action, params], i) => ({ plan_id: `browser-${i}`, sim_user_id: 'sim-0001', persona_type: 'P01',
+    session_key: 'browser-session', planned_at: `2026-11-06T12:${String(i).padStart(2, '0')}:00+09:00`, action, params, execution_status: 'PLANNED' })))
   const state = useStateFile({ version: 1, customers: {}, plans: {} }, resolve(temp, 'state.json'))
   const reports = [], report = async r => reports.push(r)
-  const driver = makeDriver({ browser: wrappedBrowser, base, state, seed: randomUUID(), profiles, report })
+  let approvals = 0
+  const reviewer = { async approve(id, { beforePost }) {
+    await beforePost()
+    const customer = accounts.get('01966000001'), loan = customer.loans.find(l => l.application_id === id)
+    assert.equal(loan.status, 'pending')
+    loan.status = 'repaying'
+    loan.installments = Array.from({ length: loan.term_months }, (_, i) => ({ number: i + 1, amount: loan.monthly_installment, status: 'scheduled', due_date: '2026-12-06' }))
+    customer.balance += loan.principal_amount
+    customer.ledger.unshift({ transaction_id: randomUUID(), entry_type: 'loan_disbursement', amount: loan.principal_amount,
+      balance_after: customer.balance, created_at: '2026-11-06T12:00:00+09:00' })
+    approvals++
+    return { body: { status: 'repaying' }, status: 200, requestId: 'isolated-approval-request' }
+  } }
+  const driver = makeDriver({ browser: wrappedBrowser, base, state, seed: randomUUID(), profiles, report, reviewer })
   const summary = await executePlan({ profiles, rows, concurrency: 2, state, save: saveState, report, driver })
-  assert.equal(summary.outcomes.success, 11, JSON.stringify(summary) + '\n' + JSON.stringify(reports.filter(r => r.outcome !== 'success')))
+  assert.equal(summary.outcomes.success, 12, JSON.stringify(summary) + '\n' + JSON.stringify(reports.filter(r => r.outcome !== 'success')))
   assert.equal(state.customers['sim-0001'].opening_funded, 12000000)
   assert.equal(state.customers['sim-0001'].backend_user_id, accounts.get('01966000001').id)
   assert.ok(observed.includes('/transfers') && observed.includes('/cards/payments') && observed.includes('loan_apply'))
   assert.ok(reports.filter(r => r.plan_id).every(r => r.request_id && r.http_status === 200))
   assert.equal(aborted.length, 0, 'Navigation aborted a delayed API read')
   assert.equal(devices.size, 3, 'Primary devices must be stable and the new-device session distinct')
-  console.log('PASS: delayed-read navigation and stable/new UUIDs; 11 plan actions through real frontend/Chromium with isolated API responses; opening deposits split at 10M; mapped recipient, category and live loan product verified.')
+  assert.equal(approvals, 1)
+  assert.equal(state.plans['browser-9'].application_id, 1)
+  assert.equal(state.loanApprovals['browser-9-employee-approval'].status, 'verified')
+  const signupCalls = calls.filter(c => c.path === '/auth/signup').length
+  const financialCalls = observed.length
+  await executePlan({ profiles, rows, concurrency: 2, state, save: saveState, report, driver })
+  assert.equal(approvals, 1, 'Completed approvals must never be replayed')
+  assert.equal(observed.length, financialCalls, 'Completed financial actions must never be replayed')
+  assert.equal(calls.filter(c => c.path === '/auth/signup').length, signupCalls, 'Mapped customers must login directly without duplicate signup attempts')
+  console.log('PASS: 12 plan actions including employee approval, customer loan/balance/ledger verification, delayed-read navigation and no financial replay; real frontend/Chromium with isolated API responses.')
 } finally {
   await browser.close()
   await new Promise(r => server.close(r))

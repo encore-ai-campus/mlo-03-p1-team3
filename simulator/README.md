@@ -34,6 +34,20 @@ SIMULATOR_BASE_URL=http://192.168.0.191 npm run simulate -- --plan planner/data/
 
 `--profiles FILE`로 프로필 경로를 따로 지정할 수 있습니다. 자세한 계획 설명은 [planner/README.md](planner/README.md)를 참고하세요.
 
+### 직원 API로 대출 승인
+
+`--approve-loans`를 붙이면 각 `loan_apply` 바로 뒤에 별도 `loan_approve` 작업을 추가합니다. 고객은 기존 브라우저로 신청하고, 직원은 독립된 Playwright API 세션으로 로그인하여 그 신청만 승인합니다. 직원 화면은 필요하지 않습니다. 실행에는 Node.js 20.12 이상이 필요합니다.
+
+직원 로그인은 저장소 루트의 비공개 `backend/.env`에 있는 `EMPLOYEE_PHONE_NUMBER`, `EMPLOYEE_PASSWORD`를 읽습니다. Ansible로 직원 계정을 먼저 준비해야 합니다. 비밀번호·세션 쿠키는 실행 기록에 저장하지 않습니다. 실제 작업 전에 직원 로그인·권한을 확인합니다.
+
+```bash
+SIMULATOR_BASE_URL=http://192.168.0.191 npm run simulate -- --plan planner/samples/plan_2026-11-06.jsonl --concurrency 10 --allow-remote --headed --approve-loans
+```
+
+승인 후 고객 브라우저에서 `repaying` 상태, 상환 회차 수, 대출 원금만큼의 잔액 증가와 대출 입금 원장 1건을 확인합니다. 신청 응답의 `application_id`와 승인 결과는 실행 상태에 저장하며, 완료한 신청·승인은 재전송하지 않습니다. 승인 응답이 불명확하거나 승인 후 검증이 실패하면 해당 고객을 보류하고 자동 재시도를 막습니다.
+
+기존 실행 기록에 신청 번호가 없는 과거 대출은 `application_id_not_recorded_for_plan`으로 건너뜁니다. 과거 신청을 검색해 일괄 승인하지 않습니다. 기존 DB에 진행 중인 대출이 있으면 새 신청도 건너뜁니다. `--retry-failed-reads`와 함께 사용할 수 없습니다. `execution-*.json`은 중복 금융 작업을 막는 상태 파일이므로 현재 DB를 유지하는 동안 삭제하지 마세요.
+
 ### 실패한 조회만 재검증
 
 화면 전환은 현재 화면의 표시와 진행 중인 API GET 응답 완료를 확인한 뒤 수행합니다. 대출 응답은 새 대출 화면에서 시작된 요청만 받으며, 본문 읽기 실패와 잘못된 배열 응답을 구분해 기록합니다. 기존 계획의 기기 문자열은 안정적인 UUID v5로 변환하므로 같은 기기를 재사용하고 신규 기기 후보만 다른 UUID를 사용합니다.
