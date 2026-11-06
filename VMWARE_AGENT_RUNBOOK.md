@@ -4,6 +4,9 @@ Analyzed on 2026-11-05 (Asia/Seoul). This document describes the existing host-s
 
 ## Start here
 
+**Current test reset policy:** the full `site.yml` installation now defaults to `RESET_DATABASES=true`. It stops existing API writers, drops/recreates only the MariaDB `podobank` database, clears MongoDB `podobank`, and then recreates the schema/seed/indexes during API deployment. MariaDB replicas receive the reset through replication. This supersedes older preservation statements below. `database-access.yml` explicitly disables reset because it only updates connectivity. Loki/file logs and monitoring data are not erased. After a DB reset, existing simulator runtime state must be reconciled before reusing personas. The reset policy was executed and verified on 2026-11-06: application databases were empty before probes, all ten Ansible hosts completed without failures, Korean timestamps were verified on real signup/deposit requests, and old Loki request IDs were absent. One verification customer and one deposit ledger record remain.
+
+
 ### Monitoring extension (2026-11-06)
 
 The deployment now includes ten VMs. Terraform module `deploy/terraform/monitoring` manages the three monitoring clones: Prometheus `192.168.0.198:9090`, Loki `192.168.0.199:3100`, and Grafana `192.168.0.200:3000`. All three use a bridged VMnet0 primary NIC and a VMnet1 management NIC. The existing seven application/database VMs are not recreated by this module. Preserve the controller's Terraform state; state and VM disks are not Git artifacts. The provider's clone description is kept equal to the base template description because version 2.0.1 cannot reliably update that field.

@@ -1,0 +1,50 @@
+---
+# Explicit test reset entry point. Destroys application/monitoring data, not VM disks or secrets.
+- name: Clear application logs and Alloy read positions
+  hosts: api
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.systemd:
+        name: '{{ item }}'
+        state: stopped
+      loop: [podobank-api, alloy]
+    - ansible.builtin.file:
+        path: '{{ item }}'
+        state: absent
+      loop: [/var/log/podobank, /var/lib/alloy]
+    - ansible.builtin.file:
+        path: /var/lib/alloy
+        state: directory
+        owner: alloy
+        group: alloy
+        mode: '0750'
+- name: Clear monitoring storage
+  hosts: monitoring
+  become: true
+  gather_facts: false
+  vars:
+    reset_services:
+      prometheus: {service: prometheus, path: /var/lib/prometheus, owner: prometheus}
+      loki: {service: loki, path: /var/lib/loki, owner: loki}
+      grafana: {service: grafana-server, path: /var/lib/grafana, owner: grafana}
+    reset_role: '{{ "prometheus" if inventory_hostname in groups["prometheus"] else ("loki" if inventory_hostname in groups["loki"] else "grafana") }}'
+    storage: '{{ reset_services[reset_role] }}'
+  tasks:
+    - ansible.builtin.systemd:
+        name: '{{ storage.service }}'
+        state: stopped
+    - ansible.builtin.file:
+        path: '{{ storage.path }}'
+        state: absent
+    - ansible.builtin.file:
+        path: '{{ storage.path }}'
+        state: directory
+        owner: '{{ storage.owner }}'
+        group: '{{ storage.owner }}'
+        mode: '0750'
+- ansible.builtin.import_playbook: site.yml
+  vars:
+    reset_databases: true
+    monitoring_enabled: true
+    alloy_journal_max_age: 1s

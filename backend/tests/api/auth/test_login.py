@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from sqlalchemy import text
 
-from app.core.time import utc_now
+from app.core.time import kst_now
 from tests.conftest import recorded_events
 
 
@@ -59,7 +59,7 @@ def test_lock_expires_after_5_minutes(client, make_user, engine):
         _login(client, user["phone"], "wrong-password")
     with engine.begin() as conn:
         conn.execute(text("UPDATE users SET locked_until = :t WHERE id = :id"),
-                     {"t": utc_now() - timedelta(seconds=1), "id": user["id"]})
+                     {"t": kst_now() - timedelta(seconds=1), "id": user["id"]})
 
     assert _login(client, user["phone"], user["password"]).status_code == 200
     with engine.connect() as conn:
@@ -73,7 +73,7 @@ def test_wrong_password_after_lock_expiry_starts_fresh(client, make_user, engine
         _login(client, user["phone"], "wrong-password")
     with engine.begin() as conn:
         conn.execute(text("UPDATE users SET locked_until = :t WHERE id = :id"),
-                     {"t": utc_now() - timedelta(seconds=1), "id": user["id"]})
+                     {"t": kst_now() - timedelta(seconds=1), "id": user["id"]})
 
     assert _login(client, user["phone"], "wrong-password").status_code == 401
     assert _login(client, user["phone"], user["password"]).status_code == 200

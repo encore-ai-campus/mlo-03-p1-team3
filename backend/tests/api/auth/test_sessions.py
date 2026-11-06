@@ -4,7 +4,7 @@ from datetime import timedelta
 from sqlalchemy import text
 
 from app.api.auth import service
-from app.core.time import utc_now
+from app.core.time import kst_now
 
 DEVICE_A = "11111111-1111-4111-8111-111111111111"
 DEVICE_B = "22222222-2222-4222-8222-222222222222"
@@ -25,7 +25,7 @@ def _row(engine, token):
 
 def test_start_stores_hash_not_token(engine, make_user):
     user = make_user()
-    now = utc_now()
+    now = kst_now()
     token = _start(engine, user, now, client="ios-app")
 
     row = _row(engine, token)
@@ -39,7 +39,7 @@ def test_start_stores_hash_not_token(engine, make_user):
 
 def test_resolve_returns_user(engine, make_user):
     user = make_user(name="김포도")
-    now = utc_now()
+    now = kst_now()
     token = _start(engine, user, now)
 
     found = service.resolve_session(engine, token, now + timedelta(minutes=9))
@@ -49,12 +49,12 @@ def test_resolve_returns_user(engine, make_user):
 
 def test_unknown_token_is_none(engine, make_user):
     make_user()
-    assert service.resolve_session(engine, "not-a-session", utc_now()) is None
+    assert service.resolve_session(engine, "not-a-session", kst_now()) is None
 
 
 def test_idle_10_minutes_ends_session(engine, make_user):
     user = make_user()
-    now = utc_now()
+    now = kst_now()
     token = _start(engine, user, now)
 
     assert service.resolve_session(engine, token, now + timedelta(minutes=10)) is None
@@ -64,7 +64,7 @@ def test_idle_10_minutes_ends_session(engine, make_user):
 
 def test_use_extends_idle_but_not_past_60_minutes(engine, make_user):
     user = make_user()
-    now = utc_now()
+    now = kst_now()
     token = _start(engine, user, now)
 
     for minute in range(9, 60, 9):  # 9분마다 쓰면 미사용 만료에 걸리지 않는다
@@ -75,7 +75,7 @@ def test_use_extends_idle_but_not_past_60_minutes(engine, make_user):
 
 def test_last_seen_written_at_most_once_per_minute(engine, make_user):
     user = make_user()
-    now = utc_now()
+    now = kst_now()
     token = _start(engine, user, now)
 
     service.resolve_session(engine, token, now + timedelta(seconds=30))
@@ -88,7 +88,7 @@ def test_last_seen_written_at_most_once_per_minute(engine, make_user):
 
 def test_end_session_logout(engine, make_user):
     user = make_user()
-    now = utc_now()
+    now = kst_now()
     token = _start(engine, user, now)
 
     service.end_session(engine, token, now + timedelta(minutes=1))
@@ -99,7 +99,7 @@ def test_end_session_logout(engine, make_user):
 
 def test_same_device_login_replaces_old_session(engine, make_user):
     user = make_user()
-    now = utc_now()
+    now = kst_now()
     old = _start(engine, user, now)
     new = _start(engine, user, now + timedelta(minutes=1))
 
@@ -110,7 +110,7 @@ def test_same_device_login_replaces_old_session(engine, make_user):
 
 def test_other_device_sessions_both_alive(engine, make_user):
     user = make_user()
-    now = utc_now()
+    now = kst_now()
     first = _start(engine, user, now, device=DEVICE_A)
     second = _start(engine, user, now, device=DEVICE_B, client="android-app")
 

@@ -22,6 +22,7 @@ loki.source.file "podobank_application" {
 // Uvicorn requests and application warnings/errors captured by systemd.
 loki.source.journal "podobank_api" {
   matches = "_SYSTEMD_UNIT=podobank-api.service"
+  max_age = "{{ alloy_journal_max_age | default('1s') }}"
   labels = {
     service = "podobank",
     instance = "{{ api_instance }}",

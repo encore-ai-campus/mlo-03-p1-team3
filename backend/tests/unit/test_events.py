@@ -29,7 +29,7 @@ def test_build_event_fields():
 
     assert set(event) == {"event_id", "event_type", "occurred_at", "source", "outcome", "reason",
                           "duration_ms", "request_id", "properties"}
-    assert event["occurred_at"].endswith("Z")
+    assert event["occurred_at"].endswith("+09:00")
 
 
 def test_forbidden_keys_cover_personal_data():

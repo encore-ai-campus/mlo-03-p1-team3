@@ -4,13 +4,13 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from sqlalchemy.engine import Connection, Engine
 
+from app.core.time import kst_iso
 from app.observability.application_log import ApplicationLog
 
 LOG_COLLECTION = "events_bronze"
@@ -50,7 +50,7 @@ def build_event(event_type: str, outcome: str, reason: str, *, source: str, requ
     return {
         "event_id": str(uuid.uuid4()),
         "event_type": event_type,
-        "occurred_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        "occurred_at": kst_iso(),
         "source": source,
         "outcome": outcome,
         "reason": reason,

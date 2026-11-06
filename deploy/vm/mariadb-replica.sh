@@ -14,6 +14,7 @@ log "슬레이브 설정 (읽기 전용)"
 cat > /etc/mysql/mariadb.conf.d/60-podobank.cnf <<'EOF'
 [mariadb]
 bind-address = 0.0.0.0
+default_time_zone = "+09:00"
 server_id = 2
 log_bin = mysql-bin
 relay_log = relay-bin

@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from app.api.auth.kakao import KakaoAuthError, KakaoProfile, KakaoUnavailableError
-from app.core.time import utc_now
+from app.core.time import kst_now
 from app.main import create_app
 from tests.conftest import logged_events, recorded_events
 
@@ -142,7 +142,7 @@ def test_signup_without_pending_cookie_401(kc):
 def test_expired_pending_signup_401(kc, engine):
     kakao_login(kc)
     with engine.begin() as conn:
-        conn.execute(text("UPDATE kakao_signups SET expires_at = :t"), {"t": utc_now() - timedelta(seconds=1)})
+        conn.execute(text("UPDATE kakao_signups SET expires_at = :t"), {"t": kst_now() - timedelta(seconds=1)})
 
     response = kakao_signup(kc)
 
@@ -186,7 +186,7 @@ def test_locked_account_blocked_on_kakao(kakao_app, engine, make_user):
     user = make_user(kakao_subject="kakao-1")
     with engine.begin() as conn:
         conn.execute(text("UPDATE users SET locked_until = :t WHERE id = :id"),
-                     {"t": utc_now() + timedelta(minutes=5), "id": user["id"]})
+                     {"t": kst_now() + timedelta(minutes=5), "id": user["id"]})
     with TestClient(kakao_app) as client:
         response = kakao_login(client)
 

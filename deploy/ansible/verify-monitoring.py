@@ -53,9 +53,10 @@ headers = {'Authorization': 'Basic ' + auth}
 sources = get_json(GRAFANA + '/api/datasources', headers)
 assert {s['uid'] for s in sources} >= {'podobank-prometheus', 'podobank-loki'}
 for uid in ('podobank-prometheus', 'podobank-loki'):
-    result = get_json(GRAFANA + '/api/datasources/uid/' + uid + '/health', headers)
-    assert result['status'].lower() == 'ok', result.get('message')
-    print('Grafana data source ' + uid + ': PASS', flush=True)
+    def source_ready(uid=uid):
+        result = get_json(GRAFANA + '/api/datasources/uid/' + uid + '/health', headers)
+        return result if result.get('status', '').lower() == 'ok' else None
+    wait_for(source_ready, 'Grafana data source ' + uid)
 
 requests = []
 for _ in range(12):

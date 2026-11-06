@@ -5,7 +5,7 @@ from datetime import timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.core.time import utc_now
+from app.core.time import kst_now
 from app.main import create_app
 
 LOGIN = "/api/v1/auth/login"
@@ -87,7 +87,7 @@ def test_idle_session_401(client, engine, make_user):
     user = make_user()
     _login(client, user)
     with engine.begin() as conn:
-        conn.execute(text("UPDATE sessions SET last_seen_at = :t"), {"t": utc_now() - timedelta(minutes=11)})
+        conn.execute(text("UPDATE sessions SET last_seen_at = :t"), {"t": kst_now() - timedelta(minutes=11)})
 
     response = client.get(ME)
 
