@@ -1,0 +1,13 @@
+---
+# Current workspace: ansible-playbook -i inventory.json deploy/ansible/frontend.yml
+# Prebuilt files: add -e frontend_build=false -e frontend_dist_dir=/absolute/path/to/dist
+- name: Deploy the current workspace frontend to the existing nginx VM
+  hosts: nginx
+  become: true
+  gather_facts: false
+  vars:
+    frontend_build: true
+    frontend_source_dir: '{{ playbook_dir }}/../../frontend'
+    frontend_dist_dir: '{{ frontend_source_dir }}/dist'
+  tasks:
+    - ansible.builtin.import_tasks: tasks/deploy-frontend.yml
