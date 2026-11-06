@@ -1,0 +1,289 @@
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+a {
+  color: var(--color-brand-strong);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    color: var(--color-brand-deep);
+  }
+}
+
+a,
+button {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+a:active,
+button:not(:disabled):active {
+  opacity: var(--opacity-pressed);
+  transform: scale(var(--scale-pressed));
+}
+
+/* 라벨로 만든 선택지(가맹점·대출 상품·가입 선택지·알림 스위치)와 FAQ 질문도 누르면 반응한다.
+   폭 전체 줄이 많아서 크기는 그대로 두고 옅어지기만 한다. */
+label:has(input:is([type='radio'], [type='checkbox'])),
+summary {
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+label:has(input:is([type='radio'], [type='checkbox']):not(:disabled)):active,
+summary:active {
+  opacity: var(--opacity-pressed);
+}
+
+main,
+.content {
+  overscroll-behavior: contain;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* 화면과 불러온 카드가 위에서부터 차례로 나타난다. 지연은 앞의 몇 개까지만 둔다. */
+main > *,
+.content > * {
+  animation: rise-in var(--duration-base) var(--ease-out) backwards;
+}
+
+main > :nth-child(2),
+.content > :nth-child(2) {
+  animation-delay: var(--stagger);
+}
+
+main > :nth-child(3),
+.content > :nth-child(3) {
+  animation-delay: calc(var(--stagger) * 2);
+}
+
+main > :nth-child(n + 4),
+.content > :nth-child(n + 4) {
+  animation-delay: calc(var(--stagger) * 3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a,
+  button {
+    transition: none;
+  }
+
+  a:active,
+  button:not(:disabled):active {
+    transform: none;
+  }
+
+  main > *,
+  .content > * {
+    animation-name: fade-in;
+    animation-delay: 0ms;
+  }
+}
+
+/* 모양은 그대로 두고 터치 영역만 44px 이상으로 넓힌다 */
+.hit-area {
+  position: relative;
+}
+
+.hit-area::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--hit-slop-y) * -1) calc(var(--hit-slop-x) * -1);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* 화면을 옮길 때 포커스를 받는 제목은 누르는 곳이 아니라서 테두리를 그리지 않는다. */
+h1[tabindex='-1']:focus,
+h2[tabindex='-1']:focus {
+  outline: none;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-label);
+}
+
+.form-input {
+  width: 100%;
+  height: var(--height-control);
+  box-sizing: border-box;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--text-md);
+}
+
+/* 브라우저마다 기본 예시 글자 색이 옅어서(대비 부족) 보조 글자 색으로 맞춘다. */
+.form-input::placeholder {
+  color: var(--color-text-sub);
+  opacity: 1;
+}
+
+.hit-area-y {
+  position: relative;
+}
+
+.hit-area-y::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--hit-slop-y) * -1) 0;
+}
+
+.form-input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+/* 입력 오류 글자. 금액 칸(AmountInput)도 같은 모양을 쓴다. */
+.form-error {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  font-weight: var(--font-medium);
+  color: var(--color-error);
+}
+
+/* 입출금·카드 결제처럼 같은 화면에서 끝나는 일의 완료 안내 */
+.notice-done {
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+  animation: fade-in var(--duration-base) var(--ease-out);
+}
+
+.notice-done-icon {
+  flex: 0 0 auto;
+}
+
+/* 화면 맨 아래에 있을 때는 홈 막대 자리(안전 영역)를 피한다. 16px 여백이 그보다 크면 16px을 쓴다. */
+.cta-bar {
+  flex: 0 0 auto;
+  padding: var(--space-4);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
+  background: var(--color-surface);
+}
+
+/* 아래에 하단 메뉴가 있으면 안전 영역은 메뉴가 맡는다 */
+.cta-bar.above-nav {
+  padding-bottom: var(--space-4);
+}
+
+.cta-button {
+  width: 100%;
+  height: var(--height-control);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  font-family: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+}
+
+.cta-button:disabled {
+  background: var(--color-nav-border);
+  color: var(--color-text-sub);
+  cursor: not-allowed;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.app-frame {
+  width: 100%;
+  max-width: var(--frame-width);
+  height: min(var(--frame-height), 100dvh);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+/* 휴대폰(세로·가로)에서는 프레임 대신 화면 전체를 쓴다.
+   fixed를 빼면 iOS 웹앱에서 화면 상단이 흐려진다. */
+@media (max-width: 480px), (max-height: 480px) {
+  .app-frame {
+    position: fixed;
+    top: var(--viewport-top, 0px);
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
+    width: auto;
+    max-width: none;
+    height: var(--viewport-height, 100dvh);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}

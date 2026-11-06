@@ -1,0 +1,114 @@
+:root {
+  /* 브랜드 */
+  --color-brand: #6a3de8;
+  --color-brand-strong: #5328d6;
+  --color-brand-deep: #3f1bb0;
+  --color-brand-soft: #f2eefd;
+  --color-brand-light: #a98bff;
+  --color-on-brand-muted: #ede7ff;
+  --color-focus: #6a3de8;
+
+  /* 면·선 */
+  --color-bg: #f5f5f8;
+  --color-surface: #ffffff;
+  --color-divider: #f0f1f4;
+  --color-nav-border: #e4e6ec;
+  --color-input-border: #8a90a0;
+  --color-dot-empty: #dcdfe6;
+
+  /* 글자 */
+  --color-text: #1b1d29;
+  --color-text-sub: #5a6070;
+  --color-text-weak: #4a5060;
+  --color-label: #343846;
+  --color-debt: #b4410c;
+  --color-error: #b42318;
+  --color-on-brand: #ffffff;
+  /* 카카오 로그인 버튼 (카카오 디자인 가이드 색) */
+  --color-kakao: #fee500;
+  --color-on-kakao: rgba(0, 0, 0, 0.85);
+
+  /* 금액 */
+  --color-amount-in: #5328d6;
+  --color-amount-out: #1b1d29;
+
+  /* 글꼴 */
+  --font-sans: 'Pretendard Variable', system-ui, sans-serif;
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-title: 24px;
+  --text-hero: 32px;
+  --text-done: 48px;
+
+  --leading-title: 1.3;
+  --leading-hero: 1.2;
+  --leading-body: 1.7;
+  /* 짧은 안내·오류 문구가 두 줄로 넘어갈 때 쓰는 줄 높이 */
+  --leading-normal: 1.5;
+
+  --tracking-brand: -0.2px;
+  --tracking-title: -0.4px;
+  --tracking-hero: -0.8px;
+  --tracking-done: -1px;
+
+  /* 간격 — 크기와 간격은 16의 배수만 쓴다. 글자 크기, 1px 선, 2px 포커스 테두리, 모서리 둥글기는 예외.
+     --space-1(4px)도 예외: 아이콘과 글자처럼 한 덩어리 안의 간격에만 쓴다. */
+  --space-1: 4px;
+  --space-4: 16px;
+  --space-8: 32px;
+  --screen-padding: 16px;
+  --card-gap: 16px;
+
+  /* 반경 */
+  --radius-card: 16px;
+  --radius-tile: 8px;
+  --radius-logo: 9px;
+
+  /* 상태 */
+  --opacity-pressed: 0.72;
+  --opacity-disabled: 0.5;
+  --scale-pressed: 0.97;
+  --duration-fast: 120ms;
+  --duration-base: 240ms;
+  --duration-slow: 320ms;
+  --duration-pulse: 1200ms;
+  --stagger: 30ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* 크기 */
+  --hit-slop-y: 16px;
+  --hit-slop-x: 16px;
+  --frame-width: 384px;
+  --frame-height: 832px;
+  --height-header: 64px;
+  --height-row: 64px;
+  --height-summary-row: 48px;
+  --height-control: 48px;
+  --height-tab: 64px;
+  --height-keypad: 256px;
+  --height-card-head: 32px;
+  --height-pill: 32px;
+  --size-tile: 32px;
+  --size-checkbox: 16px;
+  --width-check-button: 96px;
+  --width-chevron: 16px;
+  --width-filter: 48px;
+  --height-amount: 64px;
+  --height-progress: 16px;
+  --size-avatar: 48px;
+  --size-success: 64px;
+  --height-skeleton-hero: 176px;
+  --height-card-plastic: 208px;
+  --width-switch: 48px;
+  --height-switch: 32px;
+  /* 손잡이는 스위치 안쪽 모양이라 높이 - 위아래 4px로 둔다 */
+  --size-switch-knob: 24px;
+  --offset-switch-knob: 4px;
+}
