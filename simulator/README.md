@@ -1,18 +1,59 @@
 # Persona Playwright simulator
 
-## 오프라인 행동 계획 생성기
+## 새 페르소나 계획을 Playwright로 실행
 
-[`planner/README.md`](planner/README.md)의 Python 도구는 합성 고객 600명 중 하루 400명의 행동 계획을 만듭니다. 기존 Playwright 실행기와 별개이며, API 호출이나 실제 거래를 실행하지 않습니다. 설치할 Python 패키지는 없습니다.
+새 계획은 `--plan`으로 연결합니다. 아래 명령은 `simulator` 폴더에서 실행합니다.
 
 ```bash
-cd simulator/planner
-python persona_sim.py init --output data
-python persona_sim.py plan --date 2026-11-06 --output data
-python persona_sim.py validate --date 2026-11-06 --output data
-python -m unittest discover -s tests -v
+SIMULATOR_BASE_URL=http://192.168.0.191 npm run simulate -- --plan planner/samples/plan_2026-11-06.jsonl --concurrency 10 --allow-remote --headed
 ```
 
-`planner/samples/`에는 합성 샘플이 있고, 실행 중 생성되는 `planner/data/`는 Git에서 제외됩니다. 기존 실행기의 고객·실행 상태와는 자동으로 연결되지 않습니다.
+- 처음에는 계획과 같은 폴더의 `profiles.json`에 있는 **600명 전원**을 실제 가입·로그인하고, 초기 잔액은 화면에서 입금합니다. 송금 상대도 실제 가입되어 있어야 하므로 하루 비활성 고객까지 준비합니다. 초기 잔액이 1천만 원을 넘으면 여러 입금으로 나눕니다.
+- 이후 계획에 있는 **400명, 2,640개 행동 전체**를 처리합니다. `--concurrency 10`은 최대 동시 접속 수이며 전체 실행 인원을 10명으로 제한하지 않습니다. `--limit 10`을 추가하면 계획 실행만 첫 10명으로 제한합니다. 이때도 가입 준비 대상은 600명입니다.
+- 고객별 세션과 행동은 `planned_at` 순서를 지킵니다. **빠른 재생 방식**이므로 계획의 가상 시각까지 기다리지 않으며, 고객 사이의 전체 시각 순서는 보장하지 않습니다. DB·이벤트의 실제 발생 시각은 백엔드가 기록합니다.
+- 송금 수신인, 결제 금액·업종, 대출 금액·기간을 계획에서 읽습니다. 실제 잔액·가맹점·대출 상태를 확인하며 조건이 안 맞으면 `skipped`와 이유를 남깁니다. 다른 수신인이나 금액으로 임의 변경하지 않습니다.
+- `initial_loan_stage`는 합성 메타데이터입니다. 심사 대기·상환 상태를 DB에 조작해서 만들지 않습니다. 실제 대출이 필요한 조회는 없으면 건너뛰며, 승인·상환 배치는 이 실행기에 포함되지 않습니다.
+- 신규 기기 후보 세션은 계획의 `sim_device_id`를 브라우저 쿠키에 적용합니다. 탐지·부정 거래 성공을 만들어 기록하지 않습니다.
+
+실행 전에 브라우저·서버 호출 없이 전체 인원을 확인하려면 `--dry-run`을 추가합니다.
+
+```bash
+SIMULATOR_BASE_URL=http://192.168.0.191 npm run simulate -- --plan planner/samples/plan_2026-11-06.jsonl --concurrency 10 --allow-remote --dry-run
+```
+
+날짜별 새 계획은 Python 생성기로 준비합니다. `init`은 기존 프로필을 덮어쓰지 않으므로 최초 한 번만 실행합니다.
+
+```bash
+cd planner
+python3 persona_sim.py init --output data
+python3 persona_sim.py plan --date 2026-11-06 --output data
+python3 persona_sim.py validate --date 2026-11-06 --output data
+cd ..
+SIMULATOR_BASE_URL=http://192.168.0.191 npm run simulate -- --plan planner/data/plan_2026-11-06.jsonl --concurrency 10 --allow-remote --headed
+```
+
+`--profiles FILE`로 프로필 경로를 따로 지정할 수 있습니다. 자세한 계획 설명은 [planner/README.md](planner/README.md)를 참고하세요.
+
+### 매핑·실행 기록
+
+- 비밀번호 파생용 비밀값은 첫 실제 실행 시 `planner/.env`의 `SIMULATOR_PLAN_PASSWORD_SEED`로 자동 생성합니다. Git에서 제외되며 값을 출력하지 않습니다. 원본 프로필·계획·실행 보고서에 비밀번호를 쓰지 않습니다. 계정이 유지되는 동안 이 파일도 유지해야 합니다.
+- `planner/data/execution-<대상 식별자>.json`에 `sim_user_id → backend_user_id`, 준비 입금 진행 상황과 계획별 결과를 저장합니다. 같은 이름의 `.jsonl`에는 계획 ID·실제 요청 ID·HTTP 상태·성공/실패/건너뜀/불명확 결과를 기록합니다. 파일은 Git에서 제외됩니다.
+- 같은 계획을 다시 실행해도 기록된 행동을 자동 재전송하지 않습니다. 금융 요청 중 응답을 확인하지 못하거나 프로세스가 끊기면 해당 고객을 보류합니다. 실제 원장을 확인하기 전 임의로 보류를 풀지 마세요.
+- DB를 완전히 초기화한 뒤 같은 계획을 새로 실행할 때는 **DB 초기화 확인 후** 해당 대상의 `execution-*.json`·`.jsonl`도 정리해야 합니다. `.env`는 유지합니다. DB가 남아 있는데 실행 상태만 삭제하면 초기 입금을 반복할 수 있습니다.
+- MongoDB와 Loki에는 실제 백엔드가 생성하는 이벤트만 들어갑니다. 실행기가 직접 로그나 업무 이벤트를 삽입하지 않습니다. 현재 백엔드의 실제 저장 컬렉션은 `events_bronze`와 결제 위치용 `card_payment_locations`이며, 별도 신규 이벤트 스키마를 저장 경로에 연결하는 변경은 포함하지 않습니다.
+
+### 검증
+
+```bash
+npm test
+node tests/plan-browser.mjs ../frontend/dist
+```
+
+두 번째 명령은 실제 프론트엔드 빌드와 Chromium을 사용하지만 API 응답은 로컬 메모리로 대체합니다. VM의 실제 DB 저장 검증과는 구분됩니다. 화면 조작은 Playwright 공식 [Locator](https://playwright.dev/docs/locators)와 [응답 대기](https://playwright.dev/docs/api/class-page#page-wait-for-response) 방식을 따릅니다.
+
+## 기존 300명 실행기
+
+`--plan` 없이 실행하면 기존 실행기를 사용합니다.
 
 `personas/profiles/*.json`의 전체 300명을 추첨 후보로 사용합니다. 기존 `execution.owner` 값과 관계없이 선택하며, 선호 요일·시간과 활동 빈도에 따라 최대 `--concurrency`명만 실행합니다. Chromium은 기본적으로 창을 표시하지 않는 백그라운드 방식이며, `--headed`를 붙이면 창을 표시합니다. 터미널 종료 후에도 프로세스를 유지하는 기능은 별도입니다.
 

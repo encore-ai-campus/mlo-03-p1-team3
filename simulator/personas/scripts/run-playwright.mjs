@@ -16,11 +16,12 @@ const API_PREFIX = '/api/v1'
 const WEEK_ACTIONS = ['transfers', 'card_payments', 'ledger_views', 'withdrawals']
 
 class SimulatorError extends Error {
-  constructor(code, { requestId = null, uncertain = false } = {}) {
+  constructor(code, { requestId = null, uncertain = false, status = null } = {}) {
     super(code)
     this.code = code
     this.requestId = requestId
     this.uncertain = uncertain
+    this.status = status
   }
 }
 
@@ -84,8 +85,10 @@ function usage() {
     '  npm run simulate -- --profile salary --once',
     '  npm run simulate -- --all --once',
     '  npm run simulate:watch -- --all',
+    '  npm run simulate -- --plan planner/samples/plan_2026-11-06.jsonl --concurrency 10',
     '',
     '옵션:',
+    '  --plan FILE        새 600명 풀의 JSONL 계획 전체 실행 (별도 모드)',
     '  --customer-id ID   한 페르소나 실행',
     '  --profile TYPE     한 유형의 전체 페르소나를 추첨 후보로 사용',
     '  --all              전체 300명 페르소나를 추첨 후보로 사용',
@@ -176,11 +179,15 @@ function saveState(state) {
   return pending
 }
 
+const statePath = Symbol('statePath')
+export function useStateFile(state, path) { state[statePath] = path; return state }
+
 async function persistState(state) {
-  await mkdir(STATE_DIR, { recursive: true })
-  const temporary = `${STATE_FILE}.${process.pid}.tmp`
+  const target = state[statePath] ?? STATE_FILE
+  await mkdir(dirname(target), { recursive: true })
+  const temporary = `${target}.${process.pid}.tmp`
   await writeFile(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 })
-  await rename(temporary, STATE_FILE)
+  await rename(temporary, target)
 }
 
 async function appendRun(entry) {
@@ -313,9 +320,10 @@ async function responseResult(response) {
     throw new SimulatorError(body?.code ?? `http_${response.status()}`, {
       requestId,
       uncertain: response.status() >= 500,
+      status: response.status(),
     })
   }
-  return { requestId, body }
+  return { requestId, body, status: response.status() }
 }
 
 async function submitAndWait(page, endpoint, click, writeHooks = null) {
@@ -524,7 +532,7 @@ async function viewLedger(page, baseUrl) {
     throw new SimulatorError('ledger_response_unknown')
   }
   if (!response.ok()) throw new SimulatorError(`http_${response.status()}`)
-  return { requestId: response.headers()['x-request-id'] ?? null }
+  return { requestId: response.headers()['x-request-id'] ?? null, status: response.status() }
 }
 
 async function applyForLoan(page, baseUrl, customer, writeHooks = null) {
@@ -892,6 +900,7 @@ async function closeSession(page, baseUrl, customer, state) {
   state.customers[customer.id].last_seen_at = isoNow()
   await saveState(state)
   await recordResult(customer, 'logout', result, 'success')
+  return result
 }
 
 async function closeSessionSafely(page, baseUrl, customer, state) {
@@ -1056,4 +1065,13 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-await main()
+export { SimulatorError, saveState, withCustomerLock, getBaseUrl, apiWait, responseResult,
+  submitAndWait, createWriteHooks, authenticate, logIn, accountBalance, deposit, transfer,
+  viewLedger, createBrowserPage, closeSession, cleanError, routeUrl }
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv.includes('--plan')) {
+    // Finish evaluating the shared browser helpers before the plan runner imports them.
+    import('./run-plan.mjs').then(({ main: planMain }) => planMain(process.argv.slice(2)))
+  } else await main()
+}

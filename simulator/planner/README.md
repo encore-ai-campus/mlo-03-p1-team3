@@ -1,6 +1,7 @@
 # PodoBank Persona Planner v0.1
 
-A Python standard-library-only, **plan-only** starter. No browser, FastAPI, MariaDB,
+The Python generator uses only the standard library and remains **plan-only**.
+The generated plans can now be executed separately by the [Playwright runner](../README.md). No browser, FastAPI, MariaDB,
 MongoDB or Alloy connection occurs when you run this package. No success/failure
 banking events are fabricated by the planner.
 
@@ -60,20 +61,19 @@ an application log or a MongoDB event. Only the backend can confirm success.
 client/session information must be recorded by the backend and collection
 pipeline after an API call.
 
-## Deliberate limitations (integration to do)
+## Generator limitations and runner behavior
 
-1. No live API requests, Playwright browser execution, real login or signup.
+1. The Python generator makes no live requests. The separate Playwright runner performs real signup, login and planned UI actions.
 2. No changing MariaDB balances or loan status. The `opening_balance_krw` and
    `initial_loan_stage` fields are **synthetic seed metadata**, not live state.
 3. No daily state transitions from loan exploring -> applied -> approved ->
    repaying. A future executor must check the actual MariaDB/REST state before
    every financial action. Reusing the plan for several days does not imply
    that loans were granted or balances changed.
-4. Plan rows can reference simulated recipients that have not yet been seeded
-   into the backend. All 600 accounts should be created/mapped before execution.
-5. The real Vue selectors and actual backend API responses must be inspected
-   before authoring a browser-based Playwright runner. This package does not
-   assume your team has already implemented those interfaces.
+4. The Playwright runner prepares/maps all 600 accounts before executing daily sessions.
+   Opening balances are funded using real UI deposits; each deposit is capped at 10 million KRW.
+5. The runner uses the current Vue screens and live backend responses. Its isolated browser
+   test verifies the UI with mocked API responses; live DB verification remains a separate step.
 6. Login failures, controlled validation failures, admin approvals and
    actual loan repayment batches require separate scenario/state wiring.
 7. The generator targets per-persona participation probabilities; it does not
