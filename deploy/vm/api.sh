@@ -37,6 +37,11 @@ if [ -d "$APP_DIR/.git" ]; then
 else
   git clone -q --branch "$REPO_REF" "$REPO_URL" "$APP_DIR"
 fi
+# Ansible may supply the current workspace backend without committing it to Git.
+if [ -n "${BACKEND_SOURCE_DIR:-}" ]; then
+  [ -f "$BACKEND_SOURCE_DIR/app/main.py" ] || die "BACKEND_SOURCE_DIR에 백엔드 소스가 없습니다."
+  cp -a "$BACKEND_SOURCE_DIR/." "$APP_DIR/backend/"
+fi
 chown -R podobank:podobank "$APP_DIR"
 
 log "패키지 설치"

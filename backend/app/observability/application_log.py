@@ -3,12 +3,12 @@ import logging
 import time
 import traceback
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
 
 from fastapi import FastAPI
 
+from app.core.time import kst_iso
 from app.observability.request_id import get_request_id
 
 logger = logging.getLogger("app.application")
@@ -36,7 +36,7 @@ class ApplicationLog:
 
     def write(self, level: str, message: str, **fields) -> None:
         entry = {
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": kst_iso(),
             "level": level, "message": message, "instance": self.instance, **fields,
         }
         try:

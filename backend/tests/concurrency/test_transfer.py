@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.core.time import utc_now
+from app.core.time import kst_now
 from app.main import create_app
 from tests.api.transfers.test_transfer import add_transfer_out
 from tests.conftest import ledger_matches_balance, login
@@ -37,7 +37,7 @@ def test_opposite_transfers_no_deadlock(settings, engine, make_user):
 
 def test_daily_limit_race(settings, engine, make_user):
     sender, receiver = make_user(balance=200_000_000), make_user()
-    add_transfer_out(engine, sender["account_id"], 90_000_000, utc_now())
+    add_transfer_out(engine, sender["account_id"], 90_000_000, kst_now())
     app = create_app(settings)
 
     with ThreadPoolExecutor(max_workers=2) as pool:

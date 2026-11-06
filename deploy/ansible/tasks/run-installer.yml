@@ -8,6 +8,8 @@
     VM_ENV: /opt/podobank-installer/deploy/vm/vm.env
     DEBIAN_FRONTEND: noninteractive
     INSTANCE_NAME: "{{ api_instance | default('') }}"
+    RESET_DATABASES: "{{ reset_databases | default('true') | string | lower }}"
+    BACKEND_SOURCE_DIR: "{{ '/opt/podobank-backend-source' if backend_source_dir is defined else '' }}"
     MIGRATE: "{{ migrate_schema | default('0') }}"
   register: role_install_result
   # SQL errors and package tooling can include credentials in their output.

@@ -1,19 +1,30 @@
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 KST_OFFSET = timedelta(hours=9)
+KST = timezone(KST_OFFSET, "Asia/Seoul")
 
 
-def utc_now() -> datetime:
-    """DB DATETIME과 맞추려고 tz 정보 없는 UTC 시각을 돌려준다."""
-    return datetime.now(UTC).replace(tzinfo=None)
+def kst_now() -> datetime:
+    """DB DATETIME에 저장할 시간대 없는 한국 시각."""
+    return datetime.now(KST).replace(tzinfo=None)
 
 
-def kst_day_range_utc(now_utc: datetime) -> tuple[datetime, datetime]:
-    """한국 시간 '오늘' 0시~24시를 UTC 범위로 바꾼다."""
-    kst_midnight = (now_utc + KST_OFFSET).replace(hour=0, minute=0, second=0, microsecond=0)
-    start = kst_midnight - KST_OFFSET
+def kst_iso(value: datetime | None = None) -> str:
+    """한국 시각을 +09:00 오프셋과 함께 직렬화한다."""
+    if value is None:
+        return datetime.now(KST).isoformat()
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=KST)
+    return value.astimezone(KST).isoformat()
+
+
+def kst_day_range(now_kst: datetime) -> tuple[datetime, datetime]:
+    """한국 시간 오늘 0시부터 다음 날 0시까지의 DB 조회 범위."""
+    if now_kst.tzinfo is not None:
+        now_kst = now_kst.astimezone(KST).replace(tzinfo=None)
+    start = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
     return start, start + timedelta(days=1)
 
 
 def kst_today() -> date:
-    return (utc_now() + KST_OFFSET).date()
+    return kst_now().date()

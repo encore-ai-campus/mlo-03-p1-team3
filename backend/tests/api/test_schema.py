@@ -38,7 +38,7 @@ def test_seed_merchants(engine):
 def _insert_session(conn, user_id, token_hash="a" * 64, client="web", end_reason=None):
     conn.execute(
         text("INSERT INTO sessions (token_hash, user_id, device_id, client, user_agent, last_seen_at, end_reason)"
-             " VALUES (:t, :u, :d, :c, 'pytest', UTC_TIMESTAMP(6), :r)"),
+             " VALUES (:t, :u, :d, :c, 'pytest', CURRENT_TIMESTAMP(6), :r)"),
         {"t": token_hash, "u": user_id, "d": "11111111-1111-1111-1111-111111111111", "c": client, "r": end_reason},
     )
 
@@ -64,7 +64,7 @@ def test_session_login_method_checked(engine, make_user):
     with pytest.raises((IntegrityError, OperationalError)), engine.begin() as conn:
         conn.execute(
             text("INSERT INTO sessions (token_hash, user_id, device_id, login_method, last_seen_at)"
-                 " VALUES (:t, :u, :d, 'carrier-pigeon', UTC_TIMESTAMP(6))"),
+                 " VALUES (:t, :u, :d, 'carrier-pigeon', CURRENT_TIMESTAMP(6))"),
             {"t": "b" * 64, "u": user["id"], "d": "11111111-1111-1111-1111-111111111111"},
         )
 
