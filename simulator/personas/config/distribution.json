@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "seed": 20261105,
+  "reference_year": 2026,
+  "timezone": "Asia/Seoul",
+  "total_customers": 300,
+  "synthetic": true,
+  "allocation_note": "실제 고객 통계가 아닌 데이터 수집·검증용 초기 배분입니다.",
+  "types": {
+    "salary": 80,
+    "household": 65,
+    "irregular_income": 55,
+    "small_payments": 40,
+    "occasional": 35,
+    "loan": 25
+  },
+  "new_customers_per_type": 2,
+  "playwright_customers_per_type": 5
+}

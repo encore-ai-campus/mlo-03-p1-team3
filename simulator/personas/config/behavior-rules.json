@@ -1,0 +1,401 @@
+{
+  "version": 2,
+  "notes": [
+    "금액은 원 단위 정수이며 모든 시간은 한국 시간입니다.",
+    "충전은 실제 급여 연동이 아닌 데모 입금 API를 뜻합니다.",
+    "주별 횟수는 목표 범위이며 잔액·세션·대출 상태에 따라 실제 실행은 달라집니다.",
+    "규칙과 시나리오는 실행 도구가 구현해야 할 입력 계약이며 이 파일만으로 거래가 발생하지 않습니다."
+  ],
+  "types": {
+    "salary": {
+      "label": "월급 생활형",
+      "description": "정해진 날 데모 충전 후 생활비 송금과 결제를 합니다.",
+      "active_days_per_week": [
+        3,
+        6
+      ],
+      "sessions_per_active_day": [
+        1,
+        2
+      ],
+      "transfers_per_week": [
+        1,
+        3
+      ],
+      "card_payments_per_week": [
+        3,
+        7
+      ],
+      "ledger_views_per_week": [
+        1,
+        3
+      ],
+      "withdrawals_per_week": [
+        0,
+        1
+      ],
+      "funding": {
+        "mode": "monthly",
+        "amount_range": [
+          2200000,
+          5000000
+        ],
+        "interval_days_range": [
+          7,
+          18
+        ]
+      },
+      "transfer_amount_range": [
+        50000,
+        300000
+      ],
+      "card_payment_amount_range": [
+        5000,
+        60000
+      ],
+      "withdrawal_amount_range": [
+        10000,
+        100000
+      ],
+      "initial_balance_range": [
+        500000,
+        2000000
+      ],
+      "preferred_hours": [
+        7,
+        8,
+        12,
+        18,
+        21
+      ],
+      "reserve_balance_range": [
+        100000,
+        300000
+      ]
+    },
+    "household": {
+      "label": "생활비 관리형",
+      "description": "매주 생활비를 충전하고 잔액을 확인하며 지출합니다.",
+      "active_days_per_week": [
+        3,
+        6
+      ],
+      "sessions_per_active_day": [
+        1,
+        2
+      ],
+      "transfers_per_week": [
+        1,
+        2
+      ],
+      "card_payments_per_week": [
+        3,
+        6
+      ],
+      "ledger_views_per_week": [
+        2,
+        5
+      ],
+      "withdrawals_per_week": [
+        0,
+        1
+      ],
+      "funding": {
+        "mode": "weekly",
+        "amount_range": [
+          500000,
+          900000
+        ],
+        "interval_days_range": [
+          7,
+          18
+        ]
+      },
+      "transfer_amount_range": [
+        10000,
+        100000
+      ],
+      "card_payment_amount_range": [
+        5000,
+        50000
+      ],
+      "withdrawal_amount_range": [
+        10000,
+        100000
+      ],
+      "initial_balance_range": [
+        200000,
+        700000
+      ],
+      "preferred_hours": [
+        9,
+        12,
+        15,
+        20
+      ],
+      "reserve_balance_range": [
+        50000,
+        150000
+      ]
+    },
+    "irregular_income": {
+      "label": "비정기 수입형",
+      "description": "불규칙한 간격으로 충전하고 자금이 있을 때 거래합니다.",
+      "active_days_per_week": [
+        2,
+        5
+      ],
+      "sessions_per_active_day": [
+        1,
+        3
+      ],
+      "transfers_per_week": [
+        1,
+        4
+      ],
+      "card_payments_per_week": [
+        2,
+        5
+      ],
+      "ledger_views_per_week": [
+        1,
+        4
+      ],
+      "withdrawals_per_week": [
+        0,
+        2
+      ],
+      "funding": {
+        "mode": "irregular",
+        "amount_range": [
+          500000,
+          1800000
+        ],
+        "interval_days_range": [
+          7,
+          18
+        ]
+      },
+      "transfer_amount_range": [
+        10000,
+        200000
+      ],
+      "card_payment_amount_range": [
+        5000,
+        70000
+      ],
+      "withdrawal_amount_range": [
+        10000,
+        100000
+      ],
+      "initial_balance_range": [
+        300000,
+        1500000
+      ],
+      "preferred_hours": [
+        10,
+        14,
+        19,
+        23
+      ],
+      "reserve_balance_range": [
+        50000,
+        200000
+      ]
+    },
+    "small_payments": {
+      "label": "소액 결제형",
+      "description": "소액 카드 결제를 자주 하고 필요할 때 충전합니다.",
+      "active_days_per_week": [
+        5,
+        7
+      ],
+      "sessions_per_active_day": [
+        1,
+        3
+      ],
+      "transfers_per_week": [
+        0,
+        1
+      ],
+      "card_payments_per_week": [
+        8,
+        15
+      ],
+      "ledger_views_per_week": [
+        1,
+        3
+      ],
+      "withdrawals_per_week": [
+        0,
+        1
+      ],
+      "funding": {
+        "mode": "weekly",
+        "amount_range": [
+          250000,
+          500000
+        ],
+        "interval_days_range": [
+          7,
+          18
+        ]
+      },
+      "transfer_amount_range": [
+        1000,
+        30000
+      ],
+      "card_payment_amount_range": [
+        1000,
+        15000
+      ],
+      "withdrawal_amount_range": [
+        10000,
+        100000
+      ],
+      "initial_balance_range": [
+        100000,
+        400000
+      ],
+      "preferred_hours": [
+        8,
+        12,
+        17,
+        22
+      ],
+      "reserve_balance_range": [
+        30000,
+        80000
+      ]
+    },
+    "occasional": {
+      "label": "저빈도 이용형",
+      "description": "이용하지 않는 날이 많고 가끔 조회와 거래를 합니다.",
+      "active_days_per_week": [
+        0,
+        2
+      ],
+      "sessions_per_active_day": [
+        1,
+        1
+      ],
+      "transfers_per_week": [
+        0,
+        1
+      ],
+      "card_payments_per_week": [
+        0,
+        2
+      ],
+      "ledger_views_per_week": [
+        0,
+        1
+      ],
+      "withdrawals_per_week": [
+        0,
+        1
+      ],
+      "funding": {
+        "mode": "irregular",
+        "amount_range": [
+          100000,
+          500000
+        ],
+        "interval_days_range": [
+          25,
+          60
+        ]
+      },
+      "transfer_amount_range": [
+        1000,
+        50000
+      ],
+      "card_payment_amount_range": [
+        1000,
+        30000
+      ],
+      "withdrawal_amount_range": [
+        10000,
+        100000
+      ],
+      "initial_balance_range": [
+        50000,
+        500000
+      ],
+      "preferred_hours": [
+        9,
+        13,
+        20
+      ],
+      "reserve_balance_range": [
+        10000,
+        50000
+      ]
+    },
+    "loan": {
+      "label": "대출 이용형",
+      "description": "대출을 신청하고 승인 후 정기 상환 자금을 준비합니다.",
+      "active_days_per_week": [
+        2,
+        5
+      ],
+      "sessions_per_active_day": [
+        1,
+        2
+      ],
+      "transfers_per_week": [
+        0,
+        2
+      ],
+      "card_payments_per_week": [
+        1,
+        4
+      ],
+      "ledger_views_per_week": [
+        2,
+        4
+      ],
+      "withdrawals_per_week": [
+        0,
+        1
+      ],
+      "funding": {
+        "mode": "monthly",
+        "amount_range": [
+          2500000,
+          4500000
+        ],
+        "interval_days_range": [
+          7,
+          18
+        ]
+      },
+      "transfer_amount_range": [
+        10000,
+        100000
+      ],
+      "card_payment_amount_range": [
+        5000,
+        40000
+      ],
+      "withdrawal_amount_range": [
+        10000,
+        100000
+      ],
+      "initial_balance_range": [
+        500000,
+        2000000
+      ],
+      "preferred_hours": [
+        8,
+        12,
+        19,
+        21
+      ],
+      "reserve_balance_range": [
+        200000,
+        500000
+      ]
+    }
+  }
+}
