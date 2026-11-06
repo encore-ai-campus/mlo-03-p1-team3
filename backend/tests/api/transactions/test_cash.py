@@ -92,13 +92,13 @@ def test_ledger_limit_validation(client, make_user):
     assert client.get("/api/v1/accounts/me/ledger?limit=101").status_code == 422
 
 
-def test_ledger_time_is_utc_with_z(client, make_user):
+def test_ledger_time_is_kst_with_offset(client, make_user):
     from datetime import UTC, datetime
 
     login(client, make_user(balance=5_000))
 
     created_at = client.get("/api/v1/accounts/me/ledger").json()["items"][0]["created_at"]
 
-    assert created_at.endswith("Z")
+    assert created_at.endswith("+09:00")
     parsed = datetime.fromisoformat(created_at)
     assert abs((datetime.now(UTC) - parsed).total_seconds()) < 60

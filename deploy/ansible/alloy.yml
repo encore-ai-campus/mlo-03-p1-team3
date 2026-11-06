@@ -1,11 +1,13 @@
 ---
 # Standalone: ansible-playbook -i inventory.json deploy/ansible/alloy.yml
 # Configure LOKI_PUSH_URL in the private deploy/vm/vm.env first.
-- name: Install and configure Alloy on both FastAPI VMs
-  hosts: api
+- name: Install and configure Alloy on nginx, HAProxy and both FastAPI VMs
+  hosts: nginx:haproxy:api
   become: true
   gather_facts: false
   vars:
+    alloy_role: '{{ "nginx" if inventory_hostname in groups.get("nginx", []) else ("haproxy" if inventory_hostname in groups.get("haproxy", []) else "fastapi") }}'
+    alloy_instance: '{{ api_instance | default(inventory_hostname) }}'
     alloy_loki_url: "{{ lookup('ansible.builtin.ini', 'LOKI_PUSH_URL', type='properties', file=playbook_dir ~ '/../vm/vm.env', default='') }}"
   pre_tasks:
     - name: Require an explicit Loki push endpoint before making changes
@@ -16,12 +18,28 @@
         fail_msg: Configure LOKI_PUSH_URL in private vm.env. Embedded credentials are not supported by this playbook.
       no_log: true
   tasks:
+    - name: Wait for SSH before installing the collector
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+    - name: Enable HAProxy request logs in the existing configuration
+      ansible.builtin.lineinfile:
+        path: /etc/haproxy/haproxy.cfg
+        insertafter: '{{ item.section }}'
+        line: '{{ item.line }}'
+        validate: /usr/sbin/haproxy -c -f %s
+      loop:
+        - {section: '^global$', line: '    log stdout format raw local0'}
+        - {section: '^defaults$', line: '    log global'}
+        - {section: '^defaults$', line: '    option httplog'}
+      when: alloy_role == 'haproxy'
+      notify: Reload HAProxy
     - name: Install repository and log permission utilities
       ansible.builtin.apt:
         name: [ca-certificates, acl]
         state: present
         update_cache: true
         cache_valid_time: 3600
+        lock_timeout: 300
     - name: Create APT key directory
       ansible.builtin.file:
         path: /etc/apt/keyrings
@@ -42,7 +60,8 @@
         name: alloy
         state: present
         update_cache: true
-    - name: Permit Alloy to read the API service journal
+        lock_timeout: 300
+    - name: Permit Alloy to read service journals and nginx logs
       ansible.builtin.user:
         name: alloy
         groups: adm,systemd-journal
@@ -55,16 +74,18 @@
         owner: podobank
         group: podobank
         mode: '0750'
+      when: alloy_role == 'fastapi'
     - name: Inspect event log access permissions
       ansible.builtin.command: getfacl -Rp /var/log/podobank
       register: event_log_acl
       changed_when: false
+      when: alloy_role == 'fastapi'
     - name: Allow Alloy to read existing event logs
       ansible.builtin.command: setfacl -R -m u:alloy:rX /var/log/podobank
-      when: (event_log_acl.stdout | regex_findall('(?m)^user:alloy:r[-w][-x]') | length) != (event_log_acl.stdout | regex_findall('(?m)^# file:') | length)
+      when: alloy_role == 'fastapi' and (event_log_acl.stdout | regex_findall('(?m)^user:alloy:r[-w][-x]') | length) != (event_log_acl.stdout | regex_findall('(?m)^# file:') | length)
     - name: Preserve Alloy access for newly created event logs
       ansible.builtin.command: setfacl -m d:u:alloy:rX /var/log/podobank
-      when: "'default:user:alloy:r-x' not in event_log_acl.stdout"
+      when: alloy_role == 'fastapi' and "default:user:alloy:r-x" not in event_log_acl.stdout
     - name: Render and validate Alloy configuration before replacing it
       ansible.builtin.template:
         src: config.alloy.j2
@@ -90,6 +111,10 @@
       retries: 15
       delay: 2
   handlers:
+    - name: Reload HAProxy
+      ansible.builtin.systemd:
+        name: haproxy
+        state: reloaded
     - name: Restart Alloy
       ansible.builtin.systemd:
         name: alloy

@@ -4,13 +4,42 @@ Analyzed on 2026-11-05 (Asia/Seoul). This document describes the existing host-s
 
 ## Start here
 
+**Current test reset policy:** `site.yml` defaults to `RESET_DATABASES=true`: it stops API writers, recreates the MariaDB `podobank` database, clears MongoDB `podobank`, and reapplies the application schema/seed/indexes. `database-access.yml` disables DB reset. `reset-test-data.yml` additionally clears API log files, Alloy read positions, Loki logs and Prometheus metrics. **Grafana `/var/lib/grafana` is preserved**, including its database, dashboards created in the UI, users and preferences. The destructive monitoring play targets only `prometheus:loki:!grafana` and asserts an allowlist of the two deletable storage paths. The following regular installation may restart Grafana or reapply its managed data sources, but does not delete its database. After a reset, the saved dashboard remains and displays newly collected logs/metrics; old Loki/Prometheus history is gone. Reconcile simulator execution state after resetting application databases.
+
+
+### Service metrics exporters
+
+`monitoring.yml` imports `exporters.yml`, so full monitoring deployment also installs/reapplies service metrics. To apply only exporters on already deployed application VMs, run these commands from the WSL deployment controller:
+
+```bash
+ANSIBLE_TIMEOUT=60 ansible-playbook -i inventory.json deploy/ansible/exporters.yml
+python3 deploy/ansible/verify-exporters.py --inventory inventory.json
+```
+
+No application DB reset/migration or Grafana data deletion occurs in this standalone playbook. It installs pinned Ubuntu packages for nginx (1.1.0-1ubuntu0.3) and MariaDB (0.15.0-2ubuntu0.24.04.3) exporters, the checksum-verified Percona MongoDB exporter 0.54.0, and the backend's pinned `prometheus-client==0.26.0` dependency. That Python dependency provides app-local HTTP request counters and latency histograms at `/metrics`; labels contain only method, route template and status, never customer IDs, request IDs, URL parameters or bodies. Unmatched paths share one label. API instances are deployed serially, without migrations.
+
+Endpoints: nginx `.191:9113/metrics` (its `stub_status` is local-only `127.0.0.1:8081`), HAProxy `.192:8404/metrics` (allows only loopback and Prometheus), FastAPI `.193/.194:8000/metrics`, MariaDB `.195/.196:9104/metrics`, MongoDB `.197:9216/metrics`. Existing node exporters remain on all ten VMs at port 9100. Prometheus, Loki and Grafana retain their native metrics; there are 20 total scrape targets. HAProxy's backend metric retains the source server name as `exported_server` because the scrape also has a `server` inventory label.
+
+MariaDB exporters authenticate locally as the `prometheus` OS/DB user with Unix socket authentication, read-only monitoring grants and `SLAVE MONITOR`; account setup disables session binlogging to keep each local monitoring account independent. The MongoDB exporter authenticates as a separate `prometheus` account in `admin` with `clusterMonitor` and read access to `local`. Set `METRICS_MONGODB_PASSWORD` in the private deployment `.env`/`vm.env`; its dummy setting is documented in `vm.env.example`. Only the MongoDB VM receives this account's private `/etc/podobank/mongodb-exporter.env`. Application and replication credentials remain unchanged.
+
+The verifier sends HTTP GETs only, checks all 20 targets, checks actual nginx/DB health, HAProxy backend UP states, both replica threads, and both API counters. Grafana's existing Prometheus data source can query these metrics. This deployment does not create or edit any Grafana dashboards.
+
 ### Monitoring extension (2026-11-06)
 
 The deployment now includes ten VMs. Terraform module `deploy/terraform/monitoring` manages the three monitoring clones: Prometheus `192.168.0.198:9090`, Loki `192.168.0.199:3100`, and Grafana `192.168.0.200:3000`. All three use a bridged VMnet0 primary NIC and a VMnet1 management NIC. The existing seven application/database VMs are not recreated by this module. Preserve the controller's Terraform state; state and VM disks are not Git artifacts. The provider's clone description is kept equal to the base template description because version 2.0.1 cannot reliably update that field.
 
-`deploy/ansible/monitoring.yml` installs the services and provisions both Grafana data sources. Node exporter runs on all ten VMs. Prometheus scrapes ten node exporters, itself, Loki and Grafana (13 targets total). This does not instrument FastAPI business/request metrics: the backend still has no `/metrics` endpoint. Prometheus retains metrics for 15 days. Loki stores logs under `/var/lib/loki`, with seven-day retention. Grafana persists its database under `/var/lib/grafana`. Reapplying installation/configuration does not reset these data directories.
+`deploy/ansible/monitoring.yml` installs the services and provisions both Grafana data sources. Node exporters run on all ten VMs. `alloy.yml` installs collectors on nginx, HAProxy and both FastAPI VMs. FastAPI retains event/application file collection and service journal collection. Nginx access/error files use `service="nginx"`, `instance=<nginx inventory name>` and `log_type="access"|"error"`; its journal uses `log_type="service"`. HAProxy enables `log stdout format raw local0`, `log global` and `option httplog`, so systemd captures real HTTP request logs; Alloy sends its journal with `service="haproxy"`, `instance=<HAProxy inventory name>`, `log_type="service"`. HTTP bodies, cookies and authorization headers are not added to these proxy log formats. Existing log formats still include request URLs.
 
-Alloy runs as a separate service on each API VM. It reads `/var/log/podobank/api-1.log` or `api-2.log`, plus the `podobank-api.service` journal. The labels `instance=api-1|api-2` and `log_type=event|service` distinguish these streams. Event JSON fields such as request IDs remain in the log body rather than becoming stream labels. The Grafana repository packages are installed only if absent; repeat runs do not implicitly upgrade them.
+File readers use built-in `file_match` with a 10-second discovery interval so log files created after Alloy starts are discovered. Existing component names/positions are retained. Nginx readers start at the end on first installation; API readers retain their existing behavior. No DB reset or data deletion is part of standalone Alloy deployment. Packages are installed only if absent; repeat runs do not implicitly upgrade them.
+
+From the WSL deployment controller, install/reapply only the collectors and verify real request collection:
+
+```bash
+ANSIBLE_TIMEOUT=60 ansible-playbook -i inventory.json deploy/ansible/alloy.yml
+python3 deploy/ansible/verify-proxy-logs.py --inventory inventory.json
+```
+
+The verifier sends real health requests through nginx/HAProxy to both API nodes, invalid logins for randomly generated nonexistent accounts, and one oversized health request that nginx rejects with HTTP 413. It queries Loki for nginx access/error logs, HAProxy HTTP journal logs and both API nodes' application/event/service logs. It does not call financial write APIs or insert log lines into production files. The checks intentionally leave failed-login events and nginx rejection logs. The controller inventory stays private; the verifier never prints it.
 
 Set `LOKI_PUSH_URL=http://192.168.0.199:3100/loki/api/v1/push` in private `deploy/vm/vm.env`. Copy `monitoring.env.example` to private `deploy/vm/monitoring.env` and configure `GRAFANA_ADMIN_PASSWORD`; this password is copied only to the Grafana VM's private `/etc/grafana/podobank.env`. Grafana login user is `admin`. That environment variable bootstraps a new Grafana database; changing it later does not automatically rotate an existing account password. No credential value belongs in Git or documentation.
 
@@ -20,11 +49,11 @@ From the existing WSL controller repository, use:
 bash deploy/monitoring.sh --verify
 ```
 
-The wrapper validates inventory/settings, applies Terraform, applies Ansible, then verifies Prometheus targets and Grafana data sources. It issues real invalid-login API requests through nginx and checks the resulting events and service journal entries in Loki for both API instances. These are intentional failed-login events for nonexistent random users, not direct database inserts. Skip `--verify` to apply with only the service readiness checks. The full application `site.yml` can include this installation with `-e monitoring_enabled=true`; leave that flag off when deploying only the original application stack.
+The wrapper validates inventory/settings, applies Terraform, applies Ansible, then verifies Prometheus targets, Grafana data sources and the four-host log pipeline. It issues real invalid-login API requests through nginx and checks the resulting events and service journal entries in Loki for both API instances. These are intentional failed-login events for nonexistent random users, not direct database inserts. Skip `--verify` to apply with only the service readiness checks. The full application `site.yml` can include this installation with `-e monitoring_enabled=true`; leave that flag off when deploying only the original application stack.
 
-In Grafana Explore, select Loki and query `{log_type="event"}` or `{log_type="service"}`. The Prometheus source supports `up` and standard `node_*` system metrics. Data sources are provisioned automatically; dashboards are not provisioned by this change. Monitoring interfaces are restricted by UFW to the assigned LAN; Loki and Prometheus currently use no application authentication, while Grafana requires login. Remote networks require an explicit network access design.
+In Grafana Explore, select Loki and query `{log_type="event"}`, `{log_type="application"}`, `{service="nginx",log_type="access"}`, `{service="nginx",log_type="error"}` or `{service="haproxy"}`. The Prometheus source supports `up` and standard `node_*` system metrics. Data sources are provisioned automatically; dashboards are not provisioned by this change. Monitoring interfaces are restricted by UFW to the assigned LAN; Loki and Prometheus currently use no application authentication, while Grafana requires login. Remote networks require an explicit network access design.
 
-Official references: [Grafana package installation](https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/), [Loki installation](https://grafana.com/docs/loki/latest/setup/install/local/), [Alloy journal collection](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.journal/).
+Official references: [Grafana package installation](https://grafana.com/docs/grafana/latest/setup-grafana/installation/debian/), [Loki installation](https://grafana.com/docs/loki/latest/setup/install/local/), [Alloy journal collection](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.journal/), [Alloy file discovery](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file/), [HAProxy logging](https://docs.haproxy.org/3.0/configuration.html#8).
 
 
 ### Current full-stack deployment (supersedes the nginx-only preview)

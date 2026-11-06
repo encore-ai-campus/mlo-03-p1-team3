@@ -300,8 +300,12 @@ pnpm-debug.log*
 
 ### Local configuration ###
 .env.*
+*.env
+*.env.*
 !.env.example
 !.env.*.example
+!*.env.example
+!*.env.*.example
 
 ### Local databases ###
 docker-data/

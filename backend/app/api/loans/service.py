@@ -8,7 +8,7 @@ from app.api.events.service import EventSink, amount_band, record, transaction
 from app.api.loans import repository
 from app.api.loans.calc import due_dates, monthly_installment, schedule
 from app.core.errors import AppError
-from app.core.time import kst_today, utc_now
+from app.core.time import kst_now, kst_today
 from app.db.mariadb import translate_db_errors, with_deadlock_retry
 
 
@@ -71,7 +71,7 @@ def review(engine: Engine, request: Request, reviewer_id: int, application_id: i
             status = "repaying" if approve else "rejected"
             if approve:
                 _disburse(conn, loan)
-            repository.mark_reviewed(conn, application_id, status, reviewer_id, utc_now(), approve)
+            repository.mark_reviewed(conn, application_id, status, reviewer_id, kst_now(), approve)
             record(conn, request, "loan_review", "success", "approved" if approve else "rejected",
                    {"product_code": loan["product_code"], "term_months": loan["term_months"],
                     "amount_band": amount_band(loan["principal_amount"])})
@@ -120,7 +120,7 @@ def repay_due(engine: Engine, sink: EventSink, application_id: int, as_of) -> di
         if not rows:
             return counts
         account = lock_customer_account(conn, loan["user_id"])
-        balance, now, short = account["balance"], utc_now(), False
+        balance, now, short = account["balance"], kst_now(), False
         for row in rows:
             was_overdue = row["status"] == "overdue"
             if not short and balance >= row["amount"]:

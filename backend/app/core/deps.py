@@ -5,7 +5,7 @@ from fastapi import Depends, Request
 from app.api.auth.service import resolve_session
 from app.core.errors import AppError
 from app.core.security import SESSION_COOKIE
-from app.core.time import utc_now
+from app.core.time import kst_now
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ def current_user(request: Request) -> CurrentUser:
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         raise _unauthorized()
-    user = resolve_session(request.app.state.engine, token, utc_now())
+    user = resolve_session(request.app.state.engine, token, kst_now())
     if user is None:
         raise _unauthorized()
     return CurrentUser(id=user.id, role=user.role, name=user.name)

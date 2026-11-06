@@ -4,7 +4,10 @@
 source "$(dirname "$0")/common.sh"
 require_root
 check_ubuntu_2404
+reset_policy_override="${RESET_DATABASES:-}"
 load_env MARIADB_PASSWORD MARIADB_REPL_PASSWORD MARIADB_REPLICA_IP API1_IP API2_IP MARIADB_CLIENT_SUBNET
+RESET_DATABASES="${reset_policy_override:-${RESET_DATABASES:-true}}"
+[[ "$RESET_DATABASES" == true || "$RESET_DATABASES" == false ]] || die "RESET_DATABASES는 true 또는 false여야 합니다."
 check_password MARIADB_PASSWORD
 check_password MARIADB_REPL_PASSWORD
 
@@ -14,6 +17,7 @@ log "마스터 설정 (외부 접속, 복제 로그)"
 cat > /etc/mysql/mariadb.conf.d/60-podobank.cnf <<'EOF'
 [mariadb]
 bind-address = 0.0.0.0
+default_time_zone = "+09:00"
 server_id = 1
 log_bin = mysql-bin
 binlog_format = ROW
@@ -22,6 +26,11 @@ collation-server = utf8mb4_unicode_ci
 EOF
 systemctl enable mariadb
 systemctl restart mariadb
+
+if [ "$RESET_DATABASES" = true ]; then
+  log "기존 podobank DB 삭제 후 새로 생성 (테스트 데이터 초기화)"
+  mariadb -e 'DROP DATABASE IF EXISTS podobank;'
+fi
 
 log "DB·계정 생성 (API 서버와 지정된 클라이언트 대역 허용, 복제 계정은 슬레이브만)"
 mariadb <<SQL

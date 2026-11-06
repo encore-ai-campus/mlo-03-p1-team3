@@ -1,10 +1,13 @@
 #!/bin/bash
-# MongoDB VM: install, enable password authentication, and preserve data on reruns.
+# MongoDB VM: install, enable authentication, and reset the test DB by default.
 # The application user is limited to readWrite on the podobank database.
 source "$(dirname "$0")/common.sh"
 require_root
 check_ubuntu_2404
+reset_policy_override="${RESET_DATABASES:-}"
 load_env MONGODB_VERSION MARIADB_PASSWORD MONGODB_ADMIN_PASSWORD
+RESET_DATABASES="${reset_policy_override:-${RESET_DATABASES:-true}}"
+[[ "$RESET_DATABASES" == true || "$RESET_DATABASES" == false ]] || die "RESET_DATABASES는 true 또는 false여야 합니다."
 check_password MARIADB_PASSWORD
 check_password MONGODB_ADMIN_PASSWORD
 
@@ -26,7 +29,8 @@ fi
 
 MONGO_SETUP_FILE="$(mktemp /run/podobank-mongo-users.XXXXXX.js)"
 chmod 0600 "$MONGO_SETUP_FILE"
-trap 'rm -f "$MONGO_SETUP_FILE"' EXIT
+MONGO_RESET_FILE=""
+trap 'rm -f "$MONGO_SETUP_FILE"; if [ -n "$MONGO_RESET_FILE" ]; then rm -f "$MONGO_RESET_FILE"; fi' EXIT
 cat > "$MONGO_SETUP_FILE" <<EOF
 const admin = db.getSiblingDB("admin");
 const adminName = "podobank-admin";
@@ -39,20 +43,20 @@ if (process.env.PODOBANK_MONGO_AUTH_ENABLED === "true") {
   if (auth.ok !== 1) throw new Error("MongoDB deployment account authentication failed");
   admin.updateUser(adminName, {
     pwd: adminPassword,
-    roles: [{ role: "userAdminAnyDatabase", db: "admin" }]
+    roles: [{ role: "userAdminAnyDatabase", db: "admin" }, { role: "dbAdmin", db: "podobank" }]
   });
 } else {
   const existingAdmin = admin.getUser(adminName);
   if (existingAdmin) {
     admin.updateUser(adminName, {
       pwd: adminPassword,
-      roles: [{ role: "userAdminAnyDatabase", db: "admin" }]
+      roles: [{ role: "userAdminAnyDatabase", db: "admin" }, { role: "dbAdmin", db: "podobank" }]
     });
   } else {
     admin.createUser({
       user: adminName,
       pwd: adminPassword,
-      roles: [{ role: "userAdminAnyDatabase", db: "admin" }]
+      roles: [{ role: "userAdminAnyDatabase", db: "admin" }, { role: "dbAdmin", db: "podobank" }]
     });
   }
 }
@@ -109,4 +113,20 @@ for _ in $(seq 1 30); do
 done
 PODOBANK_MONGO_AUTH_ENABLED=true mongosh --quiet --file "$MONGO_SETUP_FILE" >/dev/null 2>&1 \
   || die "MongoDB 인증 확인에 실패했습니다."
-log "완료. DB 데이터는 보존하고 podobank DB 사용자 설정만 갱신했습니다."
+if [ "$RESET_DATABASES" = true ]; then
+  log "기존 podobank MongoDB 데이터 초기화"
+  MONGO_RESET_FILE="$(mktemp /run/podobank-mongo-reset.XXXXXX.js)"
+  chmod 0600 "$MONGO_RESET_FILE"
+  cat > "$MONGO_RESET_FILE" <<EOF
+const admin = db.getSiblingDB("admin");
+if (admin.auth("podobank-admin", "${MONGODB_ADMIN_PASSWORD}").ok !== 1) {
+  throw new Error("MongoDB reset authentication failed");
+}
+const result = db.getSiblingDB("podobank").dropDatabase();
+if (result.ok !== 1) throw new Error("MongoDB reset failed");
+EOF
+  mongosh --quiet --file "$MONGO_RESET_FILE" >/dev/null 2>&1 || die "MongoDB 초기화에 실패했습니다."
+  PODOBANK_MONGO_AUTH_ENABLED=true mongosh --quiet --file "$MONGO_SETUP_FILE" >/dev/null 2>&1 \
+    || die "MongoDB 초기화 후 계정 확인에 실패했습니다."
+fi
+log "완료. RESET_DATABASES=${RESET_DATABASES} 정책을 적용했습니다."

@@ -9,7 +9,7 @@ from app.core.config import KAKAO_SIGNUP_MINUTES
 from app.core.deps import CurrentUser, current_user
 from app.core.errors import AppError
 from app.core.security import DEVICE_COOKIE, SESSION_COOKIE, clear_cookie, set_cookie, set_login_cookies
-from app.core.time import utc_now
+from app.core.time import kst_now
 
 STATE_COOKIE = "podobank_kakao_state"
 SIGNUP_COOKIE = "podobank_kakao_signup"
@@ -35,7 +35,7 @@ def password_signup(body: SignupRequest, request: Request, response: Response):
     data = SignupData(**body.model_dump(exclude={"name"}))
     user_id = signup(engine, request.app.state.events, request, None, body.name, data)
     with engine.begin() as conn:
-        token = service.start_session(conn, user_id, info.device_id, info.client, info.user_agent, utc_now())
+        token = service.start_session(conn, user_id, info.device_id, info.client, info.user_agent, kst_now())
     set_login_cookies(response, token, info.device_id, request.app.state.settings)
     return {"status": "authenticated"}
 
@@ -44,7 +44,7 @@ def password_signup(body: SignupRequest, request: Request, response: Response):
 def logout(request: Request, response: Response):
     token = request.cookies.get(SESSION_COOKIE)
     if token:
-        service.end_session(request.app.state.engine, token, utc_now())
+        service.end_session(request.app.state.engine, token, kst_now())
     clear_cookie(response, SESSION_COOKIE, request.app.state.settings)
     return {"status": "logged_out"}
 

@@ -17,7 +17,7 @@ def make_engine(url: str) -> Engine:
         pool_pre_ping=True,
         # 잠금을 기다린 뒤 다른 트랜잭션이 커밋한 원장(1일 한도 합계 등)을 읽어야 한다.
         isolation_level="READ COMMITTED",
-        connect_args={"connect_timeout": 2, "charset": "utf8mb4", "init_command": "SET time_zone = '+00:00', innodb_lock_wait_timeout = 3"},
+        connect_args={"connect_timeout": 2, "charset": "utf8mb4", "init_command": "SET time_zone = '+09:00', innodb_lock_wait_timeout = 3"},
     )
 
 

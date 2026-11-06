@@ -50,6 +50,7 @@
       environment:
         VM_ENV: /opt/podobank-installer/deploy/vm/vm.env
         DEBIAN_FRONTEND: noninteractive
+        RESET_DATABASES: "false"
       register: mariadb_apply
       changed_when: true
       no_log: true
@@ -119,6 +120,7 @@
       environment:
         VM_ENV: /opt/podobank-installer/deploy/vm/vm.env
         DEBIAN_FRONTEND: noninteractive
+        RESET_DATABASES: "false"
       register: mongodb_apply
       changed_when: true
       no_log: true

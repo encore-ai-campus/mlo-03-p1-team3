@@ -20,7 +20,7 @@ from app.core.config import (
 )
 from app.core.errors import AppError
 from app.core.security import verify_password
-from app.core.time import utc_now
+from app.core.time import kst_now
 
 
 def _invalid() -> AppError:
@@ -32,7 +32,7 @@ def _locked() -> AppError:
 
 
 def check_not_locked(conn, request: Request, user, method: str) -> None:
-    now = utc_now()
+    now = kst_now()
     repository.reset_expired_lock(conn, user["id"], now)
     if user["locked_until"] is not None and user["locked_until"] > now:
         record(conn, request, "login", "failure", "account_locked", {"method": method})
@@ -68,10 +68,10 @@ def login_with_password(engine: Engine, request: Request, phone: str, password: 
                 if verify_password(user["password_hash"], password):
                     # record_success가 사용자 행을 잠가서, 같은 기기 동시 로그인도 세션이 하나만 남는다.
                     repository.record_success(conn, user["id"])
-                    token = start_session(conn, user["id"], info.device_id, info.client, info.user_agent, utc_now())
+                    token = start_session(conn, user["id"], info.device_id, info.client, info.user_agent, kst_now())
                     record(conn, request, "login", "success", "completed", {"method": "password"})
                     return token
-                lock_until = utc_now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
+                lock_until = kst_now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
                 repository.record_failure(conn, user["id"], LOGIN_MAX_FAILURES, lock_until)
                 record(conn, request, "login", "failure", "invalid_credentials", {"method": "password"})
                 error = _invalid()
@@ -163,7 +163,7 @@ def login_with_kakao(engine: Engine, request: Request, kakao, code: str, info: C
     except KakaoUnavailableError as exc:
         raise AppError(503, "kakao_unavailable", "카카오 로그인을 잠시 사용할 수 없습니다") from exc
 
-    now = utc_now()
+    now = kst_now()
     with transaction(engine, request.app.state.events) as conn:
         user = repository.find_by_kakao_subject(conn, profile.subject)
         if user is None:
@@ -195,7 +195,7 @@ def pending_kakao_signup(engine: Engine, token: str | None) -> tuple[str, str]:
     if not token:
         raise _signup_expired()
     with engine.connect() as conn:
-        row = repository.find_kakao_signup(conn, hash_token(token), utc_now())
+        row = repository.find_kakao_signup(conn, hash_token(token), kst_now())
     if row is None:
         raise _signup_expired()
     return row["kakao_subject"], row["name"]
@@ -205,4 +205,4 @@ def finish_kakao_signup(engine: Engine, token: str, user_id: int, info: ClientIn
     """임시 가입을 지우고(다시 쓸 수 없게) 카카오 세션을 만든다."""
     with engine.begin() as conn:
         repository.delete_kakao_signup(conn, hash_token(token))
-        return start_session(conn, user_id, info.device_id, info.client, info.user_agent, utc_now(), "kakao")
+        return start_session(conn, user_id, info.device_id, info.client, info.user_agent, kst_now(), "kakao")

@@ -11,7 +11,7 @@ from app.api.transactions.service import check_amount
 from app.api.transfers import repository
 from app.core.config import TRANSFER_DAILY_LIMIT, TRANSFER_MAX_AMOUNT
 from app.core.errors import AppError
-from app.core.time import kst_day_range_utc, utc_now
+from app.core.time import kst_day_range, kst_now
 
 ACCOUNT_NUMBER = re.compile(r"^\d{3}-\d{4}-\d{4}$")
 PHONE = re.compile(r"^01\d{8,9}$")
@@ -59,7 +59,7 @@ def transfer(conn: Connection, request: Request, user_id: int, recipient: str, a
     for account_id in sorted((sender["id"], receiver["id"])):
         accounts.lock(conn, account_id)
 
-    start, end = kst_day_range_utc(utc_now())
+    start, end = kst_day_range(kst_now())
     if repository.sent_between(conn, sender["id"], start, end) + amount > TRANSFER_DAILY_LIMIT:
         raise AppError(422, "daily_limit_exceeded", f"하루 송금 한도 {TRANSFER_DAILY_LIMIT:,}원을 넘습니다")
 

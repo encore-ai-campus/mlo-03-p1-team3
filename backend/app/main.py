@@ -13,6 +13,8 @@ from app.api.transfers.router import router as transfers_router
 from app.core.config import Settings
 from app.core.errors import install_error_handlers
 from app.db.mariadb import make_engine
+from app.observability.application_log import ApplicationLog, install_application_log
+from app.observability.metrics import install_metrics
 from app.observability.request_id import install_request_id
 
 API_PREFIX = "/api/v1"
@@ -23,11 +25,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="PodoBank API")
     app.state.settings = settings
     app.state.engine = make_engine(settings.mariadb_url)
-    app.state.events = make_sink(settings)
+    application_log = ApplicationLog(settings.app_log_path, settings.instance_name)
+    app.state.events = make_sink(settings, application_log)
     app.state.mongo = app.state.events.mongo_db
     app.state.kakao = HttpKakaoProvider(settings)
     install_request_id(app)
+    install_application_log(app, application_log)
     install_error_handlers(app)
+    install_metrics(app)
 
     app.include_router(health_router, prefix=API_PREFIX)
     app.include_router(auth_router, prefix=API_PREFIX)

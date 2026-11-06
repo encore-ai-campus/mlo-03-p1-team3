@@ -36,10 +36,10 @@ def wait_for(check, label, attempts=45):
 
 def targets_ready():
     targets = get_json(PROM + '/api/v1/targets')['data']['activeTargets']
-    return targets if len(targets) == 13 and all(t['health'] == 'up' for t in targets) else None
+    return targets if len(targets) == 20 and all(t['health'] == 'up' for t in targets) else None
 
 
-targets = wait_for(targets_ready, 'Prometheus 13 targets (10 node exporters + 3 services)')
+targets = wait_for(targets_ready, 'Prometheus 20 targets (10 nodes + 10 service endpoints)')
 print('Prometheus targets:', len(targets), flush=True)
 private = Path(__file__).resolve().parents[1] / 'vm' / 'monitoring.env'
 values = {}
@@ -53,9 +53,10 @@ headers = {'Authorization': 'Basic ' + auth}
 sources = get_json(GRAFANA + '/api/datasources', headers)
 assert {s['uid'] for s in sources} >= {'podobank-prometheus', 'podobank-loki'}
 for uid in ('podobank-prometheus', 'podobank-loki'):
-    result = get_json(GRAFANA + '/api/datasources/uid/' + uid + '/health', headers)
-    assert result['status'].lower() == 'ok', result.get('message')
-    print('Grafana data source ' + uid + ': PASS', flush=True)
+    def source_ready(uid=uid):
+        result = get_json(GRAFANA + '/api/datasources/uid/' + uid + '/health', headers)
+        return result if result.get('status', '').lower() == 'ok' else None
+    wait_for(source_ready, 'Grafana data source ' + uid)
 
 requests = []
 for _ in range(12):

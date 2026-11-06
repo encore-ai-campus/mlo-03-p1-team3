@@ -55,7 +55,7 @@ def test_payment_success(client, make_user, engine):
     assert [(e["outcome"], e["properties"]["region"], e["properties"]["merchant_category"]) for e in events] == [
         ("success", merchant["region"], merchant["category"])]
     assert len(recorded_events(collection="card_payment_locations")) == 1
-    assert [e["event_type"] for e in logged_events()] == ["login", "card_payment"]  # 위치 로그는 app.log에 안 씀
+    assert [e["event_type"] for e in logged_events()] == ["login", "card_payment"]  # 위치 로그는 events.log에 안 씀
 
 
 def test_payment_insufficient_409(client, make_user, engine):

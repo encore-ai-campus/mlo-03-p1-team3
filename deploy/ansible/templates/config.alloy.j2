@@ -1,7 +1,12 @@
+{% if alloy_role == "fastapi" %}
 // Application events already written by FastAPI; no database reads are used.
 loki.source.file "podobank_events" {
+  file_match {
+    enabled = true
+    sync_period = "10s"
+  }
   targets = [{
-    __path__ = "/var/log/podobank/{{ api_instance }}.log",
+    __path__ = "/var/log/podobank/{{ api_instance }}.events.log",
     job = "podobank",
     instance = "{{ api_instance }}",
     log_type = "event",
@@ -9,9 +14,24 @@ loki.source.file "podobank_events" {
   forward_to = [loki.write.backend.receiver]
 }
 
+loki.source.file "podobank_application" {
+  file_match {
+    enabled = true
+    sync_period = "10s"
+  }
+  targets = [{
+    __path__ = "/var/log/podobank/{{ api_instance }}.app.log",
+    job = "podobank",
+    instance = "{{ api_instance }}",
+    log_type = "application",
+  }]
+  forward_to = [loki.write.backend.receiver]
+}
+
 // Uvicorn requests and application warnings/errors captured by systemd.
 loki.source.journal "podobank_api" {
   matches = "_SYSTEMD_UNIT=podobank-api.service"
+  max_age = "{{ alloy_journal_max_age | default('1s') }}"
   labels = {
     service = "podobank",
     instance = "{{ api_instance }}",
@@ -20,6 +40,63 @@ loki.source.journal "podobank_api" {
   forward_to = [loki.write.backend.receiver]
 }
 
+{% elif alloy_role == "nginx" %}
+// Tail only new proxy requests on first installation; persist positions on restart.
+loki.source.file "nginx_access" {
+  file_match {
+    enabled = true
+    sync_period = "10s"
+  }
+  targets = [{
+    __path__ = "/var/log/nginx/access.log",
+    job = "podobank",
+    service = "nginx",
+    instance = "{{ alloy_instance }}",
+    log_type = "access",
+  }]
+  tail_from_end = true
+  forward_to = [loki.write.backend.receiver]
+}
+
+loki.source.file "nginx_error" {
+  file_match {
+    enabled = true
+    sync_period = "10s"
+  }
+  targets = [{
+    __path__ = "/var/log/nginx/error.log",
+    job = "podobank",
+    service = "nginx",
+    instance = "{{ alloy_instance }}",
+    log_type = "error",
+  }]
+  tail_from_end = true
+  forward_to = [loki.write.backend.receiver]
+}
+
+loki.source.journal "nginx_service" {
+  matches = "_SYSTEMD_UNIT=nginx.service"
+  max_age = "{{ alloy_journal_max_age | default('1s') }}"
+  labels = {
+    service = "nginx",
+    instance = "{{ alloy_instance }}",
+    log_type = "service",
+  }
+  forward_to = [loki.write.backend.receiver]
+}
+{% elif alloy_role == "haproxy" %}
+// HAProxy logs HTTP requests to stdout; systemd captures stdout in the journal.
+loki.source.journal "haproxy_service" {
+  matches = "_SYSTEMD_UNIT=haproxy.service"
+  max_age = "{{ alloy_journal_max_age | default('1s') }}"
+  labels = {
+    service = "haproxy",
+    instance = "{{ alloy_instance }}",
+    log_type = "service",
+  }
+  forward_to = [loki.write.backend.receiver]
+}
+{% endif %}
 loki.write "backend" {
   endpoint {
     url = {{ alloy_loki_url | to_json }}

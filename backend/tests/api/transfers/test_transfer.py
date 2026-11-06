@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from sqlalchemy import text
 
-from app.core.time import kst_day_range_utc, utc_now
+from app.core.time import kst_day_range, kst_now
 from tests.conftest import ledger_matches_balance, login, recorded_events
 
 LOOKUP = "/api/v1/transfers/recipient-lookup"
@@ -127,7 +127,7 @@ def test_over_single_limit_422(client, make_user):
 
 def test_daily_limit_422(client, make_user, engine):
     sender, receiver = make_user(balance=10_000_000), make_user()
-    add_transfer_out(engine, sender["account_id"], 95_000_000, utc_now())
+    add_transfer_out(engine, sender["account_id"], 95_000_000, kst_now())
     login(client, sender)
 
     response = client.post(TRANSFER, json={"recipient": receiver["account_number"], "amount": 6_000_000})
@@ -138,8 +138,8 @@ def test_daily_limit_422(client, make_user, engine):
 
 def test_kst_boundary_yesterday_not_counted(client, make_user, engine):
     sender, receiver = make_user(balance=10_000_000), make_user()
-    today_start_utc, _ = kst_day_range_utc(utc_now())
-    add_transfer_out(engine, sender["account_id"], 95_000_000, today_start_utc - timedelta(minutes=1))
+    today_start_kst, _ = kst_day_range(kst_now())
+    add_transfer_out(engine, sender["account_id"], 95_000_000, today_start_kst - timedelta(minutes=1))
     login(client, sender)
 
     response = client.post(TRANSFER, json={"recipient": receiver["account_number"], "amount": 6_000_000})

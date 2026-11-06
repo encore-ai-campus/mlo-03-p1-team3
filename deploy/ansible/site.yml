@@ -57,6 +57,10 @@
         - haproxy.sh
         - nginx.sh
         - podobank-api.service
+        - logrotate.sh
+        - podobank-logrotate.conf
+        - podobank-logrotate.service
+        - podobank-logrotate.timer
     - name: Copy proxy configuration templates
       ansible.builtin.copy:
         src: "../{{ item }}"
@@ -71,6 +75,21 @@
         dest: /opt/podobank-installer/deploy/vm/vm.env
         mode: '0600'
       no_log: true
+
+- name: Stop existing API writers before resetting test databases
+  hosts: api
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Inspect existing API service
+      ansible.builtin.stat:
+        path: /etc/systemd/system/podobank-api.service
+      register: api_service_before_reset
+    - name: Stop the API before recreating its databases
+      ansible.builtin.systemd:
+        name: podobank-api
+        state: stopped
+      when: api_service_before_reset.stat.exists
 
 - name: Install MariaDB master
   hosts: mariadb_master
@@ -145,6 +164,12 @@
         state: stopped
         enabled: false
       when: preview_service.stat.exists
+    - name: Copy an explicitly supplied current workspace backend
+      ansible.builtin.copy:
+        src: '{{ backend_source_dir }}/'
+        dest: /opt/podobank-backend-source/
+        mode: u=rwX,go=rX
+      when: backend_source_dir is defined
     - ansible.builtin.import_tasks: tasks/run-installer.yml
       vars:
         role_script: api.sh

@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, field_serializer
 
+from app.core.time import kst_iso
+
 
 class AccountResponse(BaseModel):
     account_number: str
@@ -16,9 +18,9 @@ class LedgerItem(BaseModel):
     created_at: datetime
 
     @field_serializer("created_at")
-    def _utc(self, value: datetime) -> str:
-        # DB는 UTC를 시간대 없이 저장한다. 브라우저가 한국 시간으로 잘못 읽지 않게 Z(UTC)를 붙인다.
-        return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+    def _kst(self, value: datetime) -> str:
+        return kst_iso(value)
+
 
 
 class LedgerResponse(BaseModel):
