@@ -1,5 +1,19 @@
 # Persona Playwright simulator
 
+## 오프라인 행동 계획 생성기
+
+[`planner/README.md`](planner/README.md)의 Python 도구는 합성 고객 600명 중 하루 400명의 행동 계획을 만듭니다. 기존 Playwright 실행기와 별개이며, API 호출이나 실제 거래를 실행하지 않습니다. 설치할 Python 패키지는 없습니다.
+
+```bash
+cd simulator/planner
+python persona_sim.py init --output data
+python persona_sim.py plan --date 2026-11-06 --output data
+python persona_sim.py validate --date 2026-11-06 --output data
+python -m unittest discover -s tests -v
+```
+
+`planner/samples/`에는 합성 샘플이 있고, 실행 중 생성되는 `planner/data/`는 Git에서 제외됩니다. 기존 실행기의 고객·실행 상태와는 자동으로 연결되지 않습니다.
+
 `personas/profiles/*.json`의 전체 300명을 추첨 후보로 사용합니다. 기존 `execution.owner` 값과 관계없이 선택하며, 선호 요일·시간과 활동 빈도에 따라 최대 `--concurrency`명만 실행합니다. Chromium은 기본적으로 창을 표시하지 않는 백그라운드 방식이며, `--headed`를 붙이면 창을 표시합니다. 터미널 종료 후에도 프로세스를 유지하는 기능은 별도입니다.
 
 ## 설치
