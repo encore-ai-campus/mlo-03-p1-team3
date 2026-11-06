@@ -1,0 +1,186 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Seoul",
+  "mode": "PLAN_ONLY_NO_API_CALLS",
+  "users_active": 400,
+  "active_by_persona": {
+    "P01": 140,
+    "P02": 110,
+    "P03": 90,
+    "P04": 60
+  },
+  "planned_actions": 2640,
+  "planned_actions_by_type": {
+    "account_view": 430,
+    "card_payment": 221,
+    "deposit": 43,
+    "history_view": 183,
+    "loan_apply": 3,
+    "loan_products": 51,
+    "loan_view": 16,
+    "login": 731,
+    "logout": 731,
+    "transfer": 205,
+    "withdrawal": 26
+  },
+  "participation_by_persona": {
+    "P01": {
+      "account_view": {
+        "users": 116,
+        "percent": 82.9
+      },
+      "history_view": {
+        "users": 69,
+        "percent": 49.3
+      },
+      "card_payment": {
+        "users": 33,
+        "percent": 23.6
+      },
+      "transfer": {
+        "users": 21,
+        "percent": 15.0
+      },
+      "deposit": {
+        "users": 15,
+        "percent": 10.7
+      },
+      "withdrawal": {
+        "users": 10,
+        "percent": 7.1
+      },
+      "loan_products": {
+        "users": 6,
+        "percent": 4.3
+      },
+      "loan_apply": {
+        "users": 0,
+        "percent": 0.0
+      },
+      "loan_view": {
+        "users": 0,
+        "percent": 0.0
+      }
+    },
+    "P02": {
+      "account_view": {
+        "users": 82,
+        "percent": 74.5
+      },
+      "history_view": {
+        "users": 43,
+        "percent": 39.1
+      },
+      "card_payment": {
+        "users": 89,
+        "percent": 80.9
+      },
+      "transfer": {
+        "users": 11,
+        "percent": 10.0
+      },
+      "deposit": {
+        "users": 8,
+        "percent": 7.3
+      },
+      "withdrawal": {
+        "users": 3,
+        "percent": 2.7
+      },
+      "loan_products": {
+        "users": 2,
+        "percent": 1.8
+      },
+      "loan_apply": {
+        "users": 0,
+        "percent": 0.0
+      },
+      "loan_view": {
+        "users": 0,
+        "percent": 0.0
+      }
+    },
+    "P03": {
+      "account_view": {
+        "users": 77,
+        "percent": 85.6
+      },
+      "history_view": {
+        "users": 53,
+        "percent": 58.9
+      },
+      "card_payment": {
+        "users": 18,
+        "percent": 20.0
+      },
+      "transfer": {
+        "users": 69,
+        "percent": 76.7
+      },
+      "deposit": {
+        "users": 18,
+        "percent": 20.0
+      },
+      "withdrawal": {
+        "users": 8,
+        "percent": 8.9
+      },
+      "loan_products": {
+        "users": 9,
+        "percent": 10.0
+      },
+      "loan_apply": {
+        "users": 0,
+        "percent": 0.0
+      },
+      "loan_view": {
+        "users": 0,
+        "percent": 0.0
+      }
+    },
+    "P04": {
+      "account_view": {
+        "users": 37,
+        "percent": 61.7
+      },
+      "history_view": {
+        "users": 18,
+        "percent": 30.0
+      },
+      "card_payment": {
+        "users": 5,
+        "percent": 8.3
+      },
+      "transfer": {
+        "users": 5,
+        "percent": 8.3
+      },
+      "deposit": {
+        "users": 2,
+        "percent": 3.3
+      },
+      "withdrawal": {
+        "users": 5,
+        "percent": 8.3
+      },
+      "loan_products": {
+        "users": 34,
+        "percent": 56.7
+      },
+      "loan_apply": {
+        "users": 3,
+        "percent": 5.0
+      },
+      "loan_view": {
+        "users": 16,
+        "percent": 26.7
+      }
+    }
+  },
+  "fds_candidate_users": 4,
+  "notes": [
+    "PLANNED actions are not API results or MongoDB events.",
+    "A backend executor must validate current balances, loans and recipients.",
+    "Virtual planned_at is not server occurred_at or collected_at."
+  ]
+}
