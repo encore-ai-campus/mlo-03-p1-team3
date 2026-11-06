@@ -1,5 +1,5 @@
 ---
-# Explicit test reset entry point. Destroys application/monitoring data, not VM disks or secrets.
+# Reset test databases, logs and metrics; preserve Grafana dashboards/accounts and VM disks/secrets.
 - name: Clear application logs and Alloy read positions
   hosts: api
   become: true
@@ -19,18 +19,23 @@
         owner: alloy
         group: alloy
         mode: '0750'
-- name: Clear monitoring storage
-  hosts: monitoring
+- name: Clear Loki logs and Prometheus metrics while preserving Grafana
+  hosts: prometheus:loki:!grafana
   become: true
   gather_facts: false
   vars:
     reset_services:
       prometheus: {service: prometheus, path: /var/lib/prometheus, owner: prometheus}
       loki: {service: loki, path: /var/lib/loki, owner: loki}
-      grafana: {service: grafana-server, path: /var/lib/grafana, owner: grafana}
-    reset_role: '{{ "prometheus" if inventory_hostname in groups["prometheus"] else ("loki" if inventory_hostname in groups["loki"] else "grafana") }}'
+    reset_role: '{{ "prometheus" if inventory_hostname in groups["prometheus"] else "loki" }}'
     storage: '{{ reset_services[reset_role] }}'
   tasks:
+    - name: Require an approved metrics or log storage path before deletion
+      ansible.builtin.assert:
+        that:
+          - inventory_hostname not in groups.get('grafana', [])
+          - storage.path in ['/var/lib/prometheus', '/var/lib/loki']
+        fail_msg: Test reset may delete only Loki and Prometheus storage; Grafana data must be preserved.
     - ansible.builtin.systemd:
         name: '{{ storage.service }}'
         state: stopped
