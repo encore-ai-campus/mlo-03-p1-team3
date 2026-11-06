@@ -1,0 +1,129 @@
+---
+- name: Install and configure nginx using the existing VM installer
+  hosts: nginx
+  become: true
+  gather_facts: false
+  vars:
+    installer_root: /opt/podobank-installer
+    vm_env_file: "{{ playbook_dir }}/../vm/vm.env"
+    nginx_fresh_install: false
+  tasks:
+    - name: Check private vm.env exists on the controller
+      ansible.builtin.stat:
+        path: "{{ vm_env_file }}"
+      delegate_to: localhost
+      become: false
+      register: controller_env
+
+    - name: Require explicit deployment configuration
+      ansible.builtin.assert:
+        that: controller_env.stat.exists
+        fail_msg: Copy deploy/vm/vm.env.example to vm.env and configure it first.
+
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
+    - name: Wait for cloud-init
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+
+    - name: Remove nginx package for an explicit fresh installation demonstration
+      ansible.builtin.apt:
+        name: nginx
+        state: absent
+        purge: false
+        lock_timeout: 300
+      when: nginx_fresh_install | bool
+
+    - name: Create installer directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ installer_root }}/deploy"
+        - "{{ installer_root }}/deploy/vm"
+
+    - name: Copy existing nginx configuration template
+      ansible.builtin.copy:
+        src: ../nginx.conf
+        dest: "{{ installer_root }}/deploy/nginx.conf"
+        mode: '0644'
+
+    - name: Copy existing installation scripts
+      ansible.builtin.copy:
+        src: "../vm/{{ item }}"
+        dest: "{{ installer_root }}/deploy/vm/{{ item }}"
+        mode: '0755'
+      loop:
+        - common.sh
+        - nginx.sh
+
+    - name: Copy private deployment environment
+      ansible.builtin.copy:
+        src: "{{ vm_env_file }}"
+        dest: "{{ installer_root }}/deploy/vm/vm.env"
+        mode: '0600'
+      no_log: true
+
+    - name: Remove superseded nginx sites and preview content
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/nginx/sites-enabled/browser-nginx.conf
+        - /etc/nginx/sites-available/browser-nginx.conf
+        - /etc/nginx/sites-enabled/default
+        - /etc/nginx/sites-available/default
+        - /var/www/browser-nginx
+        - /root/browser-nginx-before-bridge/browser-nginx.conf
+
+    - name: Find previous nginx configuration backup archives
+      ansible.builtin.find:
+        paths: /root
+        patterns: nginx-before-ansible-*.tar.gz
+        file_type: file
+      register: nginx_old_backups
+
+    - name: Remove previous nginx configuration backup archives
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ nginx_old_backups.files }}"
+
+    - name: Run the existing nginx installation and configuration script
+      ansible.builtin.command:
+        argv:
+          - bash
+          - "{{ installer_root }}/deploy/vm/nginx.sh"
+      environment:
+        VM_ENV: "{{ installer_root }}/deploy/vm/vm.env"
+        DEBIAN_FRONTEND: noninteractive
+      register: nginx_installer
+
+    - name: Show nginx installer output
+      ansible.builtin.debug:
+        var: nginx_installer.stdout_lines
+
+    - name: Create a verification page when no frontend build is deployed
+      ansible.builtin.copy:
+        dest: /var/www/podobank/index.html
+        force: false
+        mode: '0644'
+        content: |
+          <!doctype html><html lang="ko"><meta charset="utf-8">
+          <title>nginx Ansible deployment</title>
+          <h1>nginx Ansible 설치 및 설정 완료</h1>
+          <p>192.168.0.191 → nginx</p>
+          <p>/api/ → HAProxy 192.168.0.192:8000</p>
+          <p>podobank-nginx-ansible</p></html>
+
+    - name: Verify installed nginx configuration syntax
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+    - name: Verify nginx serves the configured document root
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        status_code: 200

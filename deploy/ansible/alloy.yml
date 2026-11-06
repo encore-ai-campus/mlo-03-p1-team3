@@ -1,0 +1,96 @@
+---
+# Standalone: ansible-playbook -i inventory.json deploy/ansible/alloy.yml
+# Configure LOKI_PUSH_URL in the private deploy/vm/vm.env first.
+- name: Install and configure Alloy on both FastAPI VMs
+  hosts: api
+  become: true
+  gather_facts: false
+  vars:
+    alloy_loki_url: "{{ lookup('ansible.builtin.ini', 'LOKI_PUSH_URL', type='properties', file=playbook_dir ~ '/../vm/vm.env', default='') }}"
+  pre_tasks:
+    - name: Require an explicit Loki push endpoint before making changes
+      ansible.builtin.assert:
+        that:
+          - alloy_loki_url is match('^https?://[^\s]+/loki/api/v1/push$')
+          - "'@' not in alloy_loki_url"
+        fail_msg: Configure LOKI_PUSH_URL in private vm.env. Embedded credentials are not supported by this playbook.
+      no_log: true
+  tasks:
+    - name: Install repository and log permission utilities
+      ansible.builtin.apt:
+        name: [ca-certificates, acl]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+    - name: Create APT key directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+    - name: Download the official Grafana repository signing key
+      ansible.builtin.get_url:
+        url: https://apt.grafana.com/gpg-full.key
+        dest: /etc/apt/keyrings/grafana.asc
+        mode: '0644'
+    - name: Configure the official Grafana APT repository
+      ansible.builtin.apt_repository:
+        repo: deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main
+        filename: grafana
+        state: present
+    - name: Install Alloy
+      ansible.builtin.apt:
+        name: alloy
+        state: present
+        update_cache: true
+    - name: Permit Alloy to read the API service journal
+      ansible.builtin.user:
+        name: alloy
+        groups: adm,systemd-journal
+        append: true
+      notify: Restart Alloy
+    - name: Ensure the API event log directory exists
+      ansible.builtin.file:
+        path: /var/log/podobank
+        state: directory
+        owner: podobank
+        group: podobank
+        mode: '0750'
+    - name: Inspect event log access permissions
+      ansible.builtin.command: getfacl -Rp /var/log/podobank
+      register: event_log_acl
+      changed_when: false
+    - name: Allow Alloy to read existing event logs
+      ansible.builtin.command: setfacl -R -m u:alloy:rX /var/log/podobank
+      when: (event_log_acl.stdout | regex_findall('(?m)^user:alloy:r[-w][-x]') | length) != (event_log_acl.stdout | regex_findall('(?m)^# file:') | length)
+    - name: Preserve Alloy access for newly created event logs
+      ansible.builtin.command: setfacl -m d:u:alloy:rX /var/log/podobank
+      when: "'default:user:alloy:r-x' not in event_log_acl.stdout"
+    - name: Render and validate Alloy configuration before replacing it
+      ansible.builtin.template:
+        src: config.alloy.j2
+        dest: /etc/alloy/config.alloy
+        owner: root
+        group: alloy
+        mode: '0640'
+        validate: /usr/bin/alloy validate %s
+      notify: Restart Alloy
+    - name: Apply pending Alloy configuration changes
+      ansible.builtin.meta: flush_handlers
+    - name: Enable Alloy on boot and start it
+      ansible.builtin.systemd:
+        name: alloy
+        enabled: true
+        state: started
+    - name: Verify Alloy readiness on this VM only
+      ansible.builtin.uri:
+        url: http://127.0.0.1:12345/-/ready
+        status_code: 200
+      register: alloy_readiness
+      until: alloy_readiness.status | default(0) == 200
+      retries: 15
+      delay: 2
+  handlers:
+    - name: Restart Alloy
+      ansible.builtin.systemd:
+        name: alloy
+        state: restarted

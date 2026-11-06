@@ -1,0 +1,27 @@
+// Application events already written by FastAPI; no database reads are used.
+loki.source.file "podobank_events" {
+  targets = [{
+    __path__ = "/var/log/podobank/{{ api_instance }}.log",
+    job = "podobank",
+    instance = "{{ api_instance }}",
+    log_type = "event",
+  }]
+  forward_to = [loki.write.backend.receiver]
+}
+
+// Uvicorn requests and application warnings/errors captured by systemd.
+loki.source.journal "podobank_api" {
+  matches = "_SYSTEMD_UNIT=podobank-api.service"
+  labels = {
+    service = "podobank",
+    instance = "{{ api_instance }}",
+    log_type = "service",
+  }
+  forward_to = [loki.write.backend.receiver]
+}
+
+loki.write "backend" {
+  endpoint {
+    url = {{ alloy_loki_url | to_json }}
+  }
+}

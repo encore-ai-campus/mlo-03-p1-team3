@@ -1,0 +1,198 @@
+---
+- name: Validate the private deployment settings
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Require the LAN DB access ranges and VM addresses to match inventory
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ playbook_dir }}/validate-env.py"
+          - "{{ playbook_dir }}/../vm/vm.env"
+          - "{{ expected_deployment_settings | to_json }}"
+      vars:
+        expected_deployment_settings:
+          NGINX_IP: "{{ hostvars[groups['nginx'][0]].ansible_host }}"
+          HAPROXY_IP: "{{ hostvars[groups['haproxy'][0]].ansible_host }}"
+          API1_IP: "{{ hostvars['api-1'].ansible_host }}"
+          API2_IP: "{{ hostvars['api-2'].ansible_host }}"
+          MARIADB_MASTER_IP: "{{ hostvars[groups['mariadb_master'][0]].ansible_host }}"
+          MARIADB_REPLICA_IP: "{{ hostvars[groups['mariadb_replica'][0]].ansible_host }}"
+          MONGODB_IP: "{{ hostvars[groups['mongodb'][0]].ansible_host }}"
+          MARIADB_CLIENT_SUBNET: 192.168.0.%
+          MONGODB_CLIENT_CIDR: 192.168.0.0/24
+      changed_when: false
+
+- name: Apply the MariaDB account rule without deleting databases
+  hosts: mariadb_master
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Refresh the MariaDB installer and private environment
+      ansible.builtin.copy:
+        src: "../vm/{{ item.src }}"
+        dest: "/opt/podobank-installer/deploy/vm/{{ item.dest }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: common.sh, dest: common.sh, mode: '0755' }
+        - { src: mariadb-master.sh, dest: mariadb-master.sh, mode: '0755' }
+    - name: Copy MariaDB settings without MongoDB admin credentials
+      ansible.builtin.copy:
+        content: "{{ lookup('ansible.builtin.file', playbook_dir ~ '/../vm/vm.env') | regex_replace('(?m)^MONGODB_ADMIN_PASSWORD=[^\\r\\n]*\\r?\\n?', '') }}"
+        dest: /opt/podobank-installer/deploy/vm/vm.env
+        mode: '0600'
+      no_log: true
+    - name: Reapply MariaDB database-scoped accounts
+      ansible.builtin.command:
+        argv:
+          - bash
+          - /opt/podobank-installer/deploy/vm/mariadb-master.sh
+      environment:
+        VM_ENV: /opt/podobank-installer/deploy/vm/vm.env
+        DEBIAN_FRONTEND: noninteractive
+      register: mariadb_apply
+      changed_when: true
+      no_log: true
+    - name: Confirm the subnet account has privileges on podobank only
+      ansible.builtin.command:
+        argv:
+          - mariadb
+          - -N
+          - -e
+          - >-
+            SELECT COUNT(*) FROM information_schema.SCHEMA_PRIVILEGES
+            WHERE GRANTEE = "'podobank'@'192.168.0.%'"
+            AND TABLE_SCHEMA = 'podobank'
+            AND PRIVILEGE_TYPE = 'SELECT'
+      register: mariadb_subnet_grant
+      changed_when: false
+      failed_when: mariadb_subnet_grant.stdout | trim | int < 1
+    - name: Confirm MariaDB replication remains active
+      ansible.builtin.command: mariadb -N -e "SHOW SLAVE STATUS"
+      delegate_to: "{{ groups['mariadb_replica'][0] }}"
+      become: true
+      register: mariadb_replication
+      changed_when: false
+      failed_when: >-
+        'Yes' not in mariadb_replication.stdout
+
+- name: Open authenticated MongoDB access to the LAN subnet
+  hosts: mongodb
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Permit management SSH from the bridged LAN
+      ansible.builtin.command: ufw allow from 192.168.0.0/24 to any port 22 proto tcp
+      register: mongodb_lan_ssh_rule
+      changed_when: "'Skipping adding existing rule' not in mongodb_lan_ssh_rule.stdout"
+    - name: Permit management SSH from the host-only network
+      ansible.builtin.command: ufw allow from 192.168.222.0/24 to any port 22 proto tcp
+      register: mongodb_hostonly_ssh_rule
+      changed_when: "'Skipping adding existing rule' not in mongodb_hostonly_ssh_rule.stdout"
+    - name: Permit MongoDB connections from the LAN subnet
+      ansible.builtin.command: ufw allow from 192.168.0.0/24 to any port 27017 proto tcp
+      register: mongodb_client_rule
+      changed_when: "'Skipping adding existing rule' not in mongodb_client_rule.stdout"
+    - name: Keep the database firewall enabled
+      ansible.builtin.command: ufw --force enable
+      register: mongodb_firewall_enable
+      changed_when: "'Firewall is active' not in mongodb_firewall_enable.stdout"
+    - name: Refresh MongoDB installer and private environment
+      ansible.builtin.copy:
+        src: "../vm/{{ item.src }}"
+        dest: "/opt/podobank-installer/deploy/vm/{{ item.dest }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: common.sh, dest: common.sh, mode: '0755' }
+        - { src: mongodb.sh, dest: mongodb.sh, mode: '0755' }
+    - name: Copy the private database settings
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../vm/vm.env"
+        dest: /opt/podobank-installer/deploy/vm/vm.env
+        mode: '0600'
+      no_log: true
+    - name: Reapply MongoDB authentication and users
+      ansible.builtin.command:
+        argv:
+          - bash
+          - /opt/podobank-installer/deploy/vm/mongodb.sh
+      environment:
+        VM_ENV: /opt/podobank-installer/deploy/vm/vm.env
+        DEBIAN_FRONTEND: noninteractive
+      register: mongodb_apply
+      changed_when: true
+      no_log: true
+    - name: Confirm MongoDB firewall permits the full LAN subnet
+      ansible.builtin.command: ufw status
+      register: mongodb_firewall_status
+      changed_when: false
+      failed_when: >-
+        '192.168.0.0/24' not in mongodb_firewall_status.stdout
+        or '27017/tcp' not in mongodb_firewall_status.stdout
+
+- name: Remove MongoDB deployment credentials from the other VMs
+  hosts: nginx:haproxy:api:mariadb_master:mariadb_replica
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Keep the MongoDB admin secret only on its database VM
+      ansible.builtin.lineinfile:
+        path: /opt/podobank-installer/deploy/vm/vm.env
+        regexp: '^MONGODB_ADMIN_PASSWORD='
+        state: absent
+      no_log: true
+
+- name: Point both API instances at authenticated MongoDB
+  hosts: api
+  become: true
+  gather_facts: false
+  vars:
+    mariadb_password: "{{ lookup('ansible.builtin.ini', 'MARIADB_PASSWORD type=properties file=' ~ playbook_dir ~ '/../vm/vm.env') }}"
+  tasks:
+    - name: Update the MongoDB URL while preserving other API settings
+      ansible.builtin.lineinfile:
+        path: /etc/podobank/api.env
+        regexp: '^MONGODB_URL='
+        line: "MONGODB_URL=mongodb://podobank:{{ mariadb_password }}@{{ hostvars[groups['mongodb'][0]].ansible_host }}:27017/podobank?authSource=podobank"
+        owner: root
+        group: podobank
+        mode: '0640'
+      no_log: true
+      notify: Restart PodoBank API
+    - name: Ensure the API has restarted with authenticated DB settings
+      ansible.builtin.meta: flush_handlers
+    - name: Verify both database health checks
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/api/v1/health
+        status_code: 200
+        return_content: true
+      register: api_database_health
+      retries: 30
+      delay: 1
+      until:
+        - api_database_health.status | default(0) == 200
+        - (api_database_health.json | default({})).get('mariadb', '') == 'ok'
+        - (api_database_health.json | default({})).get('mongodb', '') == 'ok'
+  handlers:
+    - name: Restart PodoBank API
+      ansible.builtin.systemd:
+        name: podobank-api
+        state: restarted
+
+- name: Verify database health through Nginx
+  hosts: nginx
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Confirm API and both databases through the public route
+      ansible.builtin.uri:
+        url: http://127.0.0.1/api/v1/health
+        status_code: 200
+        return_content: true
+      register: public_database_health
+      retries: 10
+      delay: 1
+      until:
+        - public_database_health.status | default(0) == 200
+        - (public_database_health.json | default({})).get('mariadb', '') == 'ok'
+        - (public_database_health.json | default({})).get('mongodb', '') == 'ok'

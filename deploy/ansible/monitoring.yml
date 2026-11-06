@@ -1,0 +1,255 @@
+---
+- name: Prepare monitoring VMs
+  hosts: monitoring
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for initial SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+    - name: Wait for cloud-init provisioning
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: '{{ inventory_hostname }}'
+    - name: Install firewall
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+    - name: Allow management SSH before enabling firewall
+      ansible.builtin.command: 'ufw allow from {{ item }} to any port 22 proto tcp'
+      loop: [192.168.0.0/24, 192.168.222.0/24]
+      register: ssh_rule
+      changed_when: "'Skipping adding existing rule' not in ssh_rule.stdout"
+    - name: Permit monitoring interface from the LAN
+      ansible.builtin.command: 'ufw allow from 192.168.0.0/24 to any port {{ monitoring_port }} proto tcp'
+      register: interface_rule
+      changed_when: "'Skipping adding existing rule' not in interface_rule.stdout"
+    - name: Enable monitoring VM firewall
+      ansible.builtin.command: ufw --force enable
+      changed_when: false
+
+- name: Install VM system metrics exporters
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install node exporter and firewall utility
+      ansible.builtin.apt:
+        name: [prometheus-node-exporter, ufw]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+    - name: Allow only Prometheus to reach the node exporter through UFW
+      ansible.builtin.command: 'ufw allow from {{ hostvars[groups["prometheus"][0]].ansible_host }} to any port 9100 proto tcp'
+      register: exporter_rule
+      changed_when: "'Skipping adding existing rule' not in exporter_rule.stdout"
+    - name: Enable the exporter
+      ansible.builtin.systemd:
+        name: prometheus-node-exporter
+        state: started
+        enabled: true
+
+- name: Install Prometheus
+  hosts: prometheus
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install Ubuntu Prometheus package
+      ansible.builtin.apt:
+        name: prometheus
+        state: present
+    - name: Create persistent metrics directory
+      ansible.builtin.file:
+        path: /var/lib/prometheus/podobank
+        owner: prometheus
+        group: prometheus
+        state: directory
+        mode: '0750'
+    - name: Configure Prometheus scrape targets
+      ansible.builtin.template:
+        src: prometheus.yml.j2
+        dest: /etc/prometheus/prometheus.yml
+        mode: '0644'
+        validate: /usr/bin/promtool check config %s
+      notify: Restart Prometheus
+    - name: Install Prometheus service definition
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/prometheus.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=PodoBank Prometheus
+          After=network-online.target
+          [Service]
+          User=prometheus
+          Group=prometheus
+          ExecStart=/usr/bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus/podobank --storage.tsdb.retention.time=15d --web.listen-address=0.0.0.0:9090
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart Prometheus
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.systemd:
+        name: prometheus
+        enabled: true
+        state: started
+        daemon_reload: true
+    - ansible.builtin.uri:
+        url: http://127.0.0.1:9090/-/ready
+        status_code: 200
+      register: ready
+      retries: 20
+      delay: 2
+      until: ready.status | default(0) == 200
+  handlers:
+    - name: Restart Prometheus
+      ansible.builtin.systemd:
+        name: prometheus
+        state: restarted
+        daemon_reload: true
+
+- name: Install Loki
+  hosts: loki
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.import_tasks: tasks/grafana-repository.yml
+    - name: Install Loki package
+      ansible.builtin.apt:
+        name: loki
+        state: present
+        update_cache: true
+    - name: Ensure Loki service group exists
+      ansible.builtin.group:
+        name: loki
+        system: true
+    - name: Set Loki service account primary group
+      ansible.builtin.user:
+        name: loki
+        group: loki
+        system: true
+      notify: Restart Loki
+    - name: Ensure Loki data and configuration directories
+      ansible.builtin.file:
+        path: '{{ item }}'
+        state: directory
+        owner: loki
+        group: loki
+        mode: '0750'
+      loop: [/etc/loki, /var/lib/loki]
+    - name: Configure Loki filesystem storage
+      ansible.builtin.template:
+        src: loki.yml.j2
+        dest: /etc/loki/podobank.yml
+        owner: loki
+        group: loki
+        mode: '0640'
+        validate: /usr/bin/loki -config.file=%s -verify-config=true
+      notify: Restart Loki
+    - name: Install Loki service definition
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/loki.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=PodoBank Loki
+          After=network-online.target
+          [Service]
+          User=loki
+          Group=loki
+          ExecStart=/usr/bin/loki -config.file=/etc/loki/podobank.yml
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart Loki
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.systemd:
+        name: loki
+        state: started
+        enabled: true
+        daemon_reload: true
+    - ansible.builtin.uri:
+        url: http://127.0.0.1:3100/ready
+        status_code: 200
+      register: ready
+      retries: 45
+      delay: 2
+      until: ready.status | default(0) == 200
+  handlers:
+    - name: Restart Loki
+      ansible.builtin.systemd:
+        name: loki
+        state: restarted
+        daemon_reload: true
+
+- ansible.builtin.import_playbook: alloy.yml
+
+- name: Install Grafana and provision data sources
+  hosts: grafana
+  become: true
+  gather_facts: false
+  vars:
+    grafana_admin_password: "{{ lookup('ansible.builtin.ini', 'GRAFANA_ADMIN_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/monitoring.env', default='') }}"
+  pre_tasks:
+    - ansible.builtin.assert:
+        that:
+          - grafana_admin_password | length > 0
+          - not grafana_admin_password.startswith('change-me')
+      no_log: true
+  tasks:
+    - ansible.builtin.import_tasks: tasks/grafana-repository.yml
+    - ansible.builtin.apt:
+        name: grafana
+        state: present
+        update_cache: true
+    - name: Save bootstrap admin password in a private environment file
+      ansible.builtin.copy:
+        dest: /etc/grafana/podobank.env
+        owner: root
+        group: grafana
+        mode: '0640'
+        content: 'GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}'
+      no_log: true
+      notify: Restart Grafana
+    - ansible.builtin.file:
+        path: /etc/systemd/system/grafana-server.service.d
+        state: directory
+        mode: '0755'
+    - ansible.builtin.copy:
+        dest: /etc/systemd/system/grafana-server.service.d/podobank.conf
+        mode: '0644'
+        content: |
+          [Service]
+          EnvironmentFile=/etc/grafana/podobank.env
+      notify: Restart Grafana
+    - name: Provision Prometheus and Loki data sources
+      ansible.builtin.template:
+        src: grafana-datasources.yml.j2
+        dest: /etc/grafana/provisioning/datasources/podobank.yml
+        owner: root
+        group: grafana
+        mode: '0640'
+      notify: Restart Grafana
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.systemd:
+        name: grafana-server
+        enabled: true
+        state: started
+        daemon_reload: true
+    - ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/health
+        status_code: 200
+      register: ready
+      retries: 30
+      delay: 2
+      until: ready.status | default(0) == 200
+  handlers:
+    - name: Restart Grafana
+      ansible.builtin.systemd:
+        name: grafana-server
+        state: restarted
+        daemon_reload: true
