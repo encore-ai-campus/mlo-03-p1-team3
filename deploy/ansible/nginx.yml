@@ -7,6 +7,10 @@
     installer_root: /opt/podobank-installer
     vm_env_file: "{{ playbook_dir }}/../vm/vm.env"
     nginx_fresh_install: false
+    frontend_enabled: false
+    frontend_build: true
+    frontend_source_dir: '{{ playbook_dir }}/../../frontend'
+    frontend_dist_dir: '{{ frontend_source_dir }}/dist'
   tasks:
     - name: Check private vm.env exists on the controller
       ansible.builtin.stat:
@@ -105,6 +109,10 @@
     - name: Show nginx installer output
       ansible.builtin.debug:
         var: nginx_installer.stdout_lines
+
+    - name: Deploy the current workspace frontend when requested
+      ansible.builtin.include_tasks: tasks/deploy-frontend.yml
+      when: frontend_enabled | bool
 
     - name: Create a verification page when no frontend build is deployed
       ansible.builtin.copy:
