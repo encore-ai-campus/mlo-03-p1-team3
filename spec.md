@@ -20,7 +20,7 @@
 | 정형 데이터 | MariaDB | 지금은 1대 (복제는 나중) |
 | 비정형 데이터 | MongoDB (`pymongo`) | 지금은 1대 (레플리카 셋은 나중) |
 | 웹 서버 | Nginx | 프론트 정적 파일 + `/api/` 리버스 프록시 |
-| 관측 | 이벤트 로그(`app.log`, JSON 한 줄씩) → Grafana Alloy → Loki(원문) / Prometheus(건수) → Grafana | 백엔드는 이벤트 로그 파일까지. Alloy 이후는 다른 팀원 담당 |
+| 관측 | 이벤트 로그(`events.log`, JSON 한 줄씩) → Grafana Alloy → Loki(원문) / Prometheus(건수) → Grafana | 애플리케이션 로그는 `app.log`에 별도 저장한다. 백엔드는 로그 파일까지. Alloy 이후는 다른 팀원 담당 |
 | 테스트 | pytest | 실제 MariaDB·MongoDB (테스트 전용 DB) |
 | 실행 환경 | Terraform | 노트북 한 대에서 먼저 띄운 뒤 AWS로 옮김. Docker는 쓰지 않음. 설정은 환경 변수로 받음 |
 
@@ -56,8 +56,8 @@
 - 두 컬렉션 모두 `event_id` 고유. 사용자 ID, 이름, 전화번호, 계좌·카드번호, 정확한 금액, 프로필 값은 넣지 않는다.
 
 ### 4.3 이벤트 기록
-- 금융 작업이 커밋된 뒤 같은 요청 안에서 이벤트를 `app.log`와 MongoDB에 바로 쓴다. 아웃박스는 일단 쓰지 않는다.
-- MongoDB나 `app.log`가 실패해도 금융 작업은 성공한다.
+- 금융 작업이 커밋된 뒤 같은 요청 안에서 이벤트를 `events.log`와 MongoDB에 바로 쓴다. 아웃박스는 일단 쓰지 않는다.
+- MongoDB나 `events.log`가 실패해도 금융 작업은 성공한다.
 
 ## 5. 동시성
 - 잠금은 짧게. 잠금을 잡은 채 외부 호출(MongoDB, HTTP)을 하지 않는다.
@@ -99,7 +99,7 @@ backend/
       loans/                # 대출 상품, 신청, 승인·반려, 상환
       cards/                # 카드, 가맹점, 결제
       admin/                # 직원 전용 API
-      events/               # 이벤트 만들기, app.log·MongoDB에 쓰기
+      events/               # 이벤트 만들기, events.log·MongoDB에 쓰기
     observability/          # request_id, 처리 시간
     jobs/                   # 상환 배치, 일 마감 대사
   migrations/               # 스키마 변경 이력

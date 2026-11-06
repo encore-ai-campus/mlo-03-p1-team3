@@ -1,0 +1,11 @@
+[Unit]
+Description=Check PodoBank log rotation every hour
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+AccuracySec=1min
+Unit=podobank-logrotate.service
+
+[Install]
+WantedBy=timers.target

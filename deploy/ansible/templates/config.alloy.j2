@@ -1,10 +1,20 @@
 // Application events already written by FastAPI; no database reads are used.
 loki.source.file "podobank_events" {
   targets = [{
-    __path__ = "/var/log/podobank/{{ api_instance }}.log",
+    __path__ = "/var/log/podobank/{{ api_instance }}.events.log",
     job = "podobank",
     instance = "{{ api_instance }}",
     log_type = "event",
+  }]
+  forward_to = [loki.write.backend.receiver]
+}
+
+loki.source.file "podobank_application" {
+  targets = [{
+    __path__ = "/var/log/podobank/{{ api_instance }}.app.log",
+    job = "podobank",
+    instance = "{{ api_instance }}",
+    log_type = "application",
   }]
   forward_to = [loki.write.backend.receiver]
 }

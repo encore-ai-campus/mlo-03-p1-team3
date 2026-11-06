@@ -19,7 +19,7 @@ from app.main import create_app
 TEST_MARIADB_URL = os.environ.get("TEST_MARIADB_URL", "mysql+pymysql://root:test@127.0.0.1:3306/podobank_test")
 TEST_MONGODB_URL = os.environ.get("TEST_MONGODB_URL", "mongodb://127.0.0.1:27017")
 TEST_MONGODB_DB = "podobank_test"
-TEST_EVENT_LOG = Path("./var/test-log/app.log")
+TEST_EVENT_LOG = Path("./var/test-log/events.log")
 
 
 def make_settings(**overrides) -> Settings:
@@ -28,6 +28,7 @@ def make_settings(**overrides) -> Settings:
         "mongodb_url": TEST_MONGODB_URL,
         "mongodb_db": TEST_MONGODB_DB,
         "event_log_path": str(TEST_EVENT_LOG),
+        "app_log_path": "./var/test-log/app.log",
     }
     values.update(overrides)
     return Settings(**values)
@@ -139,7 +140,7 @@ def test_mongo():
 
 @pytest.fixture
 def sink() -> EventSink:
-    """배치 작업에 넘기는 sink. API와 같은 테스트 MongoDB·app.log에 쓴다."""
+    """배치 작업에 넘기는 sink. API와 같은 테스트 MongoDB·events.log에 쓴다."""
     return EventSink(test_mongo(), TEST_EVENT_LOG)
 
 
@@ -150,7 +151,7 @@ def recorded_events(event_type=None, collection="events_bronze") -> list[dict]:
 
 
 def logged_events(event_type=None) -> list[dict]:
-    """app.log에 쓴 이벤트(한 줄에 JSON 1개)."""
+    """events.log에 쓴 이벤트(한 줄에 JSON 1개)."""
     if not TEST_EVENT_LOG.exists():
         return []
     events = [json.loads(line) for line in TEST_EVENT_LOG.read_text(encoding="utf-8").splitlines()]

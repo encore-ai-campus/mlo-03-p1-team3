@@ -1,0 +1,8 @@
+[Unit]
+Description=Rotate PodoBank application and event logs
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/logrotate --state /var/lib/logrotate/podobank.status /etc/logrotate-podobank.conf
+Nice=10
