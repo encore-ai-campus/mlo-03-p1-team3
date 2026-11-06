@@ -26,6 +26,7 @@ PY
 bash deploy/terraform/monitoring/apply.sh
 ansible-playbook -i "$inventory" deploy/ansible/monitoring.yml
 if [[ "${1:-}" == --verify ]]; then
+  python3 deploy/ansible/verify-exporters.py --inventory "$inventory"
   python3 deploy/ansible/verify-monitoring.py
   python3 deploy/ansible/verify-proxy-logs.py --inventory "$inventory"
 fi

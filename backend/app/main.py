@@ -14,6 +14,7 @@ from app.core.config import Settings
 from app.core.errors import install_error_handlers
 from app.db.mariadb import make_engine
 from app.observability.application_log import ApplicationLog, install_application_log
+from app.observability.metrics import install_metrics
 from app.observability.request_id import install_request_id
 
 API_PREFIX = "/api/v1"
@@ -31,6 +32,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_request_id(app)
     install_application_log(app, application_log)
     install_error_handlers(app)
+    install_metrics(app)
 
     app.include_router(health_router, prefix=API_PREFIX)
     app.include_router(auth_router, prefix=API_PREFIX)
