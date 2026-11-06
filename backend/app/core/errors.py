@@ -26,6 +26,7 @@ class AppError(Exception):
 
 
 def error_response(request: Request, status: int, code: str, message: str, fields=None) -> JSONResponse:
+    request.state.error_code = code
     request_id = get_request_id(request)
     body = {"code": code, "message": message, "request_id": request_id}
     if fields:
@@ -34,6 +35,10 @@ def error_response(request: Request, status: int, code: str, message: str, field
 
 
 async def _app_error(request: Request, exc: AppError):
+    if exc.__cause__ is not None:
+        from app.observability.application_log import exception_details
+
+        request.state.exception_details = exception_details(exc.__cause__)
     return error_response(request, exc.status, exc.code, exc.message, exc.fields)
 
 
@@ -53,7 +58,9 @@ async def _http_error(request: Request, exc: StarletteHTTPException):
 async def _db_error(request: Request, exc: Exception):
     # 로그인·조회·권한 확인처럼 translate_db_errors 밖에서 난 DB 오류도 500 대신 409/503으로 돌려준다.
     from app.db.mariadb import to_app_error
+    from app.observability.application_log import exception_details
 
+    request.state.exception_details = exception_details(exc)
     error = to_app_error(exc)
     return error_response(request, error.status, error.code, error.message)
 

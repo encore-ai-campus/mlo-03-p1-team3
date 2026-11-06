@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 # 팀원과 다시 정할 수 있는 숫자
 LOGIN_MAX_FAILURES = 5
@@ -24,12 +25,17 @@ class Settings:
     mariadb_url: str
     mongodb_url: str
     mongodb_db: str
-    event_log_path: str = "./var/log/app.log"
+    event_log_path: str = "./var/log/events.log"
+    app_log_path: str = "./var/log/app.log"
     cookie_secure: bool = False
     instance_name: str = "api"
     kakao_client_id: str = ""
     kakao_client_secret: str = ""
     kakao_redirect_uri: str = ""
+
+    def __post_init__(self):
+        if Path(self.app_log_path).resolve() == Path(self.event_log_path).resolve():
+            raise ValueError("APP_LOG_PATH and EVENT_LOG_PATH must be different")
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -37,7 +43,8 @@ class Settings:
             mariadb_url=os.environ["MARIADB_URL"],
             mongodb_url=os.environ["MONGODB_URL"],
             mongodb_db=os.environ.get("MONGODB_DB", "podobank"),
-            event_log_path=os.environ.get("EVENT_LOG_PATH", "./var/log/app.log"),
+            event_log_path=os.environ.get("EVENT_LOG_PATH", "./var/log/events.log"),
+            app_log_path=os.environ.get("APP_LOG_PATH", "./var/log/app.log"),
             cookie_secure=os.environ.get("COOKIE_SECURE", "false").lower() == "true",
             instance_name=os.environ.get("INSTANCE_NAME", "api"),
             kakao_client_id=os.environ.get("KAKAO_CLIENT_ID", ""),

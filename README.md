@@ -348,7 +348,7 @@
 
 ### 이벤트 로그
 
-- FastAPI가 커밋 뒤 `events_bronze`와 같은 이벤트를 자기 파일(`api-1.log`, `api-2.log`)에 한 줄씩 씁니다. `card_payment_locations`는 MongoDB에만 씁니다.
+- FastAPI가 커밋 뒤 `events_bronze`와 같은 이벤트를 자기 파일(`api-1.events.log`, `api-2.events.log`)에 한 줄씩 씁니다. `card_payment_locations`는 MongoDB에만 씁니다.
 
 ```json
 {"event_id": "7c9e…", "event_type": "transfer", "occurred_at": "2026-11-03T05:10:01.123456Z", "source": "api",
@@ -381,14 +381,17 @@
 | MariaDB 마스터 | 모든 쓰기와 조회 (AWS RDS) | 3306 |
 | MariaDB 슬레이브 | 마스터를 복제해 대기, 마스터 장애 시 승격 (RDS 읽기 복제본) | 3306 |
 | MongoDB | 이벤트, 결제 위치 | 27017 |
-| 이벤트 로그 | 서버마다 한 파일(`api-1.log`, `api-2.log`). 이벤트 JSON 한 줄씩 | - |
+| 이벤트 로그 | 서버마다 한 파일(`api-1.events.log`, `api-2.events.log`). 이벤트 JSON 한 줄씩 | - |
 | Grafana Alloy · Loki · Prometheus · Grafana | 이벤트 로그 수집 → 원문 · 건수 저장 → 대시보드 | 12345 · 3100 · 9090 · 3000 |
 
 **구성 이유**
 - **Nginx를 앞에 둠:** 화면과 `/api`를 한 주소로 묶어서 세션 쿠키가 그대로 붙고 CORS가 필요 없습니다. 밖에는 Nginx만 열고 FastAPI는 안쪽에 둡니다.
 - **HAProxy + FastAPI 2대:** FastAPI 부하(특히 로그인 비밀번호 확인)를 나눕니다. HAProxy가 2초마다 상태를 확인해서 죽은 서버를 미리 빼므로, 한 대가 죽어도 서비스가 이어집니다. 로그인 세션이 MariaDB에 있어서 어느 서버로 요청이 가도 같은 로그인 상태입니다.
 - **MariaDB 마스터 · 슬레이브 (클러스터 대신):** 쓰기를 마스터 한 곳에서만 해서, 같은 계좌를 동시에 건드려도 행 잠금으로 차례대로 처리되고 돈 숫자가 틀리지 않습니다. 가장 많이 쌓이는 데이터는 이벤트(로그 파일·MongoDB)라서 MariaDB는 여러 대가 동시에 쓸 필요가 없습니다. 마스터가 죽으면 대기하던 슬레이브를 승격해서 이어 씁니다.
-- **이벤트 로그:** 두 서버가 같은 모양의 이벤트를 쓰고, 이벤트마다 어느 서버에서 났는지(`instance`)가 들어갑니다.
+- **애플리케이션 로그:** `APP_LOG_PATH`로 지정하며 기본값은 `./var/log/app.log`입니다. 모든 API 요청의 메서드·경로 형식·상태 코드·처리 시간·요청 ID와 오류 코드, 예외 종류·발생 위치를 JSON 한 줄씩 기록합니다. 요청 본문·쿼리·쿠키·실제 경로 인자·예외 메시지는 저장하지 않습니다. 서버별 배포 경로는 `api-1.app.log`, `api-2.app.log`입니다. 로그 저장 실패는 API 응답을 바꾸지 않습니다.
+- **이벤트 로그:** `EVENT_LOG_PATH`의 기본값은 `./var/log/events.log`입니다. 두 서버가 같은 모양의 이벤트를 쓰고, 이벤트마다 어느 서버에서 났는지(`instance`)가 들어갑니다.
+- **로그 로테이션:** Ubuntu 배포 시 `podobank-logrotate.timer`가 매시간 `/var/log/podobank/api-*.app.log`와 `api-*.events.log`를 확인합니다. 하루 한 번 또는 100MB 초과 시 이름을 바꾸고 새 파일을 만들며, 종류별 최근 교체 파일 14개를 보관합니다(14일 보장 아님, 크기는 확인 시점 기준). 가장 최근 교체 파일은 압축하지 않고 이전 파일부터 압축합니다. 앱 재시작은 필요 없으며 새 파일 권한은 `0640 podobank:podobank`입니다. Alloy의 기존 디렉터리 기본 ACL로 새 파일 읽기 권한을 유지합니다.
+- **기존 VM에 로테이션만 적용:** 기존 인벤토리로 `ansible-playbook -i <인벤토리 경로> deploy/ansible/logrotate.yml`을 실행합니다. 전체 배포에는 자동 포함됩니다. 설정은 `/etc/logrotate-podobank.conf`, 실행 상태는 `/var/lib/logrotate/podobank.status`로 분리해 Ubuntu 기본 작업과 중복되지 않게 합니다. 서버 확인은 `systemctl list-timers podobank-logrotate.timer`, 설정 검사만 할 때는 `logrotate --debug --state /dev/null /etc/logrotate-podobank.conf`를 사용합니다. 로컬 개발 로그와 시뮬레이터 기록은 이 서버 정책의 대상이 아닙니다.
 
 **핵심 규칙**
 - 돈이 움직이는 작업은 한 트랜잭션: 행 잠금(`FOR UPDATE WAIT 3`) → 잔액 변경 → 원장 기록 → 커밋.
@@ -428,7 +431,7 @@ sequenceDiagram
     A->>M: 잔액과 1일 한도 확인
     A->>M: 두 계좌 잔액 변경, 원장 2줄 (같은 transaction_id)
     A->>M: COMMIT
-    A->>A: 자기 이벤트 로그 파일(api-1.log 또는 api-2.log)에 한 줄 추가
+    A->>A: 자기 이벤트 로그 파일(api-1.events.log 또는 api-2.events.log)에 한 줄 추가
     A->>G: 같은 이벤트 문서 넣기 (실패해도 송금은 성공)
     A-->>B: 200 송금 완료 (HAProxy · Nginx를 거쳐)
 ```
@@ -748,7 +751,7 @@ backend/
       cards/           내 카드, 가맹점 목록, 카드 결제
       loans/           대출 상품, 신청, 내 대출, 상환 계산(calc.py)
       admin/           직원 심사 API (규칙은 loans/service.py)
-      events/          이벤트 만들기, 커밋 뒤 app.log·MongoDB에 쓰기
+      events/          이벤트 만들기, 커밋 뒤 events.log·MongoDB에 쓰기
     core/              설정, 오류 형식, 비밀번호·쿠키, 권한 검사, 돈 처리 트랜잭션(`money.py`)
     db/                DB 연결, 마이그레이션
     observability/     request_id, 처리 시간

@@ -57,6 +57,10 @@
         - haproxy.sh
         - nginx.sh
         - podobank-api.service
+        - logrotate.sh
+        - podobank-logrotate.conf
+        - podobank-logrotate.service
+        - podobank-logrotate.timer
     - name: Copy proxy configuration templates
       ansible.builtin.copy:
         src: "../{{ item }}"

@@ -27,6 +27,9 @@ id podobank >/dev/null 2>&1 || useradd --system --home "$APP_DIR" --shell /usr/s
 install -d -o podobank -g podobank "$LOG_DIR"
 install -d -m 0750 -o root -g podobank /etc/podobank
 
+log "로그 로테이션 설치"
+bash "$VM_DIR/logrotate.sh"
+
 log "코드 받기 (${REPO_URL} ${REPO_REF})"
 if [ -d "$APP_DIR/.git" ]; then
   git -C "$APP_DIR" fetch -q origin "$REPO_REF"
@@ -48,7 +51,8 @@ MARIADB_URL=mysql+pymysql://podobank:${MARIADB_PASSWORD}@${MARIADB_MASTER_IP}:33
 MONGODB_URL=mongodb://podobank:${MARIADB_PASSWORD}@${MONGODB_IP}:27017/podobank?authSource=podobank
 MONGODB_DB=podobank
 INSTANCE_NAME=${INSTANCE_NAME}
-EVENT_LOG_PATH=${LOG_DIR}/${INSTANCE_NAME}.log
+EVENT_LOG_PATH=${LOG_DIR}/${INSTANCE_NAME}.events.log
+APP_LOG_PATH=${LOG_DIR}/${INSTANCE_NAME}.app.log
 COOKIE_SECURE=${COOKIE_SECURE}
 KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID:-}
 KAKAO_CLIENT_SECRET=${KAKAO_CLIENT_SECRET:-}
@@ -82,4 +86,4 @@ for _ in $(seq 1 30); do
 done
 curl -fsS http://127.0.0.1:8000/api/v1/health || die "헬스 체크 실패. journalctl -u podobank-api 로 확인하세요."
 echo
-log "완료. 이벤트 로그: ${LOG_DIR}/${INSTANCE_NAME}.log"
+log "완료. 이벤트 로그: ${LOG_DIR}/${INSTANCE_NAME}.events.log / 애플리케이션 로그: ${LOG_DIR}/${INSTANCE_NAME}.app.log"

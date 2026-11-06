@@ -1,4 +1,4 @@
-"""이벤트는 커밋 뒤에만 app.log와 MongoDB에 한 번씩 쓴다."""
+"""이벤트는 커밋 뒤에만 events.log와 MongoDB에 한 번씩 쓴다."""
 import pytest
 from fastapi.testclient import TestClient
 
@@ -72,7 +72,7 @@ def test_publish_never_raises_after_commit(sink):
 
 
 def test_event_carries_instance_name(engine):
-    """FastAPI가 2대라 서버마다 app.log가 따로 쌓인다. 이벤트에 어느 서버에서 났는지 남긴다."""
+    """FastAPI가 2대라 서버마다 events.log가 따로 쌓인다. 이벤트에 어느 서버에서 났는지 남긴다."""
     sink = EventSink(conftest.test_mongo(), TEST_EVENT_LOG, instance="api-2")
     with transaction(engine, sink) as conn:
         record(conn, None, "deposit", "success", "completed", source="batch")

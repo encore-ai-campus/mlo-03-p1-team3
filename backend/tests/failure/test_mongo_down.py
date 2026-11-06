@@ -1,4 +1,4 @@
-"""MongoDB나 app.log가 실패해도 돈 처리는 성공한다."""
+"""MongoDB나 events.log가 실패해도 돈 처리는 성공한다."""
 import time
 
 from fastapi.testclient import TestClient
@@ -28,7 +28,7 @@ def test_transfer_ok_when_mongo_down(engine, make_user):
     assert response.status_code == 200
     assert elapsed < 2  # MongoDB를 짧게만 기다린다
     assert ledger_matches_balance(engine, sender["account_id"])
-    assert [e["outcome"] for e in logged_events("transfer")] == ["success"]  # app.log에는 남는다
+    assert [e["outcome"] for e in logged_events("transfer")] == ["success"]  # events.log에는 남는다
     assert recorded_events("transfer") == []
 
 
