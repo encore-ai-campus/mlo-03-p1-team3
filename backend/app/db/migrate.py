@@ -1,10 +1,9 @@
 """migrations/*.sql을 번호 순서대로 한 번씩 적용한다.
 
 python -m app.db.migrate
-python -m app.db.migrate --seed-employee 01000000000 <비밀번호>
+직원 계정 준비: python -m app.db.employee (.env 환경변수 사용)
 """
 
-import argparse
 from pathlib import Path
 
 from sqlalchemy import text
@@ -38,33 +37,12 @@ def apply_migrations(engine: Engine) -> list[str]:
     return applied
 
 
-def seed_employee(engine: Engine, phone: str, password: str) -> int:
-    from app.core.security import hash_password
-
-    with engine.begin() as conn:
-        existing = conn.execute(text("SELECT id FROM users WHERE phone_number = :p"), {"p": phone}).scalar()
-        if existing:
-            return existing
-        return conn.execute(
-            text(
-                "INSERT INTO users (phone_number, password_hash, name, birth_year, gender, marital_status,"
-                " is_employed, role) VALUES (:p, :h, '포도은행 직원', 1990, 'female', 'single', TRUE, 'bank_employee')"
-            ),
-            {"p": phone, "h": hash_password(password)},
-        ).lastrowid
-
-
 def main() -> None:
     from app.core.config import Settings
     from app.db.mariadb import make_engine
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--seed-employee", nargs=2, metavar=("PHONE", "PASSWORD"))
-    args = parser.parse_args()
     engine = make_engine(Settings.from_env().mariadb_url)
     print("applied:", apply_migrations(engine))
-    if args.seed_employee:
-        print("employee id:", seed_employee(engine, *args.seed_employee))
 
 
 if __name__ == "__main__":

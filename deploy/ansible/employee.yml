@@ -1,0 +1,70 @@
+---
+- name: Prepare one employee account and verify both API servers
+  hosts: api
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Load employee configuration from the controller private backend .env
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ playbook_dir }}/read-employee-env.py"
+          - "{{ employee_env_file | default(playbook_dir ~ '/../../backend/.env') }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      changed_when: false
+      register: employee_configuration
+      no_log: true
+
+    - name: Install the employee preparation command in the existing backend
+      ansible.builtin.copy:
+        src: ../../backend/app/db/employee.py
+        dest: /opt/podobank/backend/app/db/employee.py
+        owner: podobank
+        group: podobank
+        mode: '0644'
+
+    - name: Create the employee only if absent without changing existing accounts
+      ansible.builtin.shell: |
+        set -a
+        . /etc/podobank/api.env
+        set +a
+        exec /opt/podobank/backend/.venv/bin/python -m app.db.employee --stdin
+      args:
+        chdir: /opt/podobank/backend
+        executable: /bin/bash
+        stdin: "{{ employee_configuration.stdout | from_json | to_json }}"
+      become_user: podobank
+      run_once: true
+      register: employee_preparation
+      changed_when: employee_preparation.rc == 0 and (employee_preparation.stdout | from_json).status == 'created'
+      failed_when: false
+      no_log: true
+
+    - name: Require successful employee preparation
+      ansible.builtin.assert:
+        that: employee_preparation.rc == 0
+        fail_msg: "Employee preparation failed: {{ employee_preparation.stderr | default('') | regex_search('employee_configuration_json_invalid|employee_phone_conflicts_with_customer|employee_setup_or_verification_failed|invalid_employee_phone|invalid_employee_password_length|invalid_employee_name|missing_employee_configuration') | default('execution failed; check backend environment', true) }}"
+      run_once: true
+
+    - name: Verify login and employee permissions through each API and nginx
+      ansible.builtin.shell: |
+        set -a
+        . /etc/podobank/api.env
+        set +a
+        exec /opt/podobank/backend/.venv/bin/python -m app.db.employee --stdin --verify-base-url {{ item | quote }}
+      args:
+        chdir: /opt/podobank/backend
+        executable: /bin/bash
+        stdin: "{{ employee_configuration.stdout | from_json | to_json }}"
+      become_user: podobank
+      run_once: true
+      loop: "{{ employee_verification_urls | default(['http://' ~ hostvars['api-1'].ansible_host ~ ':8000', 'http://' ~ hostvars['api-2'].ansible_host ~ ':8000', 'http://' ~ hostvars[groups['nginx'][0]].ansible_host]) }}"
+      changed_when: false
+      no_log: true
+
+    - name: Confirm employee account verification without private values
+      ansible.builtin.debug:
+        msg: Employee account ready; login, employee access and logout verified. No loan was approved.
+      run_once: true

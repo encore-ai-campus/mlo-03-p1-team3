@@ -73,10 +73,6 @@ run_app() {  # api.env를 넣고 앱 명령을 podobank 계정으로 실행
 if [ "${MIGRATE:-0}" = "1" ]; then
   log "테이블 만들기 (migrate)"
   run_app "-m app.db.migrate"
-  if [ -n "${EMPLOYEE_PHONE:-}" ] && [ -n "${EMPLOYEE_PASSWORD:-}" ]; then
-    log "직원 계정 만들기"
-    run_app "-m app.db.migrate --seed-employee '${EMPLOYEE_PHONE}' '${EMPLOYEE_PASSWORD}'" >/dev/null
-  fi
 fi
 
 log "서비스 등록·시작 (포트 8000)"
