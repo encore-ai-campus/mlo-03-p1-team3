@@ -1,0 +1,309 @@
+---
+# Standalone service-metrics deployment. No DB reset, migration or Grafana data deletion.
+- name: Ensure all VM system exporters remain installed
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.apt:
+        name: [prometheus-node-exporter, ufw]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+        lock_timeout: 300
+    - ansible.builtin.command: 'ufw allow from {{ hostvars[groups["prometheus"][0]].ansible_host }} to any port 9100 proto tcp'
+      register: node_firewall
+      changed_when: "'Skipping adding existing rule' not in node_firewall.stdout"
+    - ansible.builtin.systemd:
+        name: prometheus-node-exporter
+        state: started
+        enabled: true
+
+- name: Install nginx request metrics exporter
+  hosts: nginx
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.apt:
+        name: prometheus-nginx-exporter=1.1.0-1ubuntu0.3
+        state: present
+        lock_timeout: 300
+    - ansible.builtin.copy:
+        dest: /etc/nginx/conf.d/podobank-metrics.conf
+        mode: '0644'
+        content: |
+          server {
+              listen 127.0.0.1:8081;
+              server_name localhost;
+              location = /stub_status {
+                  stub_status;
+                  access_log off;
+                  allow 127.0.0.1;
+                  deny all;
+              }
+          }
+      notify: Reload nginx
+    - ansible.builtin.command: nginx -t
+      changed_when: false
+    - ansible.builtin.copy:
+        dest: /etc/systemd/system/prometheus-nginx-exporter.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=PodoBank nginx metrics
+          After=network-online.target nginx.service
+          [Service]
+          User=prometheus
+          ExecStart=/usr/bin/prometheus-nginx-exporter --nginx.scrape-uri=http://127.0.0.1:8081/stub_status --web.listen-address=:9113
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart nginx exporter
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.systemd:
+        name: prometheus-nginx-exporter
+        enabled: true
+        state: started
+        daemon_reload: true
+  handlers:
+    - name: Reload nginx
+      ansible.builtin.systemd: {name: nginx, state: reloaded}
+    - name: Restart nginx exporter
+      ansible.builtin.systemd: {name: prometheus-nginx-exporter, state: restarted, daemon_reload: true}
+
+- name: Enable HAProxy built-in Prometheus endpoint
+  hosts: haproxy
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.blockinfile:
+        path: /etc/haproxy/haproxy.cfg
+        marker: '# {mark} PODOBANK PROMETHEUS'
+        validate: /usr/sbin/haproxy -c -f %s
+        block: |
+          frontend podobank_metrics
+              bind :8404
+              acl metrics_allowed src 127.0.0.1 {{ hostvars[groups['prometheus'][0]].ansible_host }}
+              http-request deny unless metrics_allowed
+              http-request use-service prometheus-exporter if { path /metrics }
+      notify: Reload HAProxy metrics
+    - ansible.builtin.meta: flush_handlers
+  handlers:
+    - name: Reload HAProxy metrics
+      ansible.builtin.systemd: {name: haproxy, state: reloaded}
+
+- name: Install local MariaDB exporters on primary and replica
+  hosts: mariadb_master:mariadb_replica
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.apt:
+        name: prometheus-mysqld-exporter=0.15.0-2ubuntu0.24.04.3
+        state: present
+        lock_timeout: 300
+    - name: Ensure local socket monitoring account without changing replication or app accounts
+      ansible.builtin.shell: |
+        set -e
+        existing=$(mariadb -N -e "SELECT COUNT(*) FROM mysql.user WHERE User='prometheus' AND Host='localhost' AND plugin='unix_socket';")
+        if [ "$existing" != 1 ]; then
+          mariadb <<'SQL'
+        SET SESSION sql_log_bin=0;
+        CREATE USER IF NOT EXISTS 'prometheus'@'localhost' IDENTIFIED VIA unix_socket;
+        ALTER USER 'prometheus'@'localhost' IDENTIFIED VIA unix_socket;
+        GRANT PROCESS, REPLICATION CLIENT, SLAVE MONITOR, SELECT ON *.* TO 'prometheus'@'localhost';
+        SQL
+          echo CHANGED
+        fi
+      register: mysql_exporter_user
+      changed_when: "'CHANGED' in mysql_exporter_user.stdout"
+    - ansible.builtin.file:
+        path: /etc/prometheus
+        state: directory
+        mode: '0755'
+    - ansible.builtin.copy:
+        dest: /etc/prometheus/mysql-exporter.cnf
+        owner: root
+        group: prometheus
+        mode: '0640'
+        content: |
+          [client]
+          user=prometheus
+          socket=/run/mysqld/mysqld.sock
+      notify: Restart MariaDB exporter
+    - ansible.builtin.copy:
+        dest: /etc/systemd/system/prometheus-mysqld-exporter.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=PodoBank MariaDB metrics
+          After=network-online.target mariadb.service
+          [Service]
+          User=prometheus
+          ExecStart=/usr/bin/prometheus-mysqld-exporter --config.my-cnf=/etc/prometheus/mysql-exporter.cnf --web.listen-address=:9104
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart MariaDB exporter
+    # The package auto-starts before its DB config exists; clear its initial start limit.
+    - ansible.builtin.command: systemctl reset-failed prometheus-mysqld-exporter
+      changed_when: false
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.systemd:
+        name: prometheus-mysqld-exporter
+        enabled: true
+        state: started
+        daemon_reload: true
+  handlers:
+    - name: Restart MariaDB exporter
+      ansible.builtin.systemd: {name: prometheus-mysqld-exporter, state: restarted, daemon_reload: true}
+
+- name: Install MongoDB 8 compatible Percona exporter
+  hosts: mongodb
+  become: true
+  gather_facts: false
+  vars:
+    mongodb_exporter_version: '0.54.0'
+    metrics_mongodb_password: "{{ lookup('ansible.builtin.ini', 'METRICS_MONGODB_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/vm.env', default='') }}"
+    mongodb_deploy_password: "{{ lookup('ansible.builtin.ini', 'MONGODB_ADMIN_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/vm.env', default='') }}"
+  pre_tasks:
+    - ansible.builtin.assert:
+        that:
+          - metrics_mongodb_password is match('^[A-Za-z0-9_-]{24,}$')
+          - not metrics_mongodb_password.startswith('change-me')
+          - mongodb_deploy_password | length > 0
+        fail_msg: Configure METRICS_MONGODB_PASSWORD and MONGODB_ADMIN_PASSWORD in private vm.env.
+      no_log: true
+  tasks:
+    - ansible.builtin.user:
+        name: mongodb-exporter
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+    - ansible.builtin.file:
+        path: '/opt/mongodb-exporter-{{ mongodb_exporter_version }}'
+        state: directory
+        mode: '0755'
+    - ansible.builtin.get_url:
+        url: 'https://github.com/percona/mongodb_exporter/releases/download/v{{ mongodb_exporter_version }}/mongodb_exporter-{{ mongodb_exporter_version }}.linux-amd64.tar.gz'
+        dest: '/opt/mongodb-exporter-{{ mongodb_exporter_version }}/release.tar.gz'
+        checksum: 'sha256:https://github.com/percona/mongodb_exporter/releases/download/v{{ mongodb_exporter_version }}/mongodb_exporter_{{ mongodb_exporter_version }}_checksums.txt'
+        mode: '0644'
+    - ansible.builtin.unarchive:
+        src: '/opt/mongodb-exporter-{{ mongodb_exporter_version }}/release.tar.gz'
+        dest: '/opt/mongodb-exporter-{{ mongodb_exporter_version }}'
+        remote_src: true
+        extra_opts: [--strip-components=1]
+        creates: '/opt/mongodb-exporter-{{ mongodb_exporter_version }}/mongodb_exporter'
+    - ansible.builtin.copy:
+        src: files/mongodb-exporter-user.js
+        dest: /opt/mongodb-exporter-user.js
+        mode: '0644'
+    - name: Ensure monitoring-only MongoDB account
+      ansible.builtin.command: mongosh --quiet --file /opt/mongodb-exporter-user.js
+      environment:
+        MONGODB_ADMIN_PASSWORD: '{{ mongodb_deploy_password }}'
+        METRICS_MONGODB_PASSWORD: '{{ metrics_mongodb_password }}'
+      register: mongo_exporter_user
+      changed_when: mongo_exporter_user.stdout | trim == 'CHANGED'
+      no_log: true
+    - ansible.builtin.file:
+        path: /etc/podobank
+        state: directory
+        mode: '0755'
+    - ansible.builtin.copy:
+        dest: /etc/podobank/mongodb-exporter.env
+        owner: root
+        group: mongodb-exporter
+        mode: '0640'
+        content: 'MONGODB_URI=mongodb://prometheus:{{ metrics_mongodb_password }}@127.0.0.1:27017/admin?authSource=admin'
+      no_log: true
+      notify: Restart MongoDB exporter
+    - ansible.builtin.copy:
+        dest: /etc/systemd/system/mongodb-exporter.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=PodoBank MongoDB metrics
+          After=network-online.target mongod.service
+          [Service]
+          User=mongodb-exporter
+          EnvironmentFile=/etc/podobank/mongodb-exporter.env
+          ExecStart=/opt/mongodb-exporter-{{ mongodb_exporter_version }}/mongodb_exporter --web.listen-address=:9216 --collector.diagnosticdata
+          Restart=always
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart MongoDB exporter
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.systemd:
+        name: mongodb-exporter
+        state: started
+        enabled: true
+        daemon_reload: true
+  handlers:
+    - name: Restart MongoDB exporter
+      ansible.builtin.systemd: {name: mongodb-exporter, state: restarted, daemon_reload: true}
+
+- name: Deploy FastAPI metrics without database migration
+  hosts: api
+  serial: 1
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.copy:
+        src: '../../backend/{{ item }}'
+        dest: '/opt/podobank/backend/{{ item }}'
+        owner: podobank
+        group: podobank
+        mode: '0644'
+      loop: [app/main.py, app/observability/metrics.py, requirements.txt]
+      notify: Restart API metrics
+    - ansible.builtin.pip:
+        requirements: /opt/podobank/backend/requirements.txt
+        executable: /opt/podobank/backend/.venv/bin/pip
+      become_user: podobank
+      notify: Restart API metrics
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.uri:
+        url: http://127.0.0.1:8000/metrics
+        status_code: 200
+      register: api_metrics
+      retries: 20
+      delay: 2
+      until: api_metrics.status | default(0) == 200
+  handlers:
+    - name: Restart API metrics
+      ansible.builtin.systemd: {name: podobank-api, state: restarted}
+
+- name: Permit exporter scraping and verify local endpoints
+  hosts: nginx:haproxy:api:mariadb_master:mariadb_replica:mongodb
+  become: true
+  gather_facts: false
+  vars:
+    exporter_port: '{{ 9113 if inventory_hostname in groups["nginx"] else (8404 if inventory_hostname in groups["haproxy"] else (8000 if inventory_hostname in groups["api"] else (9216 if inventory_hostname in groups["mongodb"] else 9104))) }}'
+  tasks:
+    - ansible.builtin.command: 'ufw allow from {{ hostvars[groups["prometheus"][0]].ansible_host }} to any port {{ exporter_port }} proto tcp'
+      register: exporter_firewall
+      changed_when: "'Skipping adding existing rule' not in exporter_firewall.stdout"
+    - ansible.builtin.uri:
+        url: 'http://127.0.0.1:{{ exporter_port }}/metrics'
+        status_code: 200
+      register: exporter_ready
+      retries: 20
+      delay: 2
+      until: exporter_ready.status | default(0) == 200
+
+- name: Apply all Prometheus service targets
+  hosts: prometheus
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.template:
+        src: prometheus.yml.j2
+        dest: /etc/prometheus/prometheus.yml
+        mode: '0644'
+        validate: /usr/bin/promtool check config %s
+      notify: Restart Prometheus targets
+    - ansible.builtin.meta: flush_handlers
+  handlers:
+    - name: Restart Prometheus targets
+      ansible.builtin.systemd: {name: prometheus, state: restarted}

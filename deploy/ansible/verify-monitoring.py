@@ -36,10 +36,10 @@ def wait_for(check, label, attempts=45):
 
 def targets_ready():
     targets = get_json(PROM + '/api/v1/targets')['data']['activeTargets']
-    return targets if len(targets) == 13 and all(t['health'] == 'up' for t in targets) else None
+    return targets if len(targets) == 20 and all(t['health'] == 'up' for t in targets) else None
 
 
-targets = wait_for(targets_ready, 'Prometheus 13 targets (10 node exporters + 3 services)')
+targets = wait_for(targets_ready, 'Prometheus 20 targets (10 nodes + 10 service endpoints)')
 print('Prometheus targets:', len(targets), flush=True)
 private = Path(__file__).resolve().parents[1] / 'vm' / 'monitoring.env'
 values = {}

@@ -253,3 +253,6 @@
         name: grafana-server
         state: restarted
         daemon_reload: true
+
+# The application/database VMs must already be deployed; no reset occurs here.
+- ansible.builtin.import_playbook: exporters.yml

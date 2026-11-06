@@ -17,3 +17,33 @@ scrape_configs:
   - job_name: grafana
     static_configs:
       - targets: ['{{ hostvars[groups["grafana"][0]].ansible_host }}:3000']
+  - job_name: nginx
+    static_configs:
+      - targets: ['{{ hostvars[groups["nginx"][0]].ansible_host }}:9113']
+        labels:
+          server: '{{ groups["nginx"][0] }}'
+  - job_name: haproxy
+    static_configs:
+      - targets: ['{{ hostvars[groups["haproxy"][0]].ansible_host }}:8404']
+        labels:
+          server: '{{ groups["haproxy"][0] }}'
+  - job_name: fastapi
+    static_configs:
+{% for host in groups['api'] %}
+      - targets: ['{{ hostvars[host].ansible_host }}:8000']
+        labels:
+          server: '{{ host }}'
+{% endfor %}
+  - job_name: mariadb
+    static_configs:
+{% for host in groups['mariadb_master'] + groups['mariadb_replica'] %}
+      - targets: ['{{ hostvars[host].ansible_host }}:9104']
+        labels:
+          server: '{{ host }}'
+          role: '{{ "master" if host in groups["mariadb_master"] else "replica" }}'
+{% endfor %}
+  - job_name: mongodb
+    static_configs:
+      - targets: ['{{ hostvars[groups["mongodb"][0]].ansible_host }}:9216']
+        labels:
+          server: '{{ groups["mongodb"][0] }}'

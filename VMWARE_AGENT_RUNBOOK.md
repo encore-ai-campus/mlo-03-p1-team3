@@ -7,6 +7,23 @@ Analyzed on 2026-11-05 (Asia/Seoul). This document describes the existing host-s
 **Current test reset policy:** `site.yml` defaults to `RESET_DATABASES=true`: it stops API writers, recreates the MariaDB `podobank` database, clears MongoDB `podobank`, and reapplies the application schema/seed/indexes. `database-access.yml` disables DB reset. `reset-test-data.yml` additionally clears API log files, Alloy read positions, Loki logs and Prometheus metrics. **Grafana `/var/lib/grafana` is preserved**, including its database, dashboards created in the UI, users and preferences. The destructive monitoring play targets only `prometheus:loki:!grafana` and asserts an allowlist of the two deletable storage paths. The following regular installation may restart Grafana or reapply its managed data sources, but does not delete its database. After a reset, the saved dashboard remains and displays newly collected logs/metrics; old Loki/Prometheus history is gone. Reconcile simulator execution state after resetting application databases.
 
 
+### Service metrics exporters
+
+`monitoring.yml` imports `exporters.yml`, so full monitoring deployment also installs/reapplies service metrics. To apply only exporters on already deployed application VMs, run these commands from the WSL deployment controller:
+
+```bash
+ANSIBLE_TIMEOUT=60 ansible-playbook -i inventory.json deploy/ansible/exporters.yml
+python3 deploy/ansible/verify-exporters.py --inventory inventory.json
+```
+
+No application DB reset/migration or Grafana data deletion occurs in this standalone playbook. It installs pinned Ubuntu packages for nginx (1.1.0-1ubuntu0.3) and MariaDB (0.15.0-2ubuntu0.24.04.3) exporters, the checksum-verified Percona MongoDB exporter 0.54.0, and the backend's pinned `prometheus-client==0.26.0` dependency. That Python dependency provides app-local HTTP request counters and latency histograms at `/metrics`; labels contain only method, route template and status, never customer IDs, request IDs, URL parameters or bodies. Unmatched paths share one label. API instances are deployed serially, without migrations.
+
+Endpoints: nginx `.191:9113/metrics` (its `stub_status` is local-only `127.0.0.1:8081`), HAProxy `.192:8404/metrics` (allows only loopback and Prometheus), FastAPI `.193/.194:8000/metrics`, MariaDB `.195/.196:9104/metrics`, MongoDB `.197:9216/metrics`. Existing node exporters remain on all ten VMs at port 9100. Prometheus, Loki and Grafana retain their native metrics; there are 20 total scrape targets. HAProxy's backend metric retains the source server name as `exported_server` because the scrape also has a `server` inventory label.
+
+MariaDB exporters authenticate locally as the `prometheus` OS/DB user with Unix socket authentication, read-only monitoring grants and `SLAVE MONITOR`; account setup disables session binlogging to keep each local monitoring account independent. The MongoDB exporter authenticates as a separate `prometheus` account in `admin` with `clusterMonitor` and read access to `local`. Set `METRICS_MONGODB_PASSWORD` in the private deployment `.env`/`vm.env`; its dummy setting is documented in `vm.env.example`. Only the MongoDB VM receives this account's private `/etc/podobank/mongodb-exporter.env`. Application and replication credentials remain unchanged.
+
+The verifier sends HTTP GETs only, checks all 20 targets, checks actual nginx/DB health, HAProxy backend UP states, both replica threads, and both API counters. Grafana's existing Prometheus data source can query these metrics. This deployment does not create or edit any Grafana dashboards.
+
 ### Monitoring extension (2026-11-06)
 
 The deployment now includes ten VMs. Terraform module `deploy/terraform/monitoring` manages the three monitoring clones: Prometheus `192.168.0.198:9090`, Loki `192.168.0.199:3100`, and Grafana `192.168.0.200:3000`. All three use a bridged VMnet0 primary NIC and a VMnet1 management NIC. The existing seven application/database VMs are not recreated by this module. Preserve the controller's Terraform state; state and VM disks are not Git artifacts. The provider's clone description is kept equal to the base template description because version 2.0.1 cannot reliably update that field.
