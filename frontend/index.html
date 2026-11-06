@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="포도뱅크" />
+    <title>포도뱅크</title>
+    <!-- 색은 tokens.css의 --color-bg(화면 바탕)와 같게 둔다 -->
+    <meta name="theme-color" content="#f5f5f8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- 홈 화면에 추가할 때 쓰는 아이콘. favicon.svg와 같은 포도 모양을 모서리 없이 꽉 채워 그렸다(iOS가 모서리를 둥글게 자른다). -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
