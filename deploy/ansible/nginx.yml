@@ -135,3 +135,22 @@
       ansible.builtin.uri:
         url: http://127.0.0.1/
         status_code: 200
+
+    - name: Verify HTTPS frontend, API and docs when certificates exist on the VM
+      ansible.builtin.uri:
+        url: "https://{{ nginx_installer.stdout | regex_findall('(?m)^HTTPS_DOMAIN=(.+)$') | first }}{{ item }}"
+        validate_certs: true
+        status_code: 200
+      loop:
+        - /
+        - /api/v1/health
+        - /docs
+        - /openapi.json
+      when: "'HTTPS_ENABLED=true' in nginx_installer.stdout"
+
+    - name: Verify HTTP domain redirects to HTTPS
+      ansible.builtin.uri:
+        url: "http://{{ nginx_installer.stdout | regex_findall('(?m)^HTTPS_DOMAIN=(.+)$') | first }}/"
+        follow_redirects: none
+        status_code: 308
+      when: "'HTTPS_ENABLED=true' in nginx_installer.stdout"
