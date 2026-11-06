@@ -176,12 +176,44 @@
         state: stopped
         enabled: false
       when: preview_service.stat.exists
-    - name: Copy an explicitly supplied current workspace backend
-      ansible.builtin.copy:
-        src: '{{ backend_source_dir }}/'
-        dest: /opt/podobank-backend-source/
-        mode: u=rwX,go=rX
-      when: backend_source_dir is defined
+    # 기본: 제어 PC의 backend 폴더를 보낸다. -e backend_from_git=true 이면 VM이 GitHub(REPO_REF)에서 받는다.
+    - name: Package the backend on the controller without secrets, caches or venv
+      ansible.builtin.command:
+        argv:
+          - tar
+          - -czf
+          - /tmp/podobank-backend-source.tgz
+          - --exclude=.env
+          - --exclude=.env.*
+          - --exclude=.venv
+          - --exclude=__pycache__
+          - --exclude=.pytest_cache
+          - --exclude=.ruff_cache
+          - --exclude=var
+          - -C
+          - "{{ backend_source_dir | default(playbook_dir ~ '/../../backend') }}"
+          - .
+      delegate_to: localhost
+      become: false
+      run_once: true
+      changed_when: false
+      when: not (backend_from_git | default(false) | bool)
+    - name: Reset the backend staging directory
+      ansible.builtin.file:
+        path: /opt/podobank-backend-source
+        state: absent
+      when: not (backend_from_git | default(false) | bool)
+    - name: Create the backend staging directory
+      ansible.builtin.file:
+        path: /opt/podobank-backend-source
+        state: directory
+        mode: '0755'
+      when: not (backend_from_git | default(false) | bool)
+    - name: Send the controller backend to the API VM
+      ansible.builtin.unarchive:
+        src: /tmp/podobank-backend-source.tgz
+        dest: /opt/podobank-backend-source
+      when: not (backend_from_git | default(false) | bool)
     - ansible.builtin.import_tasks: tasks/run-installer.yml
       vars:
         role_script: api.sh

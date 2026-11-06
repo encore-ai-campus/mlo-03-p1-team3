@@ -17,7 +17,7 @@ ENV_FILE=/etc/podobank/api.env
 
 log "Python 3.14 설치 (deadsnakes PPA)"
 apt-get update -q
-apt_install software-properties-common git curl
+apt_install software-properties-common git curl rsync
 add-apt-repository -y ppa:deadsnakes/ppa
 apt-get update -q
 apt_install python3.14 python3.14-venv
@@ -30,17 +30,24 @@ install -d -m 0750 -o root -g podobank /etc/podobank
 log "로그 로테이션 설치"
 bash "$VM_DIR/logrotate.sh"
 
-log "코드 받기 (${REPO_URL} ${REPO_REF})"
-if [ -d "$APP_DIR/.git" ]; then
-  git -C "$APP_DIR" fetch -q origin "$REPO_REF"
-  git -C "$APP_DIR" checkout -q -B "$REPO_REF" "origin/$REPO_REF"
-else
-  git clone -q --branch "$REPO_REF" "$REPO_URL" "$APP_DIR"
-fi
-# Ansible may supply the current workspace backend without committing it to Git.
 if [ -n "${BACKEND_SOURCE_DIR:-}" ]; then
+  # Ansible이 보낸 백엔드를 그대로 쓴다(기본). git 작업 폴더 위에 덮어쓰지 않고 통째로 맞춘다.
+  log "코드 받기 (Ansible이 보낸 백엔드)"
   [ -f "$BACKEND_SOURCE_DIR/app/main.py" ] || die "BACKEND_SOURCE_DIR에 백엔드 소스가 없습니다."
-  cp -a "$BACKEND_SOURCE_DIR/." "$APP_DIR/backend/"
+  install -d "$APP_DIR/backend"
+  # .venv는 이 VM에서 만든 것이라 남기고, 비밀값 파일은 받지도 지우지도 않는다.
+  rsync -a --delete --exclude=.venv --exclude=.env --exclude='.env.*' --exclude=var \
+    "$BACKEND_SOURCE_DIR/" "$APP_DIR/backend/"
+else
+  log "코드 받기 (${REPO_URL} ${REPO_REF})"
+  if [ -d "$APP_DIR/.git" ]; then
+    [ -z "$(git -C "$APP_DIR" status --porcelain)" ] \
+      || die "$APP_DIR 에 로컬 변경이 있어 git으로 받을 수 없습니다. git -C $APP_DIR status 로 확인하세요."
+    git -C "$APP_DIR" fetch -q origin "$REPO_REF"
+    git -C "$APP_DIR" checkout -q -B "$REPO_REF" "origin/$REPO_REF"
+  else
+    git clone -q --branch "$REPO_REF" "$REPO_URL" "$APP_DIR"
+  fi
 fi
 chown -R podobank:podobank "$APP_DIR"
 
