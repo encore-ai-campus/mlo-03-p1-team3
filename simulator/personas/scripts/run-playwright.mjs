@@ -2,7 +2,8 @@ import { createHash, randomUUID } from 'node:crypto'
 import { appendFile, mkdir, open, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromium } from 'playwright'
+import { selectActiveCustomers } from './selection.mjs'
+import { runBatch } from './execution.mjs'
 
 const BASE = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const STATE_DIR = resolve(BASE, 'state')
@@ -35,6 +36,7 @@ function parseArgs(args) {
     customerId: null,
     profile: null,
     limit: null,
+    concurrency: 1,
     pollMs: 60_000,
   }
   for (let i = 0; i < args.length; i += 1) {
@@ -48,6 +50,7 @@ function parseArgs(args) {
     else if (arg === '--allow-remote') result.allowRemote = true
     else if (arg === '--customer-id') result.customerId = takeValue(args, ++i, arg)
     else if (arg === '--profile') result.profile = takeValue(args, ++i, arg)
+    else if (arg === '--concurrency') result.concurrency = positiveInteger(takeValue(args, ++i, arg), arg)
     else if (arg === '--limit') result.limit = positiveInteger(takeValue(args, ++i, arg), arg)
     else if (arg === '--poll-ms') result.pollMs = positiveInteger(takeValue(args, ++i, arg), arg)
     else throw new SimulatorError(`unknown_option:${arg}`)
@@ -84,13 +87,14 @@ function usage() {
     '',
     '옵션:',
     '  --customer-id ID   한 페르소나 실행',
-    '  --profile TYPE     한 유형의 Playwright 담당 페르소나 실행',
-    '  --all              전체 Playwright 담당 페르소나 실행',
+    '  --profile TYPE     한 유형의 전체 페르소나를 추첨 후보로 사용',
+    '  --all              전체 300명 페르소나를 추첨 후보로 사용',
     '  --once             지금 한 번 로그인하고 예정 행동 1회를 실행',
     '  --watch            한국 시간 기준 예약 행동을 계속 확인',
     '  --dry-run          브라우저를 열지 않고 대상과 계획만 확인',
     '  --headed           화면이 보이는 Chromium으로 실행',
-    '  --limit N          대상 수 제한',
+    '  --concurrency N    현재 시간에 맞는 후보 중 최대 N명 추첨·동시 실행 (기본 1)',
+    '  --limit N          추첨 인원 추가 제한 (파일 순서와 무관)',
     '  --poll-ms N        --watch 확인 간격 (기본 60000ms)',
     '  --allow-remote     localhost 이외의 SIMULATOR_BASE_URL 허용',
     '',
@@ -117,7 +121,7 @@ async function loadPersonas() {
   return {
     index,
     allCustomers: customers,
-    customers: customers.filter((customer) => customer.execution?.owner === 'playwright'),
+    customers,
   }
 }
 
@@ -129,8 +133,7 @@ function selectCustomers(customers, options) {
   let selected = customers
   if (options.customerId) selected = selected.filter((customer) => customer.id === options.customerId)
   if (options.profile) selected = selected.filter((customer) => customer.persona.profile_type === options.profile)
-  if (options.limit) selected = selected.slice(0, options.limit)
-  if (!selected.length) throw new SimulatorError('no_playwright_personas_match_scope')
+  if (!selected.length) throw new SimulatorError('no_personas_match_scope')
   return selected
 }
 
@@ -165,7 +168,15 @@ async function loadState() {
   }
 }
 
-async function saveState(state) {
+let stateSaveQueue = Promise.resolve()
+
+function saveState(state) {
+  const pending = stateSaveQueue.then(() => persistState(state))
+  stateSaveQueue = pending.catch(() => {})
+  return pending
+}
+
+async function persistState(state) {
   await mkdir(STATE_DIR, { recursive: true })
   const temporary = `${STATE_FILE}.${process.pid}.tmp`
   await writeFile(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 })
@@ -962,45 +973,46 @@ function dryRun(customers, baseUrl) {
   }
 }
 
+function drawCustomers(customers, options, state) {
+  const eligible = customers.filter((customer) => {
+    const entry = state.customers[customer.id] ?? {}
+    return !entry.safety_hold && !entry.write_in_flight && !entry.credentials_rejected
+      && !(entry.login_retry_after && Date.now() < entry.login_retry_after)
+  })
+  return selectActiveCustomers(eligible, Math.min(options.concurrency, options.limit ?? options.concurrency))
+}
+
+
 async function runOnce(customers, allCustomers, options, baseUrl, state, browser) {
-  const results = []
-  if (options.all || options.profile) {
-    for (const customer of customers) {
-      results.push(await runOne(customer, allCustomers, options, baseUrl, state, browser, false))
-    }
-    for (const customer of customers) {
-      if (results.find((item) => item.customer_id === customer.id)?.outcome !== 'success') continue
-      results.push(await runOne(customer, allCustomers, options, baseUrl, state, browser, true))
-    }
-  } else {
-    results.push(await runOne(customers[0], allCustomers, options, baseUrl, state, browser, true))
-  }
+  // 송금 상대가 가입할 수 있도록 첫 초기화가 모두 끝난 다음 행동을 실행합니다.
+  const initialized = await runBatch(customers, (customer) =>
+    runOne(customer, allCustomers, options, baseUrl, state, browser, false))
+  for (const result of initialized) outputSummary(result)
+  const ready = customers.filter((_, index) => initialized[index].outcome === 'success')
+  const results = await runBatch(ready, (customer) =>
+    runOne(customer, allCustomers, options, baseUrl, state, browser, true))
   for (const result of results) outputSummary(result)
 }
 
 async function watch(customers, allCustomers, options, baseUrl, state, browser) {
-  process.stdout.write(`Playwright persona scheduler started (${customers.length} personas, ${TIME_ZONE})\n`)
-  let running = false
+  process.stdout.write(`Playwright persona scheduler started (${customers.length} candidates, concurrency ${options.concurrency}, ${TIME_ZONE})\n`)
   const tick = async () => {
-    if (running) return
-    running = true
-    try {
-      for (const customer of customers) {
-        const entry = state.customers[customer.id] ?? {}
-        if (entry.safety_hold) continue
-        const shouldInitialize = !entry.initialized && customer.persona.preferred_weekdays?.includes(weekdayNumber())
-          && customer.persona.preferred_hours?.includes(Number(intlParts().hour))
-        const due = scheduledAction(customer, state)
-        if (!shouldInitialize && !due && !fundingDue(customer, state)) continue
-        const result = await runOne(customer, allCustomers, options, baseUrl, state, browser, true)
-        if (result.outcome !== 'idle') outputSummary(result)
-      }
-    } finally {
-      running = false
+    const due = customers.filter((customer) => {
+      const entry = state.customers[customer.id] ?? {}
+      return !entry.initialized || scheduledAction(customer, state) || fundingDue(customer, state)
+    })
+    const selected = drawCustomers(due, options, state)
+    const results = await runBatch(selected, (customer) =>
+      runOne(customer, allCustomers, options, baseUrl, state, browser, true))
+    for (const result of results) {
+      if (result.outcome !== 'idle') outputSummary(result)
     }
   }
-  await tick()
-  setInterval(() => { void tick() }, options.pollMs)
+  // 이전 접속이 모두 끝난 뒤 다음 확인을 예약해 실행 묶음이 겹치지 않습니다.
+  while (true) {
+    await tick()
+    await new Promise((resolve) => setTimeout(resolve, options.pollMs))
+  }
 }
 
 async function main() {
@@ -1014,17 +1026,24 @@ async function main() {
     const { customers, allCustomers } = await loadPersonas()
     const selected = selectCustomers(customers, options)
     const baseUrl = getBaseUrl(options)
+    const state = await loadState()
+    const drawn = options.watch ? null : drawCustomers(selected, options, state)
     if (options.dryRun) {
-      dryRun(selected, baseUrl)
+      outputSummary({ candidate_count: selected.length, selected_count: drawn.length, concurrency: options.concurrency })
+      dryRun(drawn, baseUrl)
       return
     }
-    const state = await loadState()
+    if (!options.watch && !drawn.length) {
+      outputSummary({ outcome: 'idle', reason: 'no_active_personas' })
+      return
+    }
+    const { chromium } = await import('playwright')
     const browser = await chromium.launch({ headless: !options.headed })
     try {
       if (options.watch) await watch(selected, allCustomers, options, baseUrl, state, browser)
-      else await runOnce(selected, allCustomers, options, baseUrl, state, browser)
+      else await runOnce(drawn, allCustomers, options, baseUrl, state, browser)
     } finally {
-      if (!options.watch) await browser.close()
+      await browser.close()
     }
   } catch (error) {
     process.stderr.write(`simulator error: ${cleanError(error)}\n`)

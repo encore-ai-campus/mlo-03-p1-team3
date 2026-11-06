@@ -1,6 +1,6 @@
 # Persona Playwright simulator
 
-`personas/profiles/*.json`의 `owner: "playwright"` 고객만 실제 화면에서 실행합니다. 현재는 유형별 5명, 총 30명이며 `owner: "simulator"` 고객은 이 실행기가 건드리지 않습니다.
+`personas/profiles/*.json`의 전체 300명을 추첨 후보로 사용합니다. 기존 `execution.owner` 값과 관계없이 선택하며, 선호 요일·시간과 활동 빈도에 따라 최대 `--concurrency`명만 실행합니다. Chromium은 기본적으로 창을 표시하지 않는 백그라운드 방식이며, `--headed`를 붙이면 창을 표시합니다. 터미널 종료 후에도 프로세스를 유지하는 기능은 별도입니다.
 
 ## 설치
 
@@ -19,18 +19,25 @@ cd simulator
 npm run simulate -- --customer-id customer-001 --once
 npm run simulate -- --profile salary --once
 npm run simulate -- --all --once
+npm run simulate -- --all --once --concurrency 5
 ```
 
-`--once`는 대상의 로그인 또는 가입과 필요한 첫 입금을 처리한 뒤, 해당 페르소나의 주간 행동 중 실행 가능한 행동을 한 번 수행합니다. `--dry-run`을 붙이면 브라우저나 서버를 호출하지 않고 대상과 계획만 출력합니다.
+`--once`는 한국 시간의 현재 요일·시간이 선호 요일·시간에 해당하는 후보 중 사용자를 중복 없이 추첨합니다. 추첨 확률은 `active_days_per_week × sessions_per_active_day`에 비례합니다. 선택된 대상의 로그인 또는 가입과 필요한 첫 입금을 처리한 뒤, 해당 페르소나의 주간 행동 중 실행 가능한 행동을 한 번 수행합니다.
+
+`--concurrency N`은 한 번에 뽑아 실행할 최대 접속자 수입니다(기본 1명). 후보가 부족하면 가능한 인원만 실행하며, 아무도 없으면 접속하지 않습니다. `--customer-id`도 선호 시간 조건을 따릅니다. `--limit N`은 추첨 인원을 추가로 제한하며 파일의 앞 N명으로 후보를 자르지 않습니다. 초기화 단계가 모두 끝난 뒤 행동 단계를 실행하므로 고객마다 두 번 접속할 수 있습니다. 각 단계에서 동시 접속은 지정한 수를 넘지 않습니다.
+
+`--dry-run`을 붙이면 브라우저나 서버를 호출하지 않고 후보 수, 추첨 인원과 계획만 출력합니다. 실행할 때마다 다시 추첨하므로 실제 실행 대상은 달라질 수 있습니다.
 
 ## 예약 실행
 
 ```bash
 cd simulator
-npm run simulate:watch -- --all
+npm run simulate:watch -- --all --concurrency 5
 ```
 
-예약 실행은 한국 시간의 요일·시간, 정기 입금 규칙, 주간 행동 목표를 따릅니다. 프로세스는 계속 실행되므로 중지할 때 `Ctrl-C`를 누릅니다. `--poll-ms 60000`으로 확인 간격을 바꿀 수 있습니다.
+예약 실행은 초기화 또는 예약 행동·정기 입금이 필요한 사용자 중 현재 선호 요일·시간에 맞는 후보를 같은 방식으로 추첨합니다. 이전 묶음의 접속이 모두 끝난 뒤 `--poll-ms 60000`에 지정한 간격만큼 기다리고 다시 확인합니다. 프로세스는 계속 실행되므로 중지할 때 `Ctrl-C`를 누릅니다.
+
+선택 로직과 옵션 검증은 `npm test`로 확인합니다. 추가 테스트 의존성은 없습니다.
 
 ## 동작과 안전
 
