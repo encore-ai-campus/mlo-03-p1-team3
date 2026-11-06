@@ -61,7 +61,7 @@ for uid in ('podobank-prometheus', 'podobank-loki'):
 requests = []
 for _ in range(12):
     body = {'phone_number': '019' + ''.join(str(secrets.randbelow(10)) for _ in range(8)), 'password': secrets.token_urlsafe(24)}
-    req = urllib.request.Request('http://192.168.0.191/api/v1/auth/login', data=json.dumps(body).encode(), headers={'Content-Type': 'application/json'})
+    req = urllib.request.Request('https://www.podobank.kro.kr/api/v1/auth/login', data=json.dumps(body).encode(), headers={'Content-Type': 'application/json'})
     try:
         urllib.request.urlopen(req, timeout=15)
         raise RuntimeError('Expected a failed login for a nonexistent user')
