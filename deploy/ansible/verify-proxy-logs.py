@@ -61,7 +61,7 @@ def main():
     haproxy = inventory['haproxy']['hosts'][0]
     api = inventory['api']['hosts']
     assert len(api) == 2, 'Expected exactly two API hosts'
-    base = 'http://' + hosts[nginx]['ansible_host']
+    base = 'https://' + hosts[nginx].get('nginx_server_name', 'www.podobank.kro.kr')
     loki = args.loki_url or ('http://' + hosts[inventory['loki']['hosts'][0]]['ansible_host'] + ':3100')
     parsed = urllib.parse.urlsplit(loki)
     assert parsed.scheme in ('http', 'https') and parsed.hostname and not parsed.username and not parsed.password
