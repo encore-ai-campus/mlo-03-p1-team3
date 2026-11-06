@@ -4,6 +4,18 @@
   become: true
   gather_facts: false
   tasks:
+    - name: Validate private employee configuration before any database reset
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ playbook_dir }}/read-employee-env.py"
+          - "{{ employee_env_file | default(playbook_dir ~ '/../../backend/.env') }}"
+          - --check
+      delegate_to: localhost
+      become: false
+      run_once: true
+      changed_when: false
+      no_log: true
     - name: Validate the actual vm.env against all inventory IPs before changes
       ansible.builtin.command:
         argv:
@@ -228,3 +240,5 @@
 
 - ansible.builtin.import_playbook: monitoring.yml
   when: monitoring_enabled | default(false) | bool
+
+- ansible.builtin.import_playbook: employee.yml
