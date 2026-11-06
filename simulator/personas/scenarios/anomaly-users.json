@@ -1,0 +1,500 @@
+{
+  "version": 2,
+  "description": "이상 징후와 실패 복구 검증용 일시적 상황입니다. 사기 여부를 판정하지 않습니다.",
+  "assignments": [
+    {
+      "customer_id": "customer-067",
+      "scenario": "login_failure_spike",
+      "parameters": {
+        "failed_attempts": 5,
+        "window_minutes": 2,
+        "wait_for_unlock_seconds": 301
+      },
+      "preconditions": [
+        "로그아웃 상태에서 실행합니다.",
+        "마지막 실패 뒤 잠금 시간이 지난 후 정상 로그인합니다."
+      ],
+      "expected": "실패·잠금·잠금 해제 후 로그인 결과를 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-267",
+      "scenario": "login_failure_spike",
+      "parameters": {
+        "failed_attempts": 5,
+        "window_minutes": 2,
+        "wait_for_unlock_seconds": 301
+      },
+      "preconditions": [
+        "로그아웃 상태에서 실행합니다.",
+        "마지막 실패 뒤 잠금 시간이 지난 후 정상 로그인합니다."
+      ],
+      "expected": "실패·잠금·잠금 해제 후 로그인 결과를 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-236",
+      "scenario": "login_failure_spike",
+      "parameters": {
+        "failed_attempts": 5,
+        "window_minutes": 2,
+        "wait_for_unlock_seconds": 301
+      },
+      "preconditions": [
+        "로그아웃 상태에서 실행합니다.",
+        "마지막 실패 뒤 잠금 시간이 지난 후 정상 로그인합니다."
+      ],
+      "expected": "실패·잠금·잠금 해제 후 로그인 결과를 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-099",
+      "scenario": "login_failure_spike",
+      "parameters": {
+        "failed_attempts": 5,
+        "window_minutes": 2,
+        "wait_for_unlock_seconds": 301
+      },
+      "preconditions": [
+        "로그아웃 상태에서 실행합니다.",
+        "마지막 실패 뒤 잠금 시간이 지난 후 정상 로그인합니다."
+      ],
+      "expected": "실패·잠금·잠금 해제 후 로그인 결과를 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-204",
+      "scenario": "login_failure_spike",
+      "parameters": {
+        "failed_attempts": 5,
+        "window_minutes": 2,
+        "wait_for_unlock_seconds": 301
+      },
+      "preconditions": [
+        "로그아웃 상태에서 실행합니다.",
+        "마지막 실패 뒤 잠금 시간이 지난 후 정상 로그인합니다."
+      ],
+      "expected": "실패·잠금·잠금 해제 후 로그인 결과를 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-039",
+      "scenario": "login_failure_spike",
+      "parameters": {
+        "failed_attempts": 5,
+        "window_minutes": 2,
+        "wait_for_unlock_seconds": 301
+      },
+      "preconditions": [
+        "로그아웃 상태에서 실행합니다.",
+        "마지막 실패 뒤 잠금 시간이 지난 후 정상 로그인합니다."
+      ],
+      "expected": "실패·잠금·잠금 해제 후 로그인 결과를 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-189",
+      "scenario": "login_failure_spike",
+      "parameters": {
+        "failed_attempts": 5,
+        "window_minutes": 2,
+        "wait_for_unlock_seconds": 301
+      },
+      "preconditions": [
+        "로그아웃 상태에서 실행합니다.",
+        "마지막 실패 뒤 잠금 시간이 지난 후 정상 로그인합니다."
+      ],
+      "expected": "실패·잠금·잠금 해제 후 로그인 결과를 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-126",
+      "scenario": "login_failure_spike",
+      "parameters": {
+        "failed_attempts": 5,
+        "window_minutes": 2,
+        "wait_for_unlock_seconds": 301
+      },
+      "preconditions": [
+        "로그아웃 상태에서 실행합니다.",
+        "마지막 실패 뒤 잠금 시간이 지난 후 정상 로그인합니다."
+      ],
+      "expected": "실패·잠금·잠금 해제 후 로그인 결과를 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-077",
+      "scenario": "rapid_transfer_spike",
+      "parameters": {
+        "transfer_attempts": 8,
+        "window_minutes": 5,
+        "amount": 10000
+      },
+      "preconditions": [
+        "잔액 80000원 이상과 가입된 수취인을 준비합니다."
+      ],
+      "expected": "송금 결과마다 원장과 이벤트를 대조합니다. 반복 송금 자체는 차단 조건이 아닙니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-011",
+      "scenario": "rapid_transfer_spike",
+      "parameters": {
+        "transfer_attempts": 8,
+        "window_minutes": 5,
+        "amount": 10000
+      },
+      "preconditions": [
+        "잔액 80000원 이상과 가입된 수취인을 준비합니다."
+      ],
+      "expected": "송금 결과마다 원장과 이벤트를 대조합니다. 반복 송금 자체는 차단 조건이 아닙니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-148",
+      "scenario": "rapid_transfer_spike",
+      "parameters": {
+        "transfer_attempts": 8,
+        "window_minutes": 5,
+        "amount": 10000
+      },
+      "preconditions": [
+        "잔액 80000원 이상과 가입된 수취인을 준비합니다."
+      ],
+      "expected": "송금 결과마다 원장과 이벤트를 대조합니다. 반복 송금 자체는 차단 조건이 아닙니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-153",
+      "scenario": "rapid_transfer_spike",
+      "parameters": {
+        "transfer_attempts": 8,
+        "window_minutes": 5,
+        "amount": 10000
+      },
+      "preconditions": [
+        "잔액 80000원 이상과 가입된 수취인을 준비합니다."
+      ],
+      "expected": "송금 결과마다 원장과 이벤트를 대조합니다. 반복 송금 자체는 차단 조건이 아닙니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-182",
+      "scenario": "rapid_transfer_spike",
+      "parameters": {
+        "transfer_attempts": 8,
+        "window_minutes": 5,
+        "amount": 10000
+      },
+      "preconditions": [
+        "잔액 80000원 이상과 가입된 수취인을 준비합니다."
+      ],
+      "expected": "송금 결과마다 원장과 이벤트를 대조합니다. 반복 송금 자체는 차단 조건이 아닙니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-029",
+      "scenario": "rapid_transfer_spike",
+      "parameters": {
+        "transfer_attempts": 8,
+        "window_minutes": 5,
+        "amount": 10000
+      },
+      "preconditions": [
+        "잔액 80000원 이상과 가입된 수취인을 준비합니다."
+      ],
+      "expected": "송금 결과마다 원장과 이벤트를 대조합니다. 반복 송금 자체는 차단 조건이 아닙니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-128",
+      "scenario": "rapid_transfer_spike",
+      "parameters": {
+        "transfer_attempts": 8,
+        "window_minutes": 5,
+        "amount": 10000
+      },
+      "preconditions": [
+        "잔액 80000원 이상과 가입된 수취인을 준비합니다."
+      ],
+      "expected": "송금 결과마다 원장과 이벤트를 대조합니다. 반복 송금 자체는 차단 조건이 아닙니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-098",
+      "scenario": "rapid_transfer_spike",
+      "parameters": {
+        "transfer_attempts": 8,
+        "window_minutes": 5,
+        "amount": 10000
+      },
+      "preconditions": [
+        "잔액 80000원 이상과 가입된 수취인을 준비합니다."
+      ],
+      "expected": "송금 결과마다 원장과 이벤트를 대조합니다. 반복 송금 자체는 차단 조건이 아닙니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-223",
+      "scenario": "insufficient_funds_burst",
+      "parameters": {
+        "withdrawal_attempts": 3,
+        "requested_balance_ratio": 1.2
+      },
+      "preconditions": [
+        "잔액을 조회하고 잔액보다 크면서 1회 한도 이하인 금액을 사용합니다.",
+        "조건을 만족하지 않으면 건너뛰고 사유를 기록합니다."
+      ],
+      "expected": "잔액 부족 실패 후 잔액·원장이 변하지 않는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-251",
+      "scenario": "insufficient_funds_burst",
+      "parameters": {
+        "withdrawal_attempts": 3,
+        "requested_balance_ratio": 1.2
+      },
+      "preconditions": [
+        "잔액을 조회하고 잔액보다 크면서 1회 한도 이하인 금액을 사용합니다.",
+        "조건을 만족하지 않으면 건너뛰고 사유를 기록합니다."
+      ],
+      "expected": "잔액 부족 실패 후 잔액·원장이 변하지 않는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-110",
+      "scenario": "insufficient_funds_burst",
+      "parameters": {
+        "withdrawal_attempts": 3,
+        "requested_balance_ratio": 1.2
+      },
+      "preconditions": [
+        "잔액을 조회하고 잔액보다 크면서 1회 한도 이하인 금액을 사용합니다.",
+        "조건을 만족하지 않으면 건너뛰고 사유를 기록합니다."
+      ],
+      "expected": "잔액 부족 실패 후 잔액·원장이 변하지 않는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-120",
+      "scenario": "insufficient_funds_burst",
+      "parameters": {
+        "withdrawal_attempts": 3,
+        "requested_balance_ratio": 1.2
+      },
+      "preconditions": [
+        "잔액을 조회하고 잔액보다 크면서 1회 한도 이하인 금액을 사용합니다.",
+        "조건을 만족하지 않으면 건너뛰고 사유를 기록합니다."
+      ],
+      "expected": "잔액 부족 실패 후 잔액·원장이 변하지 않는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-221",
+      "scenario": "insufficient_funds_burst",
+      "parameters": {
+        "withdrawal_attempts": 3,
+        "requested_balance_ratio": 1.2
+      },
+      "preconditions": [
+        "잔액을 조회하고 잔액보다 크면서 1회 한도 이하인 금액을 사용합니다.",
+        "조건을 만족하지 않으면 건너뛰고 사유를 기록합니다."
+      ],
+      "expected": "잔액 부족 실패 후 잔액·원장이 변하지 않는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-169",
+      "scenario": "insufficient_funds_burst",
+      "parameters": {
+        "withdrawal_attempts": 3,
+        "requested_balance_ratio": 1.2
+      },
+      "preconditions": [
+        "잔액을 조회하고 잔액보다 크면서 1회 한도 이하인 금액을 사용합니다.",
+        "조건을 만족하지 않으면 건너뛰고 사유를 기록합니다."
+      ],
+      "expected": "잔액 부족 실패 후 잔액·원장이 변하지 않는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-290",
+      "scenario": "insufficient_funds_burst",
+      "parameters": {
+        "withdrawal_attempts": 3,
+        "requested_balance_ratio": 1.2
+      },
+      "preconditions": [
+        "잔액을 조회하고 잔액보다 크면서 1회 한도 이하인 금액을 사용합니다.",
+        "조건을 만족하지 않으면 건너뛰고 사유를 기록합니다."
+      ],
+      "expected": "잔액 부족 실패 후 잔액·원장이 변하지 않는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-235",
+      "scenario": "insufficient_funds_burst",
+      "parameters": {
+        "withdrawal_attempts": 3,
+        "requested_balance_ratio": 1.2
+      },
+      "preconditions": [
+        "잔액을 조회하고 잔액보다 크면서 1회 한도 이하인 금액을 사용합니다.",
+        "조건을 만족하지 않으면 건너뛰고 사유를 기록합니다."
+      ],
+      "expected": "잔액 부족 실패 후 잔액·원장이 변하지 않는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-268",
+      "scenario": "high_value_transfer",
+      "parameters": {
+        "amount": 5000000,
+        "transfer_attempts": 1
+      },
+      "preconditions": [
+        "잔액 5000000원 이상과 당일 송금 한도를 확인합니다."
+      ],
+      "expected": "정상 고액 송금이 발생하고 금액 구간이 기록되는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-142",
+      "scenario": "high_value_transfer",
+      "parameters": {
+        "amount": 5000000,
+        "transfer_attempts": 1
+      },
+      "preconditions": [
+        "잔액 5000000원 이상과 당일 송금 한도를 확인합니다."
+      ],
+      "expected": "정상 고액 송금이 발생하고 금액 구간이 기록되는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-027",
+      "scenario": "high_value_transfer",
+      "parameters": {
+        "amount": 5000000,
+        "transfer_attempts": 1
+      },
+      "preconditions": [
+        "잔액 5000000원 이상과 당일 송금 한도를 확인합니다."
+      ],
+      "expected": "정상 고액 송금이 발생하고 금액 구간이 기록되는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-119",
+      "scenario": "high_value_transfer",
+      "parameters": {
+        "amount": 5000000,
+        "transfer_attempts": 1
+      },
+      "preconditions": [
+        "잔액 5000000원 이상과 당일 송금 한도를 확인합니다."
+      ],
+      "expected": "정상 고액 송금이 발생하고 금액 구간이 기록되는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-168",
+      "scenario": "high_value_transfer",
+      "parameters": {
+        "amount": 5000000,
+        "transfer_attempts": 1
+      },
+      "preconditions": [
+        "잔액 5000000원 이상과 당일 송금 한도를 확인합니다."
+      ],
+      "expected": "정상 고액 송금이 발생하고 금액 구간이 기록되는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-021",
+      "scenario": "high_value_transfer",
+      "parameters": {
+        "amount": 5000000,
+        "transfer_attempts": 1
+      },
+      "preconditions": [
+        "잔액 5000000원 이상과 당일 송금 한도를 확인합니다."
+      ],
+      "expected": "정상 고액 송금이 발생하고 금액 구간이 기록되는지 확인합니다.",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true
+    },
+    {
+      "customer_id": "customer-278",
+      "scenario": "repayment_overdue_recovery",
+      "activation": "explicit_run_only",
+      "temporary": true,
+      "pause_normal_actions": true,
+      "preconditions": [
+        "승인된 대출과 도래한 상환 회차를 준비합니다.",
+        "납부액보다 적은 잔액으로 배치를 실행하고 다음 날 충분히 충전합니다."
+      ],
+      "expected": "연체 후 다음 날 자동 재시도로 납부되며 원장과 잔액이 일치해야 합니다."
+    }
+  ]
+}

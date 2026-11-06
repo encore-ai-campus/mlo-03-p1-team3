@@ -330,3 +330,4 @@ deploy/vm/vm.env
 !*.tfvars.example
 crash.log
 deploy/vm/monitoring.env
+drafts/

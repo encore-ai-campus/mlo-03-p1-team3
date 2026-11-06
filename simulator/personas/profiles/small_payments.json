@@ -1,0 +1,2976 @@
+{
+  "version": 2,
+  "synthetic": true,
+  "seed": 20261105,
+  "timezone": "Asia/Seoul",
+  "runtime_rules": [
+    "기본 비밀번호는 고객 ID에서 파생하며, 필요하면 Git 제외 로컬 자격 증명 파일로 합성 고객별 값을 지정합니다. 로그에는 기록하지 않습니다.",
+    "고객별 owner만 실행하며 담당 변경 전 실행 잠금을 인계합니다.",
+    "실제 잔액·세션·대출 상태와 발급된 계좌·카드 ID는 실행 상태 저장소에서 관리합니다.",
+    "초기 자금과 정기 충전은 입금 API로 처리하여 원장을 남깁니다.",
+    "일반 거래는 잔액에서 reserve_balance와 대출 repayment_reserve를 뺀 가용액 안에서 실행합니다.",
+    "잔액 부족 시 자동 무한 충전하지 않고 다음 충전까지 기다립니다.",
+    "수취인 조회 성공 후 송금하며 가맹점은 API가 반환한 업종과 ID에 매핑합니다.",
+    "배치 기준은 실제 한국 날짜입니다. 시간 압축만으로 상환일이 바뀌지 않습니다.",
+    "검증 상황은 명시적으로 활성화하고 평소 행동과 분리합니다.",
+    "실행 기록에는 시도·응답·request_id를 남기고 이벤트 스키마에 개인정보를 추가하지 않습니다."
+  ],
+  "type": "small_payments",
+  "label": "소액 결제형",
+  "count": 40,
+  "customers": [
+    {
+      "id": "customer-201",
+      "signup": {
+        "name": "가상고객201",
+        "phone_number": "01000000201",
+        "birth_year": 1952,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "new",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          2,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          17
+        ],
+        "timing_jitter_minutes": 35,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 9,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          17000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          6000,
+          12000
+        ],
+        "withdrawal_amount_range": [
+          60000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "편의점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 451000,
+          "day_of_month": null,
+          "weekday": 5,
+          "interval_days": null
+        },
+        "initial_funding_amount": 0,
+        "reserve_balance": 78000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-248",
+          "customer-024",
+          "customer-198"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-202",
+      "signup": {
+        "name": "가상고객202",
+        "phone_number": "01000000202",
+        "birth_year": 1990,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "new",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          2,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 45,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 13,
+          "ledger_views": 2,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          11000,
+          23000
+        ],
+        "card_payment_amount_range": [
+          9000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          66000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 304000,
+          "day_of_month": null,
+          "weekday": 4,
+          "interval_days": null
+        },
+        "initial_funding_amount": 0,
+        "reserve_balance": 40000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-277",
+          "customer-256",
+          "customer-240",
+          "customer-175"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-203",
+      "signup": {
+        "name": "가상고객203",
+        "phone_number": "01000000203",
+        "birth_year": 1979,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          3,
+          4,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 39,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 13,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          18000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          9000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          63000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 369000,
+          "day_of_month": null,
+          "weekday": 6,
+          "interval_days": null
+        },
+        "initial_funding_amount": 188000,
+        "reserve_balance": 47000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-162",
+          "customer-069"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-204",
+      "signup": {
+        "name": "가상고객204",
+        "phone_number": "01000000204",
+        "birth_year": 1954,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          2,
+          3,
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          17
+        ],
+        "timing_jitter_minutes": 18,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 12,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          1000,
+          3000
+        ],
+        "card_payment_amount_range": [
+          1000,
+          2000
+        ],
+        "withdrawal_amount_range": [
+          10000,
+          17000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 286000,
+          "day_of_month": null,
+          "weekday": 3,
+          "interval_days": null
+        },
+        "initial_funding_amount": 258000,
+        "reserve_balance": 70000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-296",
+          "customer-210",
+          "customer-125",
+          "customer-142",
+          "customer-070"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-205",
+      "signup": {
+        "name": "가상고객205",
+        "phone_number": "01000000205",
+        "birth_year": 1960,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          3,
+          4,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          17
+        ],
+        "timing_jitter_minutes": 12,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 14,
+          "ledger_views": 2,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          10000,
+          20000
+        ],
+        "card_payment_amount_range": [
+          9000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          11000,
+          21000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 259000,
+          "day_of_month": null,
+          "weekday": 5,
+          "interval_days": null
+        },
+        "initial_funding_amount": 200000,
+        "reserve_balance": 74000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-076",
+          "customer-287"
+        ]
+      },
+      "execution": {
+        "owner": "playwright",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-206",
+      "signup": {
+        "name": "가상고객206",
+        "phone_number": "01000000206",
+        "birth_year": 1959,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          2,
+          4,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          17
+        ],
+        "timing_jitter_minutes": 25,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 9,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          14000,
+          28000
+        ],
+        "card_payment_amount_range": [
+          9000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          44000,
+          84000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 417000,
+          "day_of_month": null,
+          "weekday": 7,
+          "interval_days": null
+        },
+        "initial_funding_amount": 100000,
+        "reserve_balance": 66000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-134",
+          "customer-226"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-207",
+      "signup": {
+        "name": "가상고객207",
+        "phone_number": "01000000207",
+        "birth_year": 1963,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          3,
+          5
+        ],
+        "preferred_hours": [
+          12,
+          17
+        ],
+        "timing_jitter_minutes": 24,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 13,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          20000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          2000,
+          6000
+        ],
+        "withdrawal_amount_range": [
+          30000,
+          56000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "마트"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 271000,
+          "day_of_month": null,
+          "weekday": 5,
+          "interval_days": null
+        },
+        "initial_funding_amount": 115000,
+        "reserve_balance": 80000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-277",
+          "customer-260",
+          "customer-169",
+          "customer-096"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-208",
+      "signup": {
+        "name": "가상고객208",
+        "phone_number": "01000000208",
+        "birth_year": 1999,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          2,
+          3,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          17
+        ],
+        "timing_jitter_minutes": 22,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 8,
+          "ledger_views": 1,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          4000,
+          8000
+        ],
+        "card_payment_amount_range": [
+          2000,
+          6000
+        ],
+        "withdrawal_amount_range": [
+          10000,
+          17000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "카페"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 405000,
+          "day_of_month": null,
+          "weekday": 4,
+          "interval_days": null
+        },
+        "initial_funding_amount": 152000,
+        "reserve_balance": 54000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-103",
+          "customer-252",
+          "customer-293"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-209",
+      "signup": {
+        "name": "가상고객209",
+        "phone_number": "01000000209",
+        "birth_year": 1973,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          2,
+          3,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 41,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 9,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          20000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          8000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          17000,
+          33000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "편의점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 413000,
+          "day_of_month": null,
+          "weekday": 4,
+          "interval_days": null
+        },
+        "initial_funding_amount": 206000,
+        "reserve_balance": 66000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-056",
+          "customer-125",
+          "customer-166",
+          "customer-195",
+          "customer-084"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-210",
+      "signup": {
+        "name": "가상고객210",
+        "phone_number": "01000000210",
+        "birth_year": 1958,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          2,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 44,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 13,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          16000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          1000,
+          2000
+        ],
+        "withdrawal_amount_range": [
+          30000,
+          58000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 351000,
+          "day_of_month": null,
+          "weekday": 7,
+          "interval_days": null
+        },
+        "initial_funding_amount": 156000,
+        "reserve_balance": 30000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-300",
+          "customer-235",
+          "customer-204",
+          "customer-217",
+          "customer-109"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-211",
+      "signup": {
+        "name": "가상고객211",
+        "phone_number": "01000000211",
+        "birth_year": 1951,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          3,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 23,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 15,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          1000,
+          2000
+        ],
+        "card_payment_amount_range": [
+          10000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          21000,
+          39000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 286000,
+          "day_of_month": null,
+          "weekday": 4,
+          "interval_days": null
+        },
+        "initial_funding_amount": 322000,
+        "reserve_balance": 53000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-004",
+          "customer-027"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-212",
+      "signup": {
+        "name": "가상고객212",
+        "phone_number": "01000000212",
+        "birth_year": 1983,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          2,
+          5
+        ],
+        "preferred_hours": [
+          17,
+          22
+        ],
+        "timing_jitter_minutes": 15,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 3,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 15,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          11000,
+          21000
+        ],
+        "card_payment_amount_range": [
+          3000,
+          7000
+        ],
+        "withdrawal_amount_range": [
+          23000,
+          43000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 375000,
+          "day_of_month": null,
+          "weekday": 1,
+          "interval_days": null
+        },
+        "initial_funding_amount": 318000,
+        "reserve_balance": 39000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-134",
+          "customer-017"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-213",
+      "signup": {
+        "name": "가상고객213",
+        "phone_number": "01000000213",
+        "birth_year": 1983,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 22,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 12,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          18000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          1000,
+          3000
+        ],
+        "withdrawal_amount_range": [
+          37000,
+          69000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "카페"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 317000,
+          "day_of_month": null,
+          "weekday": 3,
+          "interval_days": null
+        },
+        "initial_funding_amount": 254000,
+        "reserve_balance": 58000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-052",
+          "customer-100",
+          "customer-288",
+          "customer-258",
+          "customer-057"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-214",
+      "signup": {
+        "name": "가상고객214",
+        "phone_number": "01000000214",
+        "birth_year": 1968,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          3,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 24,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 11,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          10000,
+          20000
+        ],
+        "card_payment_amount_range": [
+          1000,
+          3000
+        ],
+        "withdrawal_amount_range": [
+          30000,
+          56000
+        ],
+        "preferred_merchant_categories": [
+          "약국",
+          "마트"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 356000,
+          "day_of_month": null,
+          "weekday": 2,
+          "interval_days": null
+        },
+        "initial_funding_amount": 378000,
+        "reserve_balance": 44000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-253",
+          "customer-007",
+          "customer-267"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-215",
+      "signup": {
+        "name": "가상고객215",
+        "phone_number": "01000000215",
+        "birth_year": 1964,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          2,
+          4,
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          22
+        ],
+        "timing_jitter_minutes": 7,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 10,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          11000,
+          23000
+        ],
+        "card_payment_amount_range": [
+          1000,
+          2000
+        ],
+        "withdrawal_amount_range": [
+          67000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 407000,
+          "day_of_month": null,
+          "weekday": 1,
+          "interval_days": null
+        },
+        "initial_funding_amount": 118000,
+        "reserve_balance": 39000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-063",
+          "customer-267",
+          "customer-112",
+          "customer-064"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-216",
+      "signup": {
+        "name": "가상고객216",
+        "phone_number": "01000000216",
+        "birth_year": 1987,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          4,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 21,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 3,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 13,
+          "ledger_views": 1,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          19000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          6000,
+          12000
+        ],
+        "withdrawal_amount_range": [
+          35000,
+          65000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 431000,
+          "day_of_month": null,
+          "weekday": 1,
+          "interval_days": null
+        },
+        "initial_funding_amount": 212000,
+        "reserve_balance": 67000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-165",
+          "customer-267",
+          "customer-200"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-217",
+      "signup": {
+        "name": "가상고객217",
+        "phone_number": "01000000217",
+        "birth_year": 1951,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          3,
+          4,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          17
+        ],
+        "timing_jitter_minutes": 35,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 11,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          11000,
+          21000
+        ],
+        "card_payment_amount_range": [
+          4000,
+          8000
+        ],
+        "withdrawal_amount_range": [
+          28000,
+          54000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "편의점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 328000,
+          "day_of_month": null,
+          "weekday": 7,
+          "interval_days": null
+        },
+        "initial_funding_amount": 393000,
+        "reserve_balance": 50000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-218",
+          "customer-078",
+          "customer-200",
+          "customer-117"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-218",
+      "signup": {
+        "name": "가상고객218",
+        "phone_number": "01000000218",
+        "birth_year": 1951,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          2,
+          4,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          22
+        ],
+        "timing_jitter_minutes": 19,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 13,
+          "ledger_views": 1,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          10000,
+          20000
+        ],
+        "card_payment_amount_range": [
+          2000,
+          6000
+        ],
+        "withdrawal_amount_range": [
+          11000,
+          21000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "카페"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 275000,
+          "day_of_month": null,
+          "weekday": 6,
+          "interval_days": null
+        },
+        "initial_funding_amount": 205000,
+        "reserve_balance": 32000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-261",
+          "customer-172"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-219",
+      "signup": {
+        "name": "가상고객219",
+        "phone_number": "01000000219",
+        "birth_year": 1997,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          4,
+          5
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 24,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 12,
+          "ledger_views": 1,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          14000,
+          28000
+        ],
+        "card_payment_amount_range": [
+          4000,
+          8000
+        ],
+        "withdrawal_amount_range": [
+          10000,
+          17000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "편의점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 279000,
+          "day_of_month": null,
+          "weekday": 2,
+          "interval_days": null
+        },
+        "initial_funding_amount": 130000,
+        "reserve_balance": 55000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-226",
+          "customer-110",
+          "customer-272",
+          "customer-173",
+          "customer-107"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-220",
+      "signup": {
+        "name": "가상고객220",
+        "phone_number": "01000000220",
+        "birth_year": 1958,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          2,
+          3,
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 23,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 14,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          16000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          3000,
+          7000
+        ],
+        "withdrawal_amount_range": [
+          30000,
+          56000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 442000,
+          "day_of_month": null,
+          "weekday": 3,
+          "interval_days": null
+        },
+        "initial_funding_amount": 257000,
+        "reserve_balance": 51000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-246",
+          "customer-253"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-221",
+      "signup": {
+        "name": "가상고객221",
+        "phone_number": "01000000221",
+        "birth_year": 2004,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          3,
+          4,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          17,
+          22
+        ],
+        "timing_jitter_minutes": 39,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 3,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 8,
+          "ledger_views": 1,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          15000,
+          29000
+        ],
+        "card_payment_amount_range": [
+          3000,
+          7000
+        ],
+        "withdrawal_amount_range": [
+          37000,
+          69000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 409000,
+          "day_of_month": null,
+          "weekday": 7,
+          "interval_days": null
+        },
+        "initial_funding_amount": 186000,
+        "reserve_balance": 34000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-286",
+          "customer-056",
+          "customer-038"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-222",
+      "signup": {
+        "name": "가상고객222",
+        "phone_number": "01000000222",
+        "birth_year": 1969,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 14,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 15,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          1000,
+          2000
+        ],
+        "card_payment_amount_range": [
+          8000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          10000,
+          17000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "카페"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 485000,
+          "day_of_month": null,
+          "weekday": 6,
+          "interval_days": null
+        },
+        "initial_funding_amount": 316000,
+        "reserve_balance": 61000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-094",
+          "customer-281"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-223",
+      "signup": {
+        "name": "가상고객223",
+        "phone_number": "01000000223",
+        "birth_year": 1987,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          3,
+          4,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 14,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 3,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 8,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          11000,
+          23000
+        ],
+        "card_payment_amount_range": [
+          8000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          10000,
+          16000
+        ],
+        "preferred_merchant_categories": [
+          "약국",
+          "마트"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 348000,
+          "day_of_month": null,
+          "weekday": 6,
+          "interval_days": null
+        },
+        "initial_funding_amount": 100000,
+        "reserve_balance": 56000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-147",
+          "customer-216",
+          "customer-191"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-224",
+      "signup": {
+        "name": "가상고객224",
+        "phone_number": "01000000224",
+        "birth_year": 1953,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          2,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 10,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 3,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 10,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          7000,
+          13000
+        ],
+        "card_payment_amount_range": [
+          9000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          10000,
+          20000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 369000,
+          "day_of_month": null,
+          "weekday": 7,
+          "interval_days": null
+        },
+        "initial_funding_amount": 156000,
+        "reserve_balance": 79000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-226",
+          "customer-074"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-225",
+      "signup": {
+        "name": "가상고객225",
+        "phone_number": "01000000225",
+        "birth_year": 1956,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          3,
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          17
+        ],
+        "timing_jitter_minutes": 18,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 8,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          14000,
+          28000
+        ],
+        "card_payment_amount_range": [
+          6000,
+          12000
+        ],
+        "withdrawal_amount_range": [
+          11000,
+          23000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 487000,
+          "day_of_month": null,
+          "weekday": 1,
+          "interval_days": null
+        },
+        "initial_funding_amount": 387000,
+        "reserve_balance": 54000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-281",
+          "customer-221",
+          "customer-233"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-226",
+      "signup": {
+        "name": "가상고객226",
+        "phone_number": "01000000226",
+        "birth_year": 1972,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          3,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 21,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 10,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          16000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          7000,
+          13000
+        ],
+        "withdrawal_amount_range": [
+          49000,
+          93000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 425000,
+          "day_of_month": null,
+          "weekday": 6,
+          "interval_days": null
+        },
+        "initial_funding_amount": 138000,
+        "reserve_balance": 67000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-184",
+          "customer-248",
+          "customer-053"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-227",
+      "signup": {
+        "name": "가상고객227",
+        "phone_number": "01000000227",
+        "birth_year": 1984,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          4,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 16,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 12,
+          "ledger_views": 1,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          16000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          3000,
+          7000
+        ],
+        "withdrawal_amount_range": [
+          32000,
+          62000
+        ],
+        "preferred_merchant_categories": [
+          "주유소",
+          "마트"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 302000,
+          "day_of_month": null,
+          "weekday": 3,
+          "interval_days": null
+        },
+        "initial_funding_amount": 197000,
+        "reserve_balance": 59000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-176",
+          "customer-117",
+          "customer-046",
+          "customer-001",
+          "customer-282"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-228",
+      "signup": {
+        "name": "가상고객228",
+        "phone_number": "01000000228",
+        "birth_year": 1972,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          3,
+          4,
+          6
+        ],
+        "preferred_hours": [
+          12,
+          17
+        ],
+        "timing_jitter_minutes": 34,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 15,
+          "ledger_views": 1,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          10000,
+          20000
+        ],
+        "card_payment_amount_range": [
+          1000,
+          2000
+        ],
+        "withdrawal_amount_range": [
+          11000,
+          21000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "편의점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 366000,
+          "day_of_month": null,
+          "weekday": 7,
+          "interval_days": null
+        },
+        "initial_funding_amount": 126000,
+        "reserve_balance": 74000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-171",
+          "customer-276",
+          "customer-086"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-229",
+      "signup": {
+        "name": "가상고객229",
+        "phone_number": "01000000229",
+        "birth_year": 1983,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          3,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          17,
+          22
+        ],
+        "timing_jitter_minutes": 28,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 8,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          18000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          3000,
+          7000
+        ],
+        "withdrawal_amount_range": [
+          23000,
+          45000
+        ],
+        "preferred_merchant_categories": [
+          "약국",
+          "카페"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 321000,
+          "day_of_month": null,
+          "weekday": 1,
+          "interval_days": null
+        },
+        "initial_funding_amount": 314000,
+        "reserve_balance": 73000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-142",
+          "customer-244"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-230",
+      "signup": {
+        "name": "가상고객230",
+        "phone_number": "01000000230",
+        "birth_year": 1965,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          17,
+          22
+        ],
+        "timing_jitter_minutes": 28,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 14,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          11000,
+          21000
+        ],
+        "card_payment_amount_range": [
+          3000,
+          7000
+        ],
+        "withdrawal_amount_range": [
+          65000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "카페"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 412000,
+          "day_of_month": null,
+          "weekday": 7,
+          "interval_days": null
+        },
+        "initial_funding_amount": 332000,
+        "reserve_balance": 40000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-086",
+          "customer-017"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-231",
+      "signup": {
+        "name": "가상고객231",
+        "phone_number": "01000000231",
+        "birth_year": 1977,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          12
+        ],
+        "timing_jitter_minutes": 11,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 10,
+          "ledger_views": 1,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          16000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          9000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          53000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 447000,
+          "day_of_month": null,
+          "weekday": 4,
+          "interval_days": null
+        },
+        "initial_funding_amount": 176000,
+        "reserve_balance": 70000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-020",
+          "customer-092"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-232",
+      "signup": {
+        "name": "가상고객232",
+        "phone_number": "01000000232",
+        "birth_year": 1981,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          3,
+          4,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          17,
+          22
+        ],
+        "timing_jitter_minutes": 39,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 11,
+          "ledger_views": 1,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          14000,
+          28000
+        ],
+        "card_payment_amount_range": [
+          10000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          53000,
+          99000
+        ],
+        "preferred_merchant_categories": [
+          "약국",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 499000,
+          "day_of_month": null,
+          "weekday": 1,
+          "interval_days": null
+        },
+        "initial_funding_amount": 120000,
+        "reserve_balance": 70000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-162",
+          "customer-096"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-233",
+      "signup": {
+        "name": "가상고객233",
+        "phone_number": "01000000233",
+        "birth_year": 1988,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          3,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          17
+        ],
+        "timing_jitter_minutes": 9,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 3,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 15,
+          "ledger_views": 2,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          11000,
+          21000
+        ],
+        "card_payment_amount_range": [
+          7000,
+          13000
+        ],
+        "withdrawal_amount_range": [
+          34000,
+          64000
+        ],
+        "preferred_merchant_categories": [
+          "음식점",
+          "약국"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 426000,
+          "day_of_month": null,
+          "weekday": 4,
+          "interval_days": null
+        },
+        "initial_funding_amount": 291000,
+        "reserve_balance": 71000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-227",
+          "customer-300",
+          "customer-294"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-234",
+      "signup": {
+        "name": "가상고객234",
+        "phone_number": "01000000234",
+        "birth_year": 1981,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          3,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          22
+        ],
+        "timing_jitter_minutes": 25,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 15,
+          "ledger_views": 2,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          3000,
+          7000
+        ],
+        "card_payment_amount_range": [
+          9000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          23000,
+          45000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "카페"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 310000,
+          "day_of_month": null,
+          "weekday": 6,
+          "interval_days": null
+        },
+        "initial_funding_amount": 393000,
+        "reserve_balance": 60000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-256",
+          "customer-298",
+          "customer-089"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-235",
+      "signup": {
+        "name": "가상고객235",
+        "phone_number": "01000000235",
+        "birth_year": 1977,
+        "gender": "female",
+        "marital_status": "single",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          2,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          12,
+          17
+        ],
+        "timing_jitter_minutes": 22,
+        "active_days_per_week": 6,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 13,
+          "ledger_views": 1,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          8000,
+          16000
+        ],
+        "card_payment_amount_range": [
+          2000,
+          4000
+        ],
+        "withdrawal_amount_range": [
+          58000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 304000,
+          "day_of_month": null,
+          "weekday": 2,
+          "interval_days": null
+        },
+        "initial_funding_amount": 248000,
+        "reserve_balance": 75000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-104",
+          "customer-024"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-236",
+      "signup": {
+        "name": "가상고객236",
+        "phone_number": "01000000236",
+        "birth_year": 1987,
+        "gender": "male",
+        "marital_status": "single",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          1,
+          4,
+          5,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          17
+        ],
+        "timing_jitter_minutes": 40,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 8,
+          "ledger_views": 3,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          16000,
+          30000
+        ],
+        "card_payment_amount_range": [
+          8000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          65000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "편의점",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 479000,
+          "day_of_month": null,
+          "weekday": 5,
+          "interval_days": null
+        },
+        "initial_funding_amount": 107000,
+        "reserve_balance": 74000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-287",
+          "customer-222",
+          "customer-148",
+          "customer-136",
+          "customer-290"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-237",
+      "signup": {
+        "name": "가상고객237",
+        "phone_number": "01000000237",
+        "birth_year": 1989,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          3,
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 11,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 14,
+          "ledger_views": 1,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          15000,
+          29000
+        ],
+        "card_payment_amount_range": [
+          4000,
+          10000
+        ],
+        "withdrawal_amount_range": [
+          62000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 473000,
+          "day_of_month": null,
+          "weekday": 4,
+          "interval_days": null
+        },
+        "initial_funding_amount": 284000,
+        "reserve_balance": 68000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-208",
+          "customer-167",
+          "customer-181",
+          "customer-023",
+          "customer-010"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-238",
+      "signup": {
+        "name": "가상고객238",
+        "phone_number": "01000000238",
+        "birth_year": 1989,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "ios-app",
+        "preferred_weekdays": [
+          2,
+          4,
+          5,
+          6,
+          7
+        ],
+        "preferred_hours": [
+          8,
+          22
+        ],
+        "timing_jitter_minutes": 42,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 14,
+          "ledger_views": 2,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          14000,
+          28000
+        ],
+        "card_payment_amount_range": [
+          9000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          10000,
+          19000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "음식점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 472000,
+          "day_of_month": null,
+          "weekday": 5,
+          "interval_days": null
+        },
+        "initial_funding_amount": 383000,
+        "reserve_balance": 61000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-253",
+          "customer-063",
+          "customer-190",
+          "customer-059"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "ios-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-239",
+      "signup": {
+        "name": "가상고객239",
+        "phone_number": "01000000239",
+        "birth_year": 1977,
+        "gender": "male",
+        "marital_status": "married",
+        "is_employed": true
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "android-app",
+        "preferred_weekdays": [
+          1,
+          3
+        ],
+        "preferred_hours": [
+          12,
+          17
+        ],
+        "timing_jitter_minutes": 41,
+        "active_days_per_week": 7,
+        "sessions_per_active_day": 1,
+        "weekly_targets": {
+          "transfers": 0,
+          "card_payments": 14,
+          "ledger_views": 3,
+          "withdrawals": 0
+        },
+        "transfer_amount_range": [
+          5000,
+          11000
+        ],
+        "card_payment_amount_range": [
+          1000,
+          3000
+        ],
+        "withdrawal_amount_range": [
+          63000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "카페",
+          "편의점"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 310000,
+          "day_of_month": null,
+          "weekday": 7,
+          "interval_days": null
+        },
+        "initial_funding_amount": 120000,
+        "reserve_balance": 32000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-012",
+          "customer-194"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "android-app",
+        "exclusive_customer_lock": true
+      }
+    },
+    {
+      "id": "customer-240",
+      "signup": {
+        "name": "가상고객240",
+        "phone_number": "01000000240",
+        "birth_year": 1954,
+        "gender": "female",
+        "marital_status": "married",
+        "is_employed": false
+      },
+      "persona": {
+        "type": "small_payments",
+        "label": "소액 결제형",
+        "lifecycle": "established",
+        "preferred_client": "web",
+        "preferred_weekdays": [
+          1,
+          2,
+          6
+        ],
+        "preferred_hours": [
+          8,
+          17
+        ],
+        "timing_jitter_minutes": 5,
+        "active_days_per_week": 5,
+        "sessions_per_active_day": 2,
+        "weekly_targets": {
+          "transfers": 1,
+          "card_payments": 10,
+          "ledger_views": 1,
+          "withdrawals": 1
+        },
+        "transfer_amount_range": [
+          7000,
+          15000
+        ],
+        "card_payment_amount_range": [
+          10000,
+          15000
+        ],
+        "withdrawal_amount_range": [
+          53000,
+          100000
+        ],
+        "preferred_merchant_categories": [
+          "마트",
+          "주유소"
+        ],
+        "funding": {
+          "mode": "weekly",
+          "amount": 423000,
+          "day_of_month": null,
+          "weekday": 2,
+          "interval_days": null
+        },
+        "initial_funding_amount": 374000,
+        "reserve_balance": 69000,
+        "insufficient_funds_policy": "skip_and_wait_for_funding",
+        "loan_plan": null,
+        "recipient_customer_ids": [
+          "customer-085",
+          "customer-051",
+          "customer-157"
+        ]
+      },
+      "execution": {
+        "owner": "simulator",
+        "timezone": "Asia/Seoul",
+        "actual_client": "web",
+        "exclusive_customer_lock": true
+      }
+    }
+  ]
+}
