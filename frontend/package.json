@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock": "vite --mode mock",
+    "mock:api": "node mock-server.js",
     "build": "vite build",
     "preview": "vite preview"
   },
