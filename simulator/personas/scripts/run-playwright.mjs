@@ -602,8 +602,7 @@ async function viewLedger(page, baseUrl) {
   } catch {
     throw new SimulatorError('ledger_response_unknown')
   }
-  if (!response.ok()) throw new SimulatorError(`http_${response.status()}`)
-  return { requestId: response.headers()['x-request-id'] ?? null, status: response.status() }
+  return responseResult(response)
 }
 
 async function applyForLoan(page, baseUrl, customer, writeHooks = null) {

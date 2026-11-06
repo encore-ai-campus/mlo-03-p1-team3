@@ -6,9 +6,9 @@ const actualClock = new Intl.DateTimeFormat('sv-SE', {
 })
 
 export const ACTIONS = new Set(['login', 'logout', 'account_view', 'history_view', 'transfer',
-  'card_payment', 'deposit', 'withdrawal', 'loan_products', 'loan_view', 'loan_apply'])
+  'card_payment', 'deposit', 'withdrawal', 'loan_products', 'loan_view', 'loan_apply', 'loan_approve'])
 export const RETRYABLE_READS = new Set(['account_view', 'history_view', 'loan_products', 'loan_view'])
-export const WRITES = new Set(['transfer', 'card_payment', 'deposit', 'withdrawal', 'loan_apply'])
+export const WRITES = new Set(['transfer', 'card_payment', 'deposit', 'withdrawal', 'loan_apply', 'loan_approve'])
 const CATEGORIES = new Set(['convenience', 'cafe', 'restaurant', 'grocery', 'gas_station', 'pharmacy'])
 
 export function validatePlan(profiles, rows) {
@@ -28,7 +28,7 @@ export function validatePlan(profiles, rows) {
       || !r.session_key || !r.planned_at?.endsWith('+09:00') || !Number.isFinite(Date.parse(r.planned_at))
       || !ACTIONS.has(r.action) || r.execution_status !== 'PLANNED' || !r.params || typeof r.params !== 'object') throw Error('invalid_plan_row')
     ids.add(r.plan_id)
-    if (WRITES.has(r.action)) {
+    if (WRITES.has(r.action) && r.action !== 'loan_approve') {
       const n = r.action === 'loan_apply' ? r.params.requested_amount_krw : r.params.amount_krw
       if (!Number.isSafeInteger(n) || n <= 0 || (r.action !== 'loan_apply' && n > 10_000_000)) throw Error('invalid_planned_amount')
     }
@@ -37,6 +37,12 @@ export function validatePlan(profiles, rows) {
     if (r.action === 'card_payment' && !CATEGORIES.has(r.params.merchant_category)) throw Error('invalid_merchant_category')
     if (r.action === 'loan_apply' && (r.params.selection_strategy !== 'choose_from_live_loan_products'
       || !Number.isSafeInteger(r.params.preferred_term_months) || r.params.preferred_term_months <= 0)) throw Error('invalid_loan_plan')
+    if (r.action === 'loan_approve') {
+      const application = rows.find(a => a.plan_id === r.params.application_plan_id)
+      if (!application || application.action !== 'loan_apply' || application.sim_user_id !== r.sim_user_id
+        || application.session_key !== r.session_key || rows.indexOf(application) >= rows.indexOf(r)
+        || Date.parse(application.planned_at) > Date.parse(r.planned_at)) throw Error('invalid_loan_approval_plan')
+    }
     const group = sessions.get(r.session_key) ?? []
     group.push(r); sessions.set(r.session_key, group)
   }
@@ -48,6 +54,14 @@ export function validatePlan(profiles, rows) {
       || typeof group[0].params.sim_device_id !== 'string') throw Error('invalid_plan_session')
   }
   return [...sessions.values()].sort((a, b) => Date.parse(a[0].planned_at) - Date.parse(b[0].planned_at))
+}
+
+// Derived IDs are stable. Existing application rows and their fingerprints are unchanged.
+export function withLoanApprovals(rows) {
+  return rows.flatMap(row => row.action !== 'loan_apply' || rows.some(r => r.action === 'loan_approve' && r.params.application_plan_id === row.plan_id)
+    ? [row] : [row, { ...row, plan_id: row.plan_id + '-employee-approval', action: 'loan_approve',
+      params: { application_plan_id: row.plan_id }, reason: 'employee_approval_after_application',
+      requires: ['authenticated', 'application_created_by_plan'] }])
 }
 
 export function toCustomer(profile) {
@@ -134,7 +148,10 @@ export async function executePlan({ profiles, rows, concurrency, state, save, re
       persona_type: row.persona_type, action: row.action, planned_at: row.planned_at,
       actual_at: actualClock.format(new Date()).replace(' ', 'T') + '+09:00', outcome, request_id: result.requestId ?? null,
       http_status: result.status ?? null, reason: result.reason ?? null, scenario_tag: row.scenario_tag ?? null,
-      fingerprint: fingerprint(row) }
+      fingerprint: fingerprint(row),
+      ...(row.action === 'loan_apply' && Number.isSafeInteger(result.body?.application_id) ? { application_id: result.body.application_id } : {}),
+      ...(row.action === 'loan_approve' && result.applicationId ? { application_id: result.applicationId,
+        verification_request_ids: result.verificationRequestIds } : {}) }
     state.plans[row.plan_id] = entry
     await save(state)
     if (outcome !== 'started') await report(entry)
