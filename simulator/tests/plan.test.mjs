@@ -112,3 +112,29 @@ test('계획 dry-run은 10명만 뽑지 않고 전체 400명을 보여줍니다'
   assert.equal(summary.plan_rows, 2640); assert.equal(summary.concurrency, 10)
   assert.throws(() => parsePlanArgs(['--plan', 'x', '--watch']), /unsupported_plan_option/)
 })
+
+test('실패한 조회만 재시도하며 준비 입금·완료된 금융 작업은 재실행하지 않습니다', async () => {
+  const selected = sampleSession()
+  const paymentIndex = selected.findIndex(r => r.action === 'card_payment')
+  const lookup = { ...selected[paymentIndex], plan_id: 'retry-read', action: 'loan_view', params: {}, planned_at: selected[paymentIndex].planned_at }
+  selected.splice(paymentIndex + 1, 0, lookup)
+  const state = {}
+  await execute(selected, state, driver({ perform: async row => {
+    if (row.action === 'loan_view') throw Error('old read failure')
+    return { status: 200 }
+  } }))
+  for (const profile of profiles) state.customers[profile.sim_user_id].backend_user_id = 1
+  const pendingPayment = structuredClone(selected[paymentIndex])
+  pendingPayment.plan_id = 'never-started-payment'
+  selected.splice(paymentIndex + 1, 0, pendingPayment)
+  const performed = []
+  await executePlan({ profiles, rows: selected, concurrency: 10, state, retryFailedReads: true,
+    save: async () => {}, report: async () => {}, driver: driver({
+      prepare: async () => assert.fail('must not signup or fund'),
+      perform: async row => { performed.push(row.action); return { status: 200, requestId: 'retry-rid' } },
+    }) })
+  assert.deepEqual(performed, ['loan_view'])
+  assert.equal(state.plans['retry-read'].outcome, 'success')
+  assert.equal(state.plans['never-started-payment'], undefined)
+  assert.equal(state.plans[selected[paymentIndex].plan_id].outcome, 'success')
+})

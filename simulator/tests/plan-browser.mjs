@@ -29,12 +29,15 @@ const base = `http://127.0.0.1:${server.address().port}`
 const browser = await chromium.launch({ headless: true })
 const accounts = new Map(), sessions = new Map(), calls = []
 const product = { code: 'car', name: '자동차 대출', min_amount: 1000000, max_amount: 50000000, amount_step: 1000000, term_options: [12, 24, 36] }
-const observed = []
+const observed = [], aborted = [], devices = new Set()
 const wrappedBrowser = { async newContext(options) {
   const context = await browser.newContext(options)
+  context.on('requestfailed', r => { if (r.url().includes('/api/v1/')) aborted.push(r.url()) })
   await context.route('**/api/v1/**', async route => {
     const request = route.request(), path = new URL(request.url()).pathname.replace('/api/v1', '')
     const body = request.postDataJSON() ?? {}, method = request.method()
+    const device = request.headers().cookie?.match(/podobank_device=([^;]+)/)?.[1]
+    if (device) { assert.match(device, /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/); devices.add(device) }
     const cookie = request.headers().cookie?.match(/test_session=([^;]+)/)?.[1]
     let user = sessions.get(cookie), response = {}, status = 200, extra = {}
     calls.push({ path, method })
@@ -79,6 +82,7 @@ const wrappedBrowser = { async newContext(options) {
       response = { transaction_id: randomUUID(), balance: user.balance }
       observed.push(path)
     } else { status = 404; response = { code: 'unexpected_mock_route' } }
+    if (method === 'GET' && ['/accounts/me/ledger', '/loans/me'].includes(path)) await new Promise(r => setTimeout(r, 80))
     await route.fulfill({ status, headers: { 'content-type': 'application/json', 'x-request-id': randomUUID(), ...extra }, body: JSON.stringify(response) })
   })
   return context
@@ -102,7 +106,9 @@ try {
   assert.equal(state.customers['sim-0001'].backend_user_id, accounts.get('01966000001').id)
   assert.ok(observed.includes('/transfers') && observed.includes('/cards/payments') && observed.includes('loan_apply'))
   assert.ok(reports.filter(r => r.plan_id).every(r => r.request_id && r.http_status === 200))
-  console.log('PASS: 11 plan actions through real frontend/Chromium with isolated API responses; opening deposits split at 10M; mapped recipient, category and live loan product verified.')
+  assert.equal(aborted.length, 0, 'Navigation aborted a delayed API read')
+  assert.equal(devices.size, 3, 'Primary devices must be stable and the new-device session distinct')
+  console.log('PASS: delayed-read navigation and stable/new UUIDs; 11 plan actions through real frontend/Chromium with isolated API responses; opening deposits split at 10M; mapped recipient, category and live loan product verified.')
 } finally {
   await browser.close()
   await new Promise(r => server.close(r))

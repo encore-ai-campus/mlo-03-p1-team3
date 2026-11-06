@@ -7,6 +7,7 @@ const actualClock = new Intl.DateTimeFormat('sv-SE', {
 
 export const ACTIONS = new Set(['login', 'logout', 'account_view', 'history_view', 'transfer',
   'card_payment', 'deposit', 'withdrawal', 'loan_products', 'loan_view', 'loan_apply'])
+export const RETRYABLE_READS = new Set(['account_view', 'history_view', 'loan_products', 'loan_view'])
 export const WRITES = new Set(['transfer', 'card_payment', 'deposit', 'withdrawal', 'loan_apply'])
 const CATEGORIES = new Set(['convenience', 'cafe', 'restaurant', 'grocery', 'gas_station', 'pharmacy'])
 
@@ -80,7 +81,7 @@ export function fingerprint(row) {
   return createHash('sha256').update(JSON.stringify(row)).digest('hex')
 }
 
-export async function executePlan({ profiles, rows, concurrency, state, save, report, driver }) {
+export async function executePlan({ profiles, rows, concurrency, state, save, report, driver, retryFailedReads = false }) {
   const sessions = validatePlan(profiles, rows)
   state.customers ??= {}; state.plans ??= {}
   for (const row of rows) {
@@ -91,20 +92,40 @@ export async function executePlan({ profiles, rows, concurrency, state, save, re
       state.customers[row.sim_user_id].safety_hold = true
     }
   }
+  const retryIds = new Set(), retrySessions = new Set()
+  if (retryFailedReads) {
+    for (const row of rows) {
+      const previous = state.plans[row.plan_id]
+      if (previous?.outcome === 'failed' && RETRYABLE_READS.has(row.action)) {
+        await report({ phase: 'retry_read', plan_id: row.plan_id, sim_user_id: row.sim_user_id,
+          action: row.action, previous_outcome: previous.outcome, previous_reason: previous.reason })
+        retryIds.add(row.plan_id); retrySessions.add(row.session_key)
+      }
+    }
+  }
   await save(state)
   const ready = new Set()
-  await workerPool(profiles, concurrency, async profile => {
-    const entry = state.customers[profile.sim_user_id] ??= {}
-    if (entry.safety_hold || entry.write_in_flight) return
-    try {
-      await driver.prepare(profile)
-      ready.add(profile.sim_user_id)
-    } catch (e) {
-      await report({ phase: 'prepare', sim_user_id: profile.sim_user_id, outcome: 'failed', error_code: driver.errorCode(e) })
+  if (retryFailedReads) {
+    // Re-authenticate only when opening an unfinished session. Never signup or fund in this mode.
+    for (const profile of profiles) {
+      const entry = state.customers[profile.sim_user_id]
+      if (entry?.backend_user_id && !entry.safety_hold && !entry.write_in_flight) ready.add(profile.sim_user_id)
     }
-  })
+  } else {
+    await workerPool(profiles, concurrency, async profile => {
+      const entry = state.customers[profile.sim_user_id] ??= {}
+      if (entry.safety_hold || entry.write_in_flight) return
+      try {
+        await driver.prepare(profile)
+        ready.add(profile.sim_user_id)
+      } catch (e) {
+        await report({ phase: 'prepare', sim_user_id: profile.sim_user_id, outcome: 'failed', error_code: driver.errorCode(e) })
+      }
+    })
+  }
   const byUser = new Map()
   for (const session of sessions) {
+    if (retryFailedReads && !retrySessions.has(session[0].session_key)) continue
     const id = session[0].sim_user_id
     const list = byUser.get(id) ?? []; list.push(session); byUser.set(id, list)
   }
@@ -120,23 +141,33 @@ export async function executePlan({ profiles, rows, concurrency, state, save, re
   }
   await workerPool([...byUser.entries()], concurrency, async ([id, groups]) => {
     for (const group of groups) {
-      if (group.every(r => state.plans[r.plan_id] && state.plans[r.plan_id].outcome !== 'started')) continue
+      if (!retryFailedReads && group.every(r => state.plans[r.plan_id] && state.plans[r.plan_id].outcome !== 'started')) continue
       let session = null, blocked = !ready.has(id), blockReason = 'customer_not_ready'
       try {
         for (const row of group) {
-          const previous = state.plans[row.plan_id]
+          const previous = retryIds.has(row.plan_id) ? null : state.plans[row.plan_id]
           // A partially completed session needs a new real login, but completed writes are never replayed.
           if (row.action === 'login' && !blocked) {
             try {
               session = await driver.open(row)
               if (!previous) await record(row, 'success', session.result)
+              else if (retryFailedReads) await report({ phase: 'retry_login', sim_user_id: id,
+                session_key: row.session_key, request_id: session.result?.requestId, http_status: session.result?.status })
             } catch (e) {
               blocked = true; blockReason = driver.errorCode(e)
               if (!previous) await record(row, 'failed', { reason: blockReason })
             }
             continue
           }
-          if (previous) continue
+          if (retryFailedReads && !['login', 'logout'].includes(row.action) && !retryIds.has(row.plan_id)) continue
+          if (previous) {
+            if (row.action === 'logout' && retryFailedReads && session && !blocked) {
+              const result = await driver.close(session)
+              await report({ phase: 'retry_logout', sim_user_id: id, session_key: row.session_key,
+                request_id: result?.requestId, http_status: result?.status })
+            }
+            continue
+          }
           if (blocked) { await record(row, 'skipped', { reason: blockReason }); continue }
           if (state.customers[id].safety_hold) {
             await record(row, 'skipped', { reason: 'manual_review_required' }); continue

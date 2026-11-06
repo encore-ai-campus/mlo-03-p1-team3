@@ -34,6 +34,18 @@ SIMULATOR_BASE_URL=http://192.168.0.191 npm run simulate -- --plan planner/data/
 
 `--profiles FILE`로 프로필 경로를 따로 지정할 수 있습니다. 자세한 계획 설명은 [planner/README.md](planner/README.md)를 참고하세요.
 
+### 실패한 조회만 재검증
+
+화면 전환은 현재 화면의 표시와 진행 중인 API GET 응답 완료를 확인한 뒤 수행합니다. 대출 응답은 새 대출 화면에서 시작된 요청만 받으며, 본문 읽기 실패와 잘못된 배열 응답을 구분해 기록합니다. 기존 계획의 기기 문자열은 안정적인 UUID v5로 변환하므로 같은 기기를 재사용하고 신규 기기 후보만 다른 UUID를 사용합니다.
+
+기존 실행 상태에서 `failed`인 조회(`account_view`, `history_view`, `loan_products`, `loan_view`)만 다시 확인하려면 다음 명령을 사용합니다.
+
+```bash
+SIMULATOR_BASE_URL=http://192.168.0.191 npm run simulate -- --plan planner/samples/plan_2026-11-06.jsonl --concurrency 10 --allow-remote --headed --retry-failed-reads
+```
+
+이 모드에서는 가입·초기 입금을 실행하지 않습니다. 성공·실패·미실행 상태의 금융 작업도 재전송하지 않고, 조회에 필요한 로그인·로그아웃만 다시 수행합니다. 이전 실패 이력은 JSONL에 유지하고 새 조회 결과를 추가합니다. 기존 대출이 실제로 없으면 HTTP 200 응답을 확인한 뒤 `no_existing_live_loan`으로 건너뜁니다. 대출 상태를 임의로 생성하거나 직원 승인을 실행하지 않습니다.
+
 ### 매핑·실행 기록
 
 - 비밀번호 파생용 비밀값은 첫 실제 실행 시 `planner/.env`의 `SIMULATOR_PLAN_PASSWORD_SEED`로 자동 생성합니다. Git에서 제외되며 값을 출력하지 않습니다. 원본 프로필·계획·실행 보고서에 비밀번호를 쓰지 않습니다. 계정이 유지되는 동안 이 파일도 유지해야 합니다.

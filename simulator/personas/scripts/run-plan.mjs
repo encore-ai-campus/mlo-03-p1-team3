@@ -5,13 +5,13 @@ import { fileURLToPath } from 'node:url'
 import {
   SimulatorError, saveState, useStateFile, withCustomerLock, getBaseUrl, apiWait,
   responseResult, submitAndWait, createWriteHooks, authenticate, logIn, accountBalance,
-  deposit, transfer, viewLedger, createBrowserPage, closeSession, cleanError, routeUrl,
+  deposit, transfer, viewLedger, createBrowserPage, closeSession, cleanError, routeUrl, navigatePage, waitForPageReady, waitForApiReads,
 } from './run-playwright.mjs'
 import { validatePlan, toCustomer, executePlan } from './plan.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CATEGORY = { convenience: '편의점', cafe: '카페', restaurant: '음식점', grocery: '마트', gas_station: '주유소', pharmacy: '약국' }
-const HELP = '사용법: npm run simulate -- --plan planner/data/plan_YYYY-MM-DD.jsonl --concurrency 10 --allow-remote --headed\n옵션: --profiles FILE (기본: 계획과 같은 폴더의 profiles.json), --dry-run, --limit N (계획 사용자 수), --all, --once\n전체 계획을 빠르게 재생하며 실제 시각은 서버가 기록합니다. 첫 실행은 600명 가입·초기 입금을 준비합니다.'
+const HELP = '사용법: npm run simulate -- --plan planner/data/plan_YYYY-MM-DD.jsonl --concurrency 10 --allow-remote --headed\n옵션: --profiles FILE (기본: 계획과 같은 폴더의 profiles.json), --dry-run, --retry-failed-reads (실패한 조회만 재시도), --limit N (계획 사용자 수), --all, --once\n전체 계획을 빠르게 재생하며 실제 시각은 서버가 기록합니다. 첫 실행은 600명 가입·초기 입금을 준비합니다.'
 
 export function parsePlanArgs(args) {
   const o = { concurrency: 10, headed: false, allowRemote: false, dryRun: false }
@@ -24,6 +24,7 @@ export function parsePlanArgs(args) {
     } else if (a === '--headed') o.headed = true
     else if (a === '--allow-remote') o.allowRemote = true
     else if (a === '--dry-run') o.dryRun = true
+    else if (a === '--retry-failed-reads') o.retryFailedReads = true
     else if (a === '--help' || a === '-h') o.help = true
     else if (!['--all', '--once'].includes(a)) throw new SimulatorError('unsupported_plan_option')
   }
@@ -57,20 +58,26 @@ function passwordFor(id, seed) {
 }
 
 async function navigateRead(page, base, path, endpoint) {
-  const pending = apiWait(page, endpoint, 'GET')
+  await waitForPageReady(page)
+  const pending = apiWait(page, endpoint, 'GET', { documentPath: path })
   pending.catch(() => {})
   await page.goto(routeUrl(base, path))
-  return responseResult(await pending)
+  const result = await responseResult(await pending)
+  await waitForPageReady(page)
+  return result
 }
 
 async function loanScreen(page, base) {
-  const products = apiWait(page, '/loans/products', 'GET')
-  const loans = apiWait(page, '/loans/me', 'GET')
+  await waitForPageReady(page)
+  const products = apiWait(page, '/loans/products', 'GET', { documentPath: '/loan' })
+  const loans = apiWait(page, '/loans/me', 'GET', { documentPath: '/loan' })
   products.catch(() => {}); loans.catch(() => {})
   await page.goto(routeUrl(base, '/loan'))
   const result = await responseResult(await products)
   const mine = await responseResult(await loans)
-  await page.getByRole('heading', { name: '대출', exact: true }).waitFor()
+  if (!Array.isArray(result.body)) throw new SimulatorError('loan_products_response_not_array', { requestId: result.requestId, status: result.status })
+  if (!Array.isArray(mine.body)) throw new SimulatorError('loan_list_response_not_array', { requestId: mine.requestId, status: mine.status })
+  await waitForPageReady(page)
   return { products: result, loans: mine }
 }
 
@@ -141,6 +148,7 @@ export function makeDriver({ browser, base, state, seed, profiles, report }) {
     close: logout,
     async dispose(s) {
       if (!s.closed) { try { await logout(s) } catch { /* Cleanup is not counted as a successful plan row. */ } }
+      await waitForApiReads(s.page)
       await s.context.close()
     },
     async perform(row, s, ready) {
@@ -161,7 +169,7 @@ export function makeDriver({ browser, base, state, seed, profiles, report }) {
         const sender = { ...customer, persona: { ...customer.persona, recipient_customer_ids: [recipient] } }
         result = await transfer(page, base, sender, [customers.get(recipient)], amount, hooks)
       } else if (row.action === 'card_payment') {
-        await page.goto(routeUrl(base, '/card'))
+        await navigatePage(page, routeUrl(base, '/card'))
         await page.getByRole('heading', { name: '카드', exact: true }).waitFor()
         const category = CATEGORY[row.params.merchant_category]
         await page.getByRole('button', { name: category, exact: true }).click()
@@ -170,6 +178,7 @@ export function makeDriver({ browser, base, state, seed, profiles, report }) {
         await inputs.first().check({ force: true })
         await page.getByLabel('결제할 금액').fill(String(amount))
         result = await submitAndWait(page, '/cards/payments', () => page.getByRole('button', { name: /결제하기$/ }).click(), hooks)
+        await page.locator('.done-message:not(.visually-hidden)').waitFor()
       } else if (['loan_products', 'loan_view', 'loan_apply'].includes(row.action)) {
         const live = await loanScreen(page, base)
         if (row.action === 'loan_products') return live.products
@@ -186,9 +195,11 @@ export function makeDriver({ browser, base, state, seed, profiles, report }) {
         await page.locator('#loan-amount').fill(String(row.params.requested_amount_krw))
         await page.locator(`input[name="loan-term"][value="${row.params.preferred_term_months}"]`).check({ force: true })
         result = await submitAndWait(page, '/loans/applications', () => page.getByRole('button', { name: /신청/ }).click(), hooks)
+        await page.locator('section[aria-labelledby="active-title"]').waitFor()
       } else throw new SimulatorError('unsupported_plan_action')
       delete entry.write_in_flight
       await saveState(state)
+      await waitForPageReady(page)
       return result
     },
   }
@@ -229,7 +240,7 @@ export async function main(args) {
       const browser = await chromium.launch({ headless: !o.headed })
       try {
         const driver = makeDriver({ browser, base, state, seed, profiles, report })
-        const summary = await executePlan({ profiles, rows, concurrency: o.concurrency, state, save: saveState, report, driver })
+        const summary = await executePlan({ profiles, rows, concurrency: o.concurrency, state, save: saveState, report, driver, retryFailedReads: o.retryFailedReads })
         console.log(JSON.stringify({ phase: 'summary', ...summary }))
         if ((summary.outcomes.failed ?? 0) + (summary.outcomes.unknown ?? 0) > 0 || summary.prepared_users < profiles.length) process.exitCode = 1
       } finally { await browser.close() }

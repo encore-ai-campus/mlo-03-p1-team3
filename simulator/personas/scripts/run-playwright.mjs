@@ -296,12 +296,65 @@ function cleanError(error) {
   return 'browser_interaction_failed'
 }
 
-function apiWait(page, endpoint, method = 'POST') {
+const pageReads = new WeakMap()
+
+function trackApiReads(page) {
+  const state = { pending: new Set(), documents: new WeakMap() }
+  pageReads.set(page, state)
+  page.on('request', request => {
+    if (request.method() !== 'GET') return
+    const url = new URL(request.url())
+    if (url.origin !== new URL(page.url()).origin || !url.pathname.startsWith(API_PREFIX + '/')) return
+    state.documents.set(request, new URL(page.url()).pathname)
+    state.pending.add(request)
+  })
+  page.on('requestfinished', request => state.pending.delete(request))
+  page.on('requestfailed', request => state.pending.delete(request))
+}
+
+async function waitForApiReads(page, timeout = 15000) {
+  const deadline = Date.now() + timeout
+  while (pageReads.get(page)?.pending.size) {
+    if (Date.now() >= deadline) throw new SimulatorError('api_reads_not_finished')
+    await new Promise(resolve => setTimeout(resolve, 20))
+  }
+}
+
+async function waitForPageReady(page) {
+  const path = new URL(page.url()).pathname
+  const selector = path === '/' ? '.hero-number'
+    : path === '/accounts' ? '.account-balance'
+      : path === '/loan' ? '#loan-amount, section[aria-labelledby="active-title"]' : null
+  if (selector) await page.locator(selector).first().waitFor({ timeout: 15000 })
+  if (path === '/card') await page.getByRole('heading', { name: '카드', exact: true }).waitFor()
+  await waitForApiReads(page)
+}
+
+async function navigatePage(page, url) {
+  await waitForPageReady(page)
+  await page.goto(url)
+  await waitForPageReady(page)
+}
+
+function deviceUuid(value) {
+  if (typeof value !== 'string' || !value) throw new SimulatorError('device_id_required')
+  if (/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value)) return value.toLowerCase()
+  const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+  const bytes = createHash('sha1').update(Buffer.from(namespace.replaceAll('-', ''), 'hex'))
+    .update('podobank-device:' + value).digest().subarray(0, 16)
+  bytes[6] = (bytes[6] & 15) | 80
+  bytes[8] = (bytes[8] & 63) | 128
+  const hex = bytes.toString('hex')
+  return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-')
+}
+
+function apiWait(page, endpoint, method = 'POST', { documentPath } = {}) {
   const expected = `${API_PREFIX}${endpoint}`
   return page.waitForResponse((response) => {
     try {
       const url = new URL(response.url())
       return url.pathname === expected && response.request().method() === method
+        && (!documentPath || pageReads.get(page)?.documents.get(response.request()) === documentPath)
     } catch {
       return false
     }
@@ -314,7 +367,11 @@ async function responseResult(response) {
   try {
     body = await response.json()
   } catch {
-    // 응답 본문이 없어도 상태 코드와 요청 번호로만 결과를 기록합니다.
+    if (response.ok() && response.status() !== 204) {
+      throw new SimulatorError('response_body_unavailable', {
+        requestId, status: response.status(), uncertain: response.request().method() === 'POST',
+      })
+    }
   }
   if (!response.ok()) {
     throw new SimulatorError(body?.code ?? `http_${response.status()}`, {
@@ -371,16 +428,19 @@ function createWriteHooks(customer, action, state) {
 }
 
 async function logIn(page, baseUrl, customer, password) {
-  await page.goto(routeUrl(baseUrl, '/login'))
+  await navigatePage(page, routeUrl(baseUrl, '/login'))
   await page.getByLabel('전화번호').fill(customer.signup.phone_number)
   await page.getByLabel('비밀번호').fill(password)
-  return submitAndWait(page, '/auth/login', () =>
+  const result = await submitAndWait(page, '/auth/login', () =>
     page.getByRole('button', { name: '로그인', exact: true }).click(),
   )
+  await page.waitForURL(routeUrl(baseUrl, '/'))
+  await waitForPageReady(page)
+  return result
 }
 
 async function signUp(page, baseUrl, customer, password) {
-  await page.goto(routeUrl(baseUrl, '/signup'))
+  await navigatePage(page, routeUrl(baseUrl, '/signup'))
   await page.locator('#signup-name').fill(customer.signup.name)
   await page.locator('#signup-phone').fill(customer.signup.phone_number)
   await page.locator('#signup-password').fill(password)
@@ -390,9 +450,12 @@ async function signUp(page, baseUrl, customer, password) {
   await page.locator(`input[name="maritalStatus"][value="${customer.signup.marital_status}"]`).check({ force: true })
   await page.locator(`input[name="isEmployed"][value="${String(customer.signup.is_employed)}"]`).check({ force: true })
   await page.locator('#signup-agree').check()
-  return submitAndWait(page, '/auth/signup', () =>
+  const result = await submitAndWait(page, '/auth/signup', () =>
     page.getByRole('button', { name: '가입하기', exact: true }).click(),
   )
+  await page.waitForURL(routeUrl(baseUrl, '/'))
+  await waitForPageReady(page)
+  return result
 }
 
 async function authenticate(page, baseUrl, customer, password) {
@@ -427,7 +490,7 @@ async function authenticate(page, baseUrl, customer, password) {
 }
 
 async function accountBalance(page, baseUrl) {
-  await page.goto(routeUrl(baseUrl, '/accounts'))
+  await navigatePage(page, routeUrl(baseUrl, '/accounts'))
   const balance = page.locator('.account-balance').first()
   await balance.waitFor({ timeout: 15_000 })
   return parseWon(await balance.innerText())
@@ -437,23 +500,26 @@ async function deposit(page, baseUrl, amount, kind = 'deposit', writeHooks = nul
   if (!Number.isInteger(amount) || amount < 1 || amount > 10_000_000) {
     throw new SimulatorError('amount_out_of_range')
   }
-  await page.goto(routeUrl(baseUrl, '/accounts'))
+  await navigatePage(page, routeUrl(baseUrl, '/accounts'))
   const actionName = kind === 'withdraw' ? /에서 출금$/ : /에 입금$/
   await page.getByRole('link', { name: actionName }).first().click()
   const inputLabel = kind === 'withdraw' ? '출금할 금액' : '입금할 금액'
   await page.getByLabel(inputLabel).fill(String(amount))
   const endpoint = kind === 'withdraw' ? '/transactions/withdrawal' : '/transactions/deposit'
   const submitName = kind === 'withdraw' ? /출금하기/ : /입금하기/
-  return submitAndWait(
+  const result = await submitAndWait(
     page,
     endpoint,
     () => page.getByRole('button', { name: submitName }).click(),
     writeHooks,
   )
+  await page.waitForURL(routeUrl(baseUrl, '/accounts'))
+  await waitForPageReady(page)
+  return result
 }
 
 async function lookupRecipient(page, baseUrl, customerId, recipients) {
-  await page.goto(routeUrl(baseUrl, '/accounts'))
+  await navigatePage(page, routeUrl(baseUrl, '/accounts'))
   await page.getByRole('link', { name: /에서 송금$/ }).first().click()
   const query = page.getByLabel('받는 분 전화번호 또는 계좌번호')
   for (const recipient of recipients) {
@@ -491,6 +557,8 @@ async function transfer(page, baseUrl, customer, allCustomers, amount, writeHook
     () => page.getByRole('button', { name: /보내기$/ }).click(),
     writeHooks,
   )
+  await page.locator('.total-value').waitFor()
+  await waitForApiReads(page)
   return { ...result, recipientId: lookup.customer.id }
 }
 
@@ -519,12 +587,15 @@ async function cardPayment(page, baseUrl, customer, amount, writeHooks = null) {
     () => page.getByRole('button', { name: /결제하기$/ }).click(),
     writeHooks,
   )
+  await page.locator('.done-message:not(.visually-hidden)').waitFor()
+  await waitForApiReads(page)
   return result
 }
 
 async function viewLedger(page, baseUrl) {
-  const responsePromise = apiWait(page, '/accounts/me/ledger', 'GET')
-  await page.goto(routeUrl(baseUrl, '/accounts'))
+  await waitForPageReady(page)
+  const responsePromise = apiWait(page, '/accounts/me/ledger', 'GET', { documentPath: '/accounts' })
+  await navigatePage(page, routeUrl(baseUrl, '/accounts'))
   let response
   try {
     response = await responsePromise
@@ -877,7 +948,7 @@ async function createBrowserPage(browser, baseUrl, deviceId) {
   })
   await context.addCookies([{
     name: 'podobank_device',
-    value: deviceId,
+    value: deviceUuid(deviceId),
     url: baseUrl,
     httpOnly: true,
     secure: baseUrl.startsWith('https:'),
@@ -885,17 +956,19 @@ async function createBrowserPage(browser, baseUrl, deviceId) {
     expires: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
   }])
   const page = await context.newPage()
+  trackApiReads(page)
   page.setDefaultTimeout(15_000)
   return { context, page }
 }
 
 async function closeSession(page, baseUrl, customer, state) {
-  await page.goto(routeUrl(baseUrl, '/me'))
+  await navigatePage(page, routeUrl(baseUrl, '/me'))
   await page.getByRole('heading', { name: '내 정보', exact: true }).waitFor({ timeout: 15_000 })
   const result = await submitAndWait(page, '/auth/logout', () =>
     page.getByRole('button', { name: '로그아웃', exact: true }).click(),
   )
   await page.getByRole('heading', { name: '포도뱅크 시작하기', exact: true }).waitFor({ timeout: 15_000 })
+  await waitForApiReads(page)
   state.customers[customer.id].session_status = 'closed'
   state.customers[customer.id].last_seen_at = isoNow()
   await saveState(state)
@@ -1067,7 +1140,8 @@ function escapeRegExp(value) {
 
 export { SimulatorError, saveState, withCustomerLock, getBaseUrl, apiWait, responseResult,
   submitAndWait, createWriteHooks, authenticate, logIn, accountBalance, deposit, transfer,
-  viewLedger, createBrowserPage, closeSession, cleanError, routeUrl }
+  viewLedger, createBrowserPage, closeSession, cleanError, routeUrl,
+  navigatePage, waitForPageReady, waitForApiReads, deviceUuid }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv.includes('--plan')) {
