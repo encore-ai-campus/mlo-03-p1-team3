@@ -32,8 +32,8 @@
           MARIADB_MASTER_IP: "{{ hostvars[groups['mariadb_master'][0]].ansible_host }}"
           MARIADB_REPLICA_IP: "{{ hostvars[groups['mariadb_replica'][0]].ansible_host }}"
           MONGODB_IP: "{{ hostvars[groups['mongodb'][0]].ansible_host }}"
-          MARIADB_CLIENT_SUBNET: 192.168.0.%
-          MONGODB_CLIENT_CIDR: 192.168.0.0/24
+          MARIADB_CLIENT_SUBNET: "{{ mariadb_client_subnet | default('192.168.0.%') }}"
+          MONGODB_CLIENT_CIDR: "{{ mongodb_client_cidr | default('192.168.0.0/24') }}"
       delegate_to: localhost
       become: false
       run_once: true
@@ -142,10 +142,9 @@
     - name: Permit management SSH before enabling firewall
       ansible.builtin.command: "ufw allow from {{ item }} to any port 22 proto tcp"
       loop:
-        - 192.168.0.0/24
-        - 192.168.222.0/24
+        "{{ ssh_allowed_cidrs | default(['192.168.0.0/24', '192.168.222.0/24']) }}"
     - name: Permit MongoDB clients from the configured LAN subnet
-      ansible.builtin.command: "ufw allow from 192.168.0.0/24 to any port 27017 proto tcp"
+      ansible.builtin.command: "ufw allow from {{ mongodb_client_cidr | default('192.168.0.0/24') }} to any port 27017 proto tcp"
       register: mongodb_firewall_rule
       changed_when: "'Skipping adding existing rule' not in mongodb_firewall_rule.stdout"
     - name: Enable the database firewall

@@ -7,7 +7,6 @@
     installer_root: /opt/podobank-installer
     vm_env_file: "{{ playbook_dir }}/../vm/vm.env"
     nginx_fresh_install: false
-    frontend_enabled: false
     frontend_build: true
     frontend_source_dir: '{{ playbook_dir }}/../../frontend'
     frontend_dist_dir: '{{ frontend_source_dir }}/dist'
@@ -112,7 +111,7 @@
 
     - name: Deploy the current workspace frontend when requested
       ansible.builtin.include_tasks: tasks/deploy-frontend.yml
-      when: frontend_enabled | bool
+      when: frontend_enabled | default(false) | bool
 
     - name: Create a verification page when no frontend build is deployed
       ansible.builtin.copy:
@@ -123,8 +122,8 @@
           <!doctype html><html lang="ko"><meta charset="utf-8">
           <title>nginx Ansible deployment</title>
           <h1>nginx Ansible 설치 및 설정 완료</h1>
-          <p>192.168.0.191 → nginx</p>
-          <p>/api/ → HAProxy 192.168.0.192:8000</p>
+          <p>{{ ansible_host }} → nginx</p>
+          <p>/api/ → configured HAProxy upstream</p>
           <p>podobank-nginx-ansible</p></html>
 
     - name: Verify installed nginx configuration syntax

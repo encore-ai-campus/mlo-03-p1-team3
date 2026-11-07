@@ -21,6 +21,19 @@ echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-${MONG
 apt-get update -q
 apt_install mongodb-org
 
+# A fresh package installation does not start mongod automatically.
+systemctl daemon-reload
+systemctl enable --now mongod
+mongo_ready=false
+for _ in $(seq 1 30); do
+  if mongosh --quiet --eval 'quit(db.adminCommand({ping: 1}).ok === 1 ? 0 : 1)' >/dev/null 2>&1; then
+    mongo_ready=true
+    break
+  fi
+  sleep 1
+done
+[ "$mongo_ready" = true ] || die "MongoDB 서비스가 준비되지 않았습니다. mongod 상태를 확인하세요."
+
 MONGO_AUTH_ENABLED=false
 if grep -qE '^security:[[:space:]]*$' /etc/mongod.conf \
   && grep -qE '^  authorization:[[:space:]]*enabled[[:space:]]*$' /etc/mongod.conf; then

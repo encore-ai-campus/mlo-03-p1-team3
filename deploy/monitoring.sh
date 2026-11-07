@@ -9,9 +9,9 @@ python3 - "$inventory" <<'PY'
 import json,shlex,subprocess,sys
 from pathlib import Path
 inventory=json.loads(subprocess.check_output(['ansible-inventory','-i',sys.argv[1],'--list'],text=True))
-for group,ip in [('prometheus','192.168.0.198'),('loki','192.168.0.199'),('grafana','192.168.0.200')]:
+for group in ['prometheus','loki','grafana']:
  hosts=inventory.get(group,{}).get('hosts',[])
- if len(hosts)!=1 or inventory['_meta']['hostvars'][hosts[0]]['ansible_host']!=ip:
+ if len(hosts)!=1:
   raise SystemExit('Configure the expected monitoring host in inventory: '+group)
 for file,required in [('deploy/vm/vm.env',['LOKI_PUSH_URL']),('deploy/vm/monitoring.env',['GRAFANA_ADMIN_PASSWORD'])]:
  values={}
@@ -27,6 +27,6 @@ bash deploy/terraform/monitoring/apply.sh
 ansible-playbook -i "$inventory" deploy/ansible/monitoring.yml
 if [[ "${1:-}" == --verify ]]; then
   python3 deploy/ansible/verify-exporters.py --inventory "$inventory"
-  python3 deploy/ansible/verify-monitoring.py
+  python3 deploy/ansible/verify-monitoring.py --inventory "$inventory"
   python3 deploy/ansible/verify-proxy-logs.py --inventory "$inventory"
 fi

@@ -2,7 +2,7 @@
 
 Run on the Ansible controller after alloy.yml:
 python3 deploy/ansible/verify-proxy-logs.py --inventory inventory.json
-The checks send health requests, intentional invalid logins and one nginx 413.
+The default checks send successful health requests. Failure probes require an explicit flag.
 """
 import argparse
 import json
@@ -48,6 +48,8 @@ def request(url, data=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inventory', required=True)
+    parser.add_argument('--read-only', action='store_true', default=True, help='Check successful health request logs only (default)')
+    parser.add_argument('--include-failure-probes', action='store_false', dest='read_only', help='Explicitly generate invalid logins and one 413 for diagnostics')
     parser.add_argument('--loki-url', help='Override Loki base URL (no credentials)')
     args = parser.parse_args()
     # Capture private inventory in memory only; never print it.
@@ -61,8 +63,29 @@ def main():
     haproxy = inventory['haproxy']['hosts'][0]
     api = inventory['api']['hosts']
     assert len(api) == 2, 'Expected exactly two API hosts'
-    base = 'https://' + hosts[nginx].get('nginx_server_name', 'www.podobank.kro.kr')
+    base = hosts[nginx].get('app_base_url') or ('https://' + hosts[nginx].get('nginx_server_name', 'www.podobank.kro.kr'))
     loki = args.loki_url or ('http://' + hosts[inventory['loki']['hosts'][0]]['ansible_host'] + ':3100')
+    if args.read_only:
+        start = time.time_ns()
+        marker = 'health-probe-' + secrets.token_hex(8)
+        instances = {hosts[name].get('api_instance', name) for name in api}
+        health = {}
+        for _ in range(12):
+            status, headers = request(base + '/api/v1/health?probe=' + marker)
+            assert status == 200, 'Health request failed'
+            backend, rid = headers.get('X-Backend-Server'), headers.get('X-Request-ID')
+            assert backend in instances and rid, 'Missing backend/request identity'
+            health[backend] = rid
+            if set(health) == instances:
+                break
+        assert set(health) == instances, 'Both API hosts were not reached'
+        wait_for_line(loki, {'service': 'nginx', 'log_type': 'access'}, marker, start, 'nginx access -> Alloy -> Loki')
+        wait_for_line(loki, {'service': 'haproxy'}, marker, start, 'HAProxy request -> Alloy -> Loki')
+        for backend, rid in sorted(health.items()):
+            wait_for_line(loki, {'log_type': 'application', 'instance': backend}, rid, start, backend + ' application -> Alloy -> Loki')
+        print('PASS: both API hosts and proxy requests collected without intentional errors', flush=True)
+        return
+
     parsed = urllib.parse.urlsplit(loki)
     assert parsed.scheme in ('http', 'https') and parsed.hostname and not parsed.username and not parsed.password
     loki = loki.rstrip('/')
