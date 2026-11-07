@@ -1,0 +1,217 @@
+---
+# Install after exporters.yml. No business writes, migration or database reset.
+- name: Install local read-only business snapshot collectors
+  hosts: mariadb_master:mariadb_replica:mongodb
+  become: true
+  gather_facts: false
+  vars:
+    business_store: '{{ "mongodb" if inventory_hostname in groups["mongodb"] else "mariadb" }}'
+    business_user: '{{ "mongodb-exporter" if business_store == "mongodb" else "podobank-metrics" }}'
+  tasks:
+    - name: Install the shared monitoring account setup on MongoDB
+      ansible.builtin.copy:
+        src: files/mongodb-exporter-user.js
+        dest: /opt/mongodb-exporter-user.js
+        mode: '0644'
+      when: business_store == 'mongodb'
+    - name: Ensure collection-specific read privileges for aggregate collection
+      ansible.builtin.command: mongosh --quiet --file /opt/mongodb-exporter-user.js
+      environment:
+        MONGODB_ADMIN_PASSWORD: "{{ lookup('ansible.builtin.ini', 'MONGODB_ADMIN_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/vm.env') }}"
+        METRICS_MONGODB_PASSWORD: "{{ lookup('ansible.builtin.ini', 'METRICS_MONGODB_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/vm.env') }}"
+      register: mongo_metrics_account
+      changed_when: mongo_metrics_account.stdout | trim == 'CHANGED'
+      no_log: true
+      when: business_store == 'mongodb'
+    - name: Ensure the local MariaDB monitoring OS account
+      ansible.builtin.user:
+        name: podobank-metrics
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+      when: business_store == 'mariadb'
+    - name: Grant socket-only SELECT on the four business tables
+      ansible.builtin.shell: |
+        set -e
+        mariadb <<'SQL'
+        SET SESSION sql_log_bin=0;
+        CREATE USER IF NOT EXISTS 'podobank-metrics'@'localhost' IDENTIFIED VIA unix_socket;
+        GRANT SELECT ON podobank.ledger_entries TO 'podobank-metrics'@'localhost';
+        GRANT SELECT ON podobank.card_payments TO 'podobank-metrics'@'localhost';
+        GRANT SELECT ON podobank.loan_applications TO 'podobank-metrics'@'localhost';
+        GRANT SELECT ON podobank.loan_repayments TO 'podobank-metrics'@'localhost';
+        SQL
+      changed_when: false
+      when: business_store == 'mariadb'
+    - name: Create aggregate output directory for node exporter
+      ansible.builtin.file:
+        path: /var/lib/prometheus/node-exporter
+        state: directory
+        owner: '{{ business_user }}'
+        group: '{{ business_user }}'
+        mode: '0755'
+    - name: Install the bounded snapshot programs
+      ansible.builtin.copy:
+        src: 'files/{{ item }}'
+        dest: '/usr/local/lib/{{ item }}'
+        mode: '0644'
+      loop: [business-metrics.py, business-metrics.js]
+    - name: Ensure node exporter reads aggregate files
+      ansible.builtin.lineinfile:
+        path: /etc/default/prometheus-node-exporter
+        regexp: '^ARGS="(?!.*--collector.textfile.directory=)(.*)"$'
+        line: 'ARGS="\1 --collector.textfile.directory=/var/lib/prometheus/node-exporter"'
+        backrefs: true
+        mode: '0644'
+      notify: Restart node exporter for business metrics
+    - name: Install business snapshot service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/podobank-business-metrics.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=PodoBank read-only business aggregate snapshot
+          After=network-online.target
+          [Service]
+          Type=oneshot
+          User={{ business_user }}
+          {% if business_store == 'mongodb' %}
+          EnvironmentFile=/etc/podobank/mongodb-exporter.env
+          {% endif %}
+          ExecStart=/usr/bin/python3 /usr/local/lib/business-metrics.py --store {{ business_store }} --output /var/lib/prometheus/node-exporter/podobank-business.prom
+          TimeoutStartSec=35
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=strict
+          ProtectHome=true
+          ReadWritePaths=/var/lib/prometheus/node-exporter
+          Environment=HOME=/tmp
+          StandardOutput=null
+          StandardError=null
+    - name: Install the two-minute snapshot timer
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/podobank-business-metrics.timer
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Refresh PodoBank read-only aggregates every two minutes
+          [Timer]
+          OnBootSec=30s
+          OnUnitActiveSec=120s
+          AccuracySec=5s
+          [Install]
+          WantedBy=timers.target
+    - name: Start one real snapshot and fail deployment if collection fails
+      ansible.builtin.systemd:
+        name: podobank-business-metrics.service
+        state: started
+        daemon_reload: true
+    - name: Keep aggregate collection enabled after reboot
+      ansible.builtin.systemd:
+        name: podobank-business-metrics.timer
+        enabled: true
+        state: started
+    - ansible.builtin.meta: flush_handlers
+  handlers:
+    - name: Restart node exporter for business metrics
+      ansible.builtin.systemd:
+        name: prometheus-node-exporter
+        state: restarted
+
+- name: Provision versioned Grafana dashboards
+  hosts: grafana
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Create the managed dashboard directory
+      ansible.builtin.file:
+        path: /var/lib/grafana/dashboards/podobank
+        state: directory
+        owner: root
+        group: grafana
+        mode: '0750'
+    - name: Send dashboard definitions from this checkout
+      ansible.builtin.copy:
+        src: '../monitoring/dashboards/'
+        dest: /var/lib/grafana/dashboards/podobank/
+        owner: root
+        group: grafana
+        mode: '0640'
+        directory_mode: '0750'
+    - name: Inspect dashboard files before the explicitly requested consolidation
+      ansible.builtin.find:
+        paths: /var/lib/grafana/dashboards/podobank
+        patterns: '*.json'
+        recurse: true
+      register: dashboard_files
+    - name: Refuse retirement if the provider contains unrelated dashboard files
+      ansible.builtin.assert:
+        that:
+          - dashboard_files.files | map(attribute='path') | map('basename') | difference(lookup('ansible.builtin.fileglob', playbook_dir ~ '/../monitoring/dashboards/*.json', wantlist=True) | map('basename') | list + ['podobank-business.json', 'podobank-http.json']) | length == 0
+        fail_msg: Review unrelated files in the managed directory before retiring dashboards.
+    - name: Remove only the two consolidated dashboard definitions
+      ansible.builtin.file:
+        path: '/var/lib/grafana/dashboards/podobank/{{ item }}.json'
+        state: absent
+      loop: [podobank-business, podobank-http]
+      register: retired_dashboards
+    - name: Retire the former standalone screens through Grafana provisioning
+      when: retired_dashboards.changed
+      block:
+        - name: Permit removal of the two missing managed definitions for this migration
+          ansible.builtin.template:
+            src: grafana-dashboards.yml.j2
+            dest: /etc/grafana/provisioning/dashboards/podobank.yml
+            owner: root
+            group: grafana
+            mode: '0640'
+          vars:
+            grafana_retirement: true
+        - name: Reload the provider to remove the consolidated screens
+          ansible.builtin.uri:
+            url: http://127.0.0.1:3000/api/admin/provisioning/dashboards/reload
+            method: POST
+            url_username: admin
+            url_password: "{{ lookup('ansible.builtin.ini', 'GRAFANA_ADMIN_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/monitoring.env') }}"
+            force_basic_auth: true
+            status_code: 200
+          no_log: true
+      always:
+        - name: Restore dashboard deletion protection even if retirement fails
+          ansible.builtin.template:
+            src: grafana-dashboards.yml.j2
+            dest: /etc/grafana/provisioning/dashboards/podobank.yml
+            owner: root
+            group: grafana
+            mode: '0640'
+        - name: Reload the protected dashboard provider
+          ansible.builtin.uri:
+            url: http://127.0.0.1:3000/api/admin/provisioning/dashboards/reload
+            method: POST
+            url_username: admin
+            url_password: "{{ lookup('ansible.builtin.ini', 'GRAFANA_ADMIN_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/monitoring.env') }}"
+            force_basic_auth: true
+            status_code: 200
+          no_log: true
+    - name: Configure durable dashboard provisioning
+      ansible.builtin.template:
+        src: grafana-dashboards.yml.j2
+        dest: /etc/grafana/provisioning/dashboards/podobank.yml
+        owner: root
+        group: grafana
+        mode: '0640'
+      notify: Restart Grafana dashboard provisioning
+    - ansible.builtin.meta: flush_handlers
+    - name: Verify Grafana responds after provisioning
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/health
+        status_code: 200
+      register: grafana_ready
+      retries: 30
+      delay: 2
+      until: grafana_ready.status | default(0) == 200
+  handlers:
+    - name: Restart Grafana dashboard provisioning
+      ansible.builtin.systemd:
+        name: grafana-server
+        state: restarted

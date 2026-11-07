@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# WSL: bash deploy/lab.sh configure|plan|apply|install|verify
+# WSL: bash deploy/lab.sh configure|plan|apply|install|observability|verify
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="${HOME}/.local/podobank-node/bin:${PATH}"
@@ -19,7 +19,7 @@ case "$action" in
  configure|plan|apply)
   python3 deploy/lab/configure.py --env "$config" --detect-network
   ;;
- install|verify)
+ install|observability|verify)
   if [ ! -f "$inventory" ]; then
     echo 'Existing inventory missing. Run configure explicitly before deployment.' >&2
     exit 1
@@ -51,10 +51,16 @@ case "$action" in
   export ANSIBLE_PIPELINING=true ANSIBLE_TIMEOUT=60
   ansible-playbook -i "$inventory" deploy/ansible/site.yml
   ;;
+ observability)
+  export ANSIBLE_PIPELINING=true ANSIBLE_TIMEOUT=60
+  ansible-playbook -i "$inventory" deploy/ansible/business-observability.yml
+  python3 deploy/monitoring/verify.py --inventory "$inventory"
+  ;;
  verify)
   python3 deploy/ansible/verify-exporters.py --inventory "$inventory"
   python3 deploy/ansible/verify-monitoring.py --inventory "$inventory"
   python3 deploy/ansible/verify-proxy-logs.py --inventory "$inventory" --read-only
+  python3 deploy/monitoring/verify.py --inventory "$inventory"
   ;;
- *) echo 'Usage: bash deploy/lab.sh configure|plan|apply|install|verify' >&2; exit 1 ;;
+ *) echo 'Usage: bash deploy/lab.sh configure|plan|apply|install|observability|verify' >&2; exit 1 ;;
 esac

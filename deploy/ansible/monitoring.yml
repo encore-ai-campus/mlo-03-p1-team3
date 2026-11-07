@@ -256,3 +256,5 @@
 
 # The application/database VMs must already be deployed; no reset occurs here.
 - ansible.builtin.import_playbook: exporters.yml
+
+- ansible.builtin.import_playbook: business-observability.yml
