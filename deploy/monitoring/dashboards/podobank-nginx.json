@@ -1,0 +1,1012 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "192.168.219.191. 정적 프런트엔드와 API 정문 요청을 함께 확인합니다.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "type": "link",
+      "title": "전체 현황",
+      "url": "/d/podobank-overview",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "FastAPI",
+      "url": "/d/podobank-api",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "MongoDB·이벤트",
+      "url": "/d/podobank-storage",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "MariaDB",
+      "url": "/d/podobank-mariadb",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "서버",
+      "url": "/d/podobank-servers",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "Nginx",
+      "url": "/d/podobank-nginx",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "HAProxy",
+      "url": "/d/podobank-haproxy",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "로그",
+      "url": "/d/podobank-logs",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "Alloy",
+      "url": "/d/podobank-alloy",
+      "keepTime": true,
+      "targetBlank": false
+    },
+    {
+      "type": "link",
+      "title": "Loki",
+      "url": "/d/podobank-loki",
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "text": {
+          "titleSize": 13,
+          "valueSize": 34
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "nginx_up{job=\"nginx\"}",
+          "instant": true,
+          "legendFormat": "{{server}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Nginx 응답",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "text": {
+          "titleSize": 13,
+          "valueSize": 34
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "sum(increase(nginx_http_requests_total{job=\"nginx\"}[$__range]))",
+          "instant": true,
+          "legendFormat": "{{server}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "전체 요청 · 선택 기간",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "text": {
+          "titleSize": 13,
+          "valueSize": 34
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "nginx_connections_active",
+          "instant": true,
+          "legendFormat": "{{server}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "현재 활성 연결",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "decimals": 1,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "text": {
+          "titleSize": 13,
+          "valueSize": 34
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "sum(rate(nginx_http_requests_total[$__rate_interval]))",
+          "instant": true,
+          "legendFormat": "{{server}}",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP 요청률",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "decimals": 1,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "rate(nginx_http_requests_total[$__rate_interval])",
+          "legendFormat": "{{server}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP 요청률",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 7
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "nginx_connections_active",
+          "legendFormat": "active",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "nginx_connections_reading",
+          "legendFormat": "reading",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "nginx_connections_writing",
+          "legendFormat": "writing",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "podobank-prometheus"
+          },
+          "expr": "nginx_connections_waiting",
+          "legendFormat": "waiting",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "현재 연결 상태",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "podobank-loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "decimals": 1,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 24,
+        "h": 7
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "podobank-loki"
+          },
+          "expr": "sum by(status)(rate({service=\"nginx\",log_type=\"access\"} | regexp `\"(?P<method>\\S+) (?P<path>[^ ]+) HTTP/[^\"]+\" (?P<status>[0-9]{3})` | __error__=\"\" [$__interval]))",
+          "legendFormat": "{{status}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP 상태별 요청률 · access.log",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "podobank-loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 9
+      },
+      "id": 8,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "podobank-loki"
+          },
+          "expr": "{service=\"nginx\",log_type=\"access\"}",
+          "legendFormat": "{{server}}",
+          "maxLines": 100,
+          "queryType": "range",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Nginx 접근 로그",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "podobank-loki"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "decimals": 0,
+          "min": 0,
+          "noValue": "해당 기간 데이터 없음",
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 9
+      },
+      "id": 9,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "podobank-loki"
+          },
+          "expr": "{service=\"nginx\",log_type=\"error\"}",
+          "legendFormat": "{{server}}",
+          "maxLines": 100,
+          "queryType": "range",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Nginx 오류 로그",
+      "type": "logs"
+    },
+    {
+      "id": 10,
+      "title": "Nginx HTTP 상태별 기록 · 선택 기간",
+      "type": "table",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "podobank-loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(status)(count_over_time({service=\"nginx\",log_type=\"access\"} | regexp `\"(?P<method>\\S+) (?P<path>[^ ]+) HTTP/[^\"]+\" (?P<status>[0-9]{3})` | __error__=\"\" [$__range]))",
+          "legendFormat": "{{server}}",
+          "instant": true,
+          "range": false,
+          "queryType": "instant",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "noValue": "—",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "구분"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "deposit": {
+                        "text": "입금"
+                      },
+                      "withdrawal": {
+                        "text": "출금"
+                      },
+                      "transfer_out": {
+                        "text": "송금 출금"
+                      },
+                      "transfer_in": {
+                        "text": "송금 입금"
+                      },
+                      "card_payment": {
+                        "text": "카드 결제"
+                      },
+                      "loan_disbursement": {
+                        "text": "대출 지급"
+                      },
+                      "loan_repayment": {
+                        "text": "대출 상환"
+                      },
+                      "pending": {
+                        "text": "심사 대기"
+                      },
+                      "repaying": {
+                        "text": "상환 중"
+                      },
+                      "rejected": {
+                        "text": "반려"
+                      },
+                      "repaid": {
+                        "text": "상환 완료"
+                      },
+                      "scheduled": {
+                        "text": "예정"
+                      },
+                      "paid": {
+                        "text": "납부"
+                      },
+                      "overdue": {
+                        "text": "연체"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "결과"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "success": {
+                        "text": "성공"
+                      },
+                      "failure": {
+                        "text": "실패"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "저장 대상"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "ledger_entries": {
+                        "text": "거래 원장"
+                      },
+                      "loan_applications": {
+                        "text": "대출 신청"
+                      },
+                      "loan_repayments": {
+                        "text": "대출 상환 회차"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "server": true,
+              "store": true
+            },
+            "renameByName": {
+              "method": "메서드",
+              "route": "API 경로",
+              "status_code": "HTTP 코드",
+              "error_code": "오류 코드",
+              "event_type": "업무",
+              "outcome": "결과",
+              "reason": "사유",
+              "properties_result": "상환 결과",
+              "dataset": "저장 대상",
+              "kind": "구분",
+              "Value": "건수",
+              "Value #A": "건수"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Nginx 499 · 클라이언트 연결 종료",
+      "type": "stat",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 36,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "podobank-loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service=\"nginx\",log_type=\"access\"} | regexp `\"(?P<method>\\S+) (?P<path>[^ ]+) HTTP/[^\"]+\" (?P<status>[0-9]{3})` | __error__=\"\" | status=499 [$__range]))",
+          "legendFormat": "{{server}}",
+          "instant": true,
+          "range": false,
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "noValue": "—",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": true
+        },
+        "text": {
+          "valueSize": 28,
+          "titleSize": 12
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Nginx 4xx·5xx 접근 로그",
+      "type": "logs",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 43,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "podobank-loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service=\"nginx\",log_type=\"access\"} | regexp `\"(?P<method>\\S+) (?P<path>[^ ]+) HTTP/[^\"]+\" (?P<status>[0-9]{3})` | __error__=\"\" | status >= 400",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range",
+          "maxLines": 200
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "noValue": "—",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 42,
+  "tags": [
+    "podobank",
+    "lab"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "15s",
+      "30s",
+      "1m",
+      "5m"
+    ]
+  },
+  "timezone": "Asia/Seoul",
+  "title": "PodoBank / Nginx",
+  "uid": "podobank-nginx",
+  "version": 1,
+  "weekStart": ""
+}
