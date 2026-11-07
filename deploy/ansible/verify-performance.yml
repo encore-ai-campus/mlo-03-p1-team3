@@ -1,0 +1,103 @@
+---
+- name: Verify worker counts, configured pools and actual DB transport
+  hosts: api
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read pool limits and query this connection's TLS status without exposing credentials
+      ansible.builtin.shell: |
+        set -a
+        . /etc/podobank/api.env
+        . /etc/podobank/performance.env
+        set +a
+        /opt/podobank/backend/.venv/bin/python - <<'PY'
+        import json,os
+        from sqlalchemy import text
+        from app.db.mariadb import make_engine
+        engine=make_engine(os.environ['MARIADB_URL'])
+        with engine.connect() as conn:
+            cipher=conn.execute(text("SHOW SESSION STATUS LIKE 'Ssl_cipher'")).first()[1]
+            limit=conn.execute(text('SELECT @@global.max_connections')).scalar_one()
+        print(json.dumps({'pool_size':engine.pool.size(),'overflow_limit':int(os.environ['DB_MAX_OVERFLOW']),
+                          'tls_active':bool(cipher),'db_connection_limit':limit}))
+        engine.dispose()
+        PY
+      args:
+        executable: /bin/bash
+        chdir: /opt/podobank/backend
+      register: pool
+      changed_when: false
+      no_log: true
+    - ansible.builtin.assert:
+        that:
+          - (pool.stdout | from_json).pool_size == 20
+          - (pool.stdout | from_json).overflow_limit == 0
+          - (pool.stdout | from_json).db_connection_limit == 250
+    - ansible.builtin.assert:
+        that: (pool.stdout | from_json).tls_active == (not (performance_disable_db_tls | default(false) | bool))
+      when: performance_assert_tls | default(false) | bool
+    - ansible.builtin.debug:
+        msg: '{{ pool.stdout | from_json }}'
+    - name: Count actual Uvicorn child workers
+      ansible.builtin.shell: |
+        parent=$(systemctl show podobank-api -p MainPID --value)
+        ps -o args= --ppid "$parent" | grep -c 'spawn_main'
+      register: workers
+      changed_when: false
+    - ansible.builtin.assert:
+        that: workers.stdout | int == 4
+
+- name: Verify the effective worker socket and descriptor limits
+  hosts: nginx
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.shell: |
+        nginx -T 2>/dev/null | grep -E 'worker_connections|worker_rlimit_nofile|keepalive 128|proxy_http_version|proxy_set_header Connection'
+        for pid in $(pgrep -f '^nginx: worker process'); do
+          awk '/Max open files/ {print "worker_open_files_soft=" $4 ",hard=" $5}' /proc/$pid/limits
+        done
+      register: limits
+      changed_when: false
+    - ansible.builtin.assert:
+        that:
+          - "'worker_connections 4096;' in limits.stdout"
+          - "'worker_rlimit_nofile 8192;' in limits.stdout"
+          - "'worker_open_files_soft=8192' in limits.stdout"
+    - ansible.builtin.debug:
+        var: limits.stdout_lines
+
+- name: Verify financial invariants without modifying business data
+  hosts: mariadb_master:mariadb_replica
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Count accounts and validate account-ledger balances and paired transfers
+      ansible.builtin.command:
+        argv:
+          - mariadb
+          - --batch
+          - --skip-column-names
+          - podobank
+          - -e
+          - >-
+            SELECT 'accounts',COUNT(*) FROM accounts;
+            SELECT 'ledger_entries',COUNT(*) FROM ledger_entries;
+            SELECT 'total_balance',COALESCE(SUM(balance),0) FROM accounts;
+            SELECT 'balance_mismatches',COUNT(*) FROM accounts a LEFT JOIN
+            (SELECT account_id,SUM(amount) amount FROM ledger_entries GROUP BY account_id) l
+            ON l.account_id=a.id WHERE a.balance<>COALESCE(l.amount,0);
+            SELECT 'invalid_transfer_pairs',COUNT(*) FROM
+            (SELECT transaction_id FROM ledger_entries WHERE entry_type IN ('transfer_in','transfer_out')
+            GROUP BY transaction_id HAVING COUNT(*)<>2 OR SUM(amount)<>0 OR COUNT(DISTINCT account_id)<>2
+            OR SUM(entry_type='transfer_in')<>1 OR SUM(entry_type='transfer_out')<>1) bad;
+            SELECT 'negative_balances',COUNT(*) FROM accounts WHERE balance<0;
+      register: integrity
+      changed_when: false
+    - ansible.builtin.debug:
+        var: integrity.stdout_lines
+    - ansible.builtin.assert:
+        that:
+          - "'balance_mismatches\t0' in integrity.stdout"
+          - "'invalid_transfer_pairs\t0' in integrity.stdout"
+          - "'negative_balances\t0' in integrity.stdout"

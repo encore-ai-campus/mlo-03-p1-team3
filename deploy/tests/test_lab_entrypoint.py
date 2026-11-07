@@ -41,17 +41,41 @@ class ExistingDeploymentTests(unittest.TestCase):
             self.assertEqual(vm_env.read_text(), 'NGINX_IP=192.168.219.191\n')
             self.assertEqual(output.read_text().splitlines(), ['-i', str(inventory), 'deploy/ansible/site.yml'])
 
-    def test_second_candidate_remains_219_without_changing_first_candidate(self):
+    def test_performance_action_preserves_state_and_forwards_explicit_lab_options(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            lab = root / 'deploy/lab'
+            runtime = lab / '.runtime'
+            runtime.mkdir(parents=True)
+            shutil.copy(DEPLOY / 'lab.sh', root / 'deploy/lab.sh')
+            shutil.copy(DEPLOY / 'lab/configure.py', lab / 'configure.py')
+            (lab / '.env').write_text('LAB_REPO=/unused\n')
+            inventory = runtime / 'inventory.json'
+            inventory.write_text('{"all":{}}')
+            mock = root / 'bin'
+            mock.mkdir()
+            args_file = root / 'args'
+            command = mock / 'ansible-playbook'
+            command.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$FAKE_ANSIBLE_ARGS"\n')
+            command.chmod(0o755)
+            environment = dict(os.environ, PATH=str(mock)+os.pathsep+os.environ['PATH'], FAKE_ANSIBLE_ARGS=str(args_file))
+            environment.pop('PODOBANK_LAB_ENV', None)
+            result = subprocess.run(['bash', str(root/'deploy/lab.sh'), 'performance', '-e', 'performance_disable_db_tls=true'], env=environment, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(args_file.read_text().splitlines(), ['-i', str(inventory), 'deploy/ansible/performance.yml', '-e', 'performance_disable_db_tls=true'])
+            self.assertEqual(inventory.read_text(), '{"all":{}}')
+
+    def test_second_candidate_uses_current_lan_without_changing_first_candidate(self):
         import sys
         sys.path.insert(0, str(DEPLOY / 'lab'))
         from configure import configuration, select_network
         values = {'LAN_CIDR': '192.168.0.0/24', 'LAN_GATEWAY': '192.168.0.1',
-                  'FALLBACK_LAN_CIDR': '192.168.219.0/24', 'FALLBACK_LAN_GATEWAY': '192.168.219.1'}
-        preferred = select_network(values, ['192.168.0.10', '192.168.219.10'], lambda ip: True)
+                  'FALLBACK_LAN_CIDR': '172.30.1.0/24', 'FALLBACK_LAN_GATEWAY': '172.30.1.254'}
+        preferred = select_network(values, ['192.168.0.10', '172.30.1.92'], lambda ip: True)
         self.assertEqual(preferred['LAN_CIDR'], '192.168.0.0/24')
-        fallback = select_network(values, ['192.168.219.10'], lambda ip: ip == '192.168.219.1')
-        self.assertEqual(fallback['LAN_CIDR'], '192.168.219.0/24')
-        self.assertEqual(list(configuration(fallback)[1].values()), ['192.168.219.' + str(n) for n in range(191, 201)])
+        fallback = select_network(values, ['172.30.1.92'], lambda ip: ip == '172.30.1.254')
+        self.assertEqual(fallback['LAN_CIDR'], '172.30.1.0/24')
+        self.assertEqual(list(configuration(fallback)[1].values()), ['172.30.1.' + str(n) for n in range(191, 201)])
 
 
 if __name__ == '__main__':

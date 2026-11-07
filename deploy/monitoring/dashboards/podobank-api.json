@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "api-1 192.168.219.193 / api-2 192.168.219.194. 실제 PodoBank 전용 HTTP 지표입니다.",
+  "description": "api-1 172.30.1.193 / api-2 172.30.1.194. 실제 PodoBank 전용 HTTP 지표입니다.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -105,7 +105,7 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
+          "noValue": "수집 없음",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -122,7 +122,19 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -145,8 +157,8 @@
           "values": false
         },
         "text": {
-          "titleSize": 13,
-          "valueSize": 34
+          "valueSize": 30,
+          "titleSize": 14
         },
         "textMode": "value"
       },
@@ -180,8 +192,20 @@
           },
           "decimals": 1,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "reqps"
+          "noValue": "수집 없음",
+          "unit": "reqps",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -204,8 +228,8 @@
           "values": false
         },
         "text": {
-          "titleSize": 13,
-          "valueSize": 34
+          "valueSize": 30,
+          "titleSize": 14
         },
         "textMode": "value"
       },
@@ -255,14 +279,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -277,16 +301,16 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": true
+          "values": false
         },
         "text": {
-          "valueSize": 28,
-          "titleSize": 12
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
@@ -320,14 +344,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -342,16 +366,16 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": true
+          "values": false
         },
         "text": {
-          "valueSize": 28,
-          "titleSize": 12
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
@@ -385,14 +409,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -407,417 +431,27 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": true
+          "values": false
         },
         "text": {
-          "valueSize": 28,
-          "titleSize": 12
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
     {
       "id": 6,
-      "title": "입금 · 성공/실패",
-      "type": "stat",
-      "description": "선택 기간에 Loki에 도착한 업무 이벤트 기록 수입니다. 기록 없음은 업무 미실행 또는 수집 상태를 확인하세요.",
-      "gridPos": {
-        "x": 0,
-        "y": 4,
-        "w": 4,
-        "h": 5
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "podobank-loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(outcome)(count_over_time({job=\"podobank\",log_type=\"event\",instance=~\"$api\"} | json | __error__=\"\" | event_type=~\"$business\" | event_type=\"deposit\" [$__range]))",
-          "legendFormat": "{{outcome}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "—",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "—",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value_and_name",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": true
-        },
-        "text": {
-          "valueSize": 28,
-          "titleSize": 12
-        }
-      }
-    },
-    {
-      "id": 7,
-      "title": "출금 · 성공/실패",
-      "type": "stat",
-      "description": "선택 기간에 Loki에 도착한 업무 이벤트 기록 수입니다. 기록 없음은 업무 미실행 또는 수집 상태를 확인하세요.",
-      "gridPos": {
-        "x": 4,
-        "y": 4,
-        "w": 4,
-        "h": 5
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "podobank-loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(outcome)(count_over_time({job=\"podobank\",log_type=\"event\",instance=~\"$api\"} | json | __error__=\"\" | event_type=~\"$business\" | event_type=\"withdrawal\" [$__range]))",
-          "legendFormat": "{{outcome}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "—",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "—",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value_and_name",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": true
-        },
-        "text": {
-          "valueSize": 28,
-          "titleSize": 12
-        }
-      }
-    },
-    {
-      "id": 8,
-      "title": "송금 · 성공/실패",
-      "type": "stat",
-      "description": "선택 기간에 Loki에 도착한 업무 이벤트 기록 수입니다. 기록 없음은 업무 미실행 또는 수집 상태를 확인하세요.",
-      "gridPos": {
-        "x": 8,
-        "y": 4,
-        "w": 4,
-        "h": 5
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "podobank-loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(outcome)(count_over_time({job=\"podobank\",log_type=\"event\",instance=~\"$api\"} | json | __error__=\"\" | event_type=~\"$business\" | event_type=\"transfer\" [$__range]))",
-          "legendFormat": "{{outcome}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "—",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "—",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value_and_name",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": true
-        },
-        "text": {
-          "valueSize": 28,
-          "titleSize": 12
-        }
-      }
-    },
-    {
-      "id": 9,
-      "title": "대출 신청 · 성공/실패",
-      "type": "stat",
-      "description": "선택 기간에 Loki에 도착한 업무 이벤트 기록 수입니다. 기록 없음은 업무 미실행 또는 수집 상태를 확인하세요.",
-      "gridPos": {
-        "x": 12,
-        "y": 4,
-        "w": 4,
-        "h": 5
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "podobank-loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(outcome)(count_over_time({job=\"podobank\",log_type=\"event\",instance=~\"$api\"} | json | __error__=\"\" | event_type=~\"$business\" | event_type=\"loan_application\" [$__range]))",
-          "legendFormat": "{{outcome}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "—",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "—",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value_and_name",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": true
-        },
-        "text": {
-          "valueSize": 28,
-          "titleSize": 12
-        }
-      }
-    },
-    {
-      "id": 10,
-      "title": "대출 심사 · 성공/실패",
-      "type": "stat",
-      "description": "선택 기간에 Loki에 도착한 업무 이벤트 기록 수입니다. 기록 없음은 업무 미실행 또는 수집 상태를 확인하세요.",
-      "gridPos": {
-        "x": 16,
-        "y": 4,
-        "w": 4,
-        "h": 5
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "podobank-loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(outcome)(count_over_time({job=\"podobank\",log_type=\"event\",instance=~\"$api\"} | json | __error__=\"\" | event_type=~\"$business\" | event_type=\"loan_review\" [$__range]))",
-          "legendFormat": "{{outcome}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "—",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "—",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value_and_name",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": true
-        },
-        "text": {
-          "valueSize": 28,
-          "titleSize": 12
-        }
-      }
-    },
-    {
-      "id": 11,
-      "title": "카드 결제 · 성공/실패",
-      "type": "stat",
-      "description": "선택 기간에 Loki에 도착한 업무 이벤트 기록 수입니다. 기록 없음은 업무 미실행 또는 수집 상태를 확인하세요.",
-      "gridPos": {
-        "x": 20,
-        "y": 4,
-        "w": 4,
-        "h": 5
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "podobank-loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(outcome)(count_over_time({job=\"podobank\",log_type=\"event\",instance=~\"$api\"} | json | __error__=\"\" | event_type=~\"$business\" | event_type=\"card_payment\" [$__range]))",
-          "legendFormat": "{{outcome}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "—",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "—",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value_and_name",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": true
-        },
-        "text": {
-          "valueSize": 28,
-          "titleSize": 12
-        }
-      }
-    },
-    {
-      "id": 12,
       "title": "업무·결과별 이벤트 건수 · 선택 기간",
       "type": "table",
       "description": "",
       "gridPos": {
         "x": 0,
-        "y": 9,
+        "y": 4,
         "w": 12,
         "h": 8
       },
@@ -841,14 +475,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -1013,13 +647,13 @@
       ]
     },
     {
-      "id": 13,
+      "id": 7,
       "title": "실패 이유별 건수 · 선택 기간",
       "type": "table",
       "description": "업무 실패 로그의 reason입니다. 인증·입력 검증 및 대출 심사 오류는 업무 이벤트 없이 HTTP 로그에만 남을 수 있습니다.",
       "gridPos": {
         "x": 12,
-        "y": 9,
+        "y": 4,
         "w": 12,
         "h": 8
       },
@@ -1043,418 +677,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "구분"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "deposit": {
-                        "text": "입금"
-                      },
-                      "withdrawal": {
-                        "text": "출금"
-                      },
-                      "transfer_out": {
-                        "text": "송금 출금"
-                      },
-                      "transfer_in": {
-                        "text": "송금 입금"
-                      },
-                      "card_payment": {
-                        "text": "카드 결제"
-                      },
-                      "loan_disbursement": {
-                        "text": "대출 지급"
-                      },
-                      "loan_repayment": {
-                        "text": "대출 상환"
-                      },
-                      "pending": {
-                        "text": "심사 대기"
-                      },
-                      "repaying": {
-                        "text": "상환 중"
-                      },
-                      "rejected": {
-                        "text": "반려"
-                      },
-                      "repaid": {
-                        "text": "상환 완료"
-                      },
-                      "scheduled": {
-                        "text": "예정"
-                      },
-                      "paid": {
-                        "text": "납부"
-                      },
-                      "overdue": {
-                        "text": "연체"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "결과"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "success": {
-                        "text": "성공"
-                      },
-                      "failure": {
-                        "text": "실패"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "저장 대상"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "ledger_entries": {
-                        "text": "거래 원장"
-                      },
-                      "loan_applications": {
-                        "text": "대출 신청"
-                      },
-                      "loan_repayments": {
-                        "text": "대출 상환 회차"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Value",
-            "desc": true
-          }
-        ]
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true,
-              "instance": true,
-              "job": true,
-              "server": true,
-              "store": true
-            },
-            "renameByName": {
-              "method": "메서드",
-              "route": "API 경로",
-              "status_code": "HTTP 코드",
-              "error_code": "오류 코드",
-              "event_type": "업무",
-              "outcome": "결과",
-              "reason": "사유",
-              "properties_result": "상환 결과",
-              "dataset": "저장 대상",
-              "kind": "구분",
-              "Value": "건수",
-              "Value #A": "건수"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 14,
-      "title": "대출 심사 결과 · 승인 / 반려",
-      "type": "table",
-      "description": "reason=rejected는 정상 처리된 반려입니다. outcome=success라고 대출 승인을 뜻하지 않습니다. 심사 API 오류는 같은 화면의 API 실패 표에서도 확인하세요.",
-      "gridPos": {
-        "x": 0,
-        "y": 17,
-        "w": 12,
-        "h": 7
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "podobank-loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(reason)(count_over_time({log_type=\"event\",instance=~\"$api\"} | json | __error__=\"\" | event_type=\"loan_review\" [$__range]))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "—",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "—",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "구분"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "deposit": {
-                        "text": "입금"
-                      },
-                      "withdrawal": {
-                        "text": "출금"
-                      },
-                      "transfer_out": {
-                        "text": "송금 출금"
-                      },
-                      "transfer_in": {
-                        "text": "송금 입금"
-                      },
-                      "card_payment": {
-                        "text": "카드 결제"
-                      },
-                      "loan_disbursement": {
-                        "text": "대출 지급"
-                      },
-                      "loan_repayment": {
-                        "text": "대출 상환"
-                      },
-                      "pending": {
-                        "text": "심사 대기"
-                      },
-                      "repaying": {
-                        "text": "상환 중"
-                      },
-                      "rejected": {
-                        "text": "반려"
-                      },
-                      "repaid": {
-                        "text": "상환 완료"
-                      },
-                      "scheduled": {
-                        "text": "예정"
-                      },
-                      "paid": {
-                        "text": "납부"
-                      },
-                      "overdue": {
-                        "text": "연체"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "결과"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "success": {
-                        "text": "성공"
-                      },
-                      "failure": {
-                        "text": "실패"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "저장 대상"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "ledger_entries": {
-                        "text": "거래 원장"
-                      },
-                      "loan_applications": {
-                        "text": "대출 신청"
-                      },
-                      "loan_repayments": {
-                        "text": "대출 상환 회차"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Value",
-            "desc": true
-          }
-        ]
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true,
-              "instance": true,
-              "job": true,
-              "server": true,
-              "store": true
-            },
-            "renameByName": {
-              "method": "메서드",
-              "route": "API 경로",
-              "status_code": "HTTP 코드",
-              "error_code": "오류 코드",
-              "event_type": "업무",
-              "outcome": "결과",
-              "reason": "사유",
-              "properties_result": "상환 결과",
-              "dataset": "저장 대상",
-              "kind": "구분",
-              "Value": "건수",
-              "Value #A": "건수"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 15,
-      "title": "대출 상환 결과 · 납부 / 연체 / 회복",
-      "type": "table",
-      "description": "",
-      "gridPos": {
-        "x": 12,
-        "y": 17,
-        "w": 12,
-        "h": 7
-      },
-      "datasource": {
-        "type": "loki",
-        "uid": "podobank-loki"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(outcome,reason,properties_result)(count_over_time({log_type=\"event\",instance=~\"$api\"} | json | __error__=\"\" | event_type=\"loan_repayment\" [$__range]))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "—",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -1640,18 +870,30 @@
           },
           "decimals": 1,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "ms"
+          "noValue": "수집 없음",
+          "unit": "ms",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 12,
         "w": 24,
         "h": 7
       },
-      "id": 16,
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [],
@@ -1700,13 +942,13 @@
       "type": "timeseries"
     },
     {
-      "id": 17,
+      "id": 9,
       "title": "API별 요청률",
       "description": "",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 31,
+        "y": 19,
         "w": 12,
         "h": 7
       },
@@ -1730,7 +972,7 @@
         "defaults": {
           "unit": "reqps",
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
+          "noValue": "수집 없음",
           "decimals": 1,
           "color": {
             "mode": "palette-classic"
@@ -1743,7 +985,19 @@
             "showPoints": "never",
             "spanNulls": false,
             "axisBorderShow": false
-          }
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -1761,13 +1015,13 @@
       }
     },
     {
-      "id": 18,
+      "id": 10,
       "title": "어떤 요청인가 · 메서드·경로·코드",
       "type": "table",
       "description": "",
       "gridPos": {
         "x": 0,
-        "y": 38,
+        "y": 26,
         "w": 24,
         "h": 9
       },
@@ -1791,14 +1045,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -1963,13 +1217,13 @@
       ]
     },
     {
-      "id": 19,
+      "id": 11,
       "title": "실패 API · 경로·코드별 로그 건수",
       "type": "table",
       "description": "",
       "gridPos": {
         "x": 0,
-        "y": 47,
+        "y": 35,
         "w": 24,
         "h": 8
       },
@@ -1993,14 +1247,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -2165,13 +1419,13 @@
       ]
     },
     {
-      "id": 20,
+      "id": 12,
       "title": "API 요청 상세 · 요청 ID 검색",
       "type": "logs",
       "description": "",
       "gridPos": {
         "x": 0,
-        "y": 55,
+        "y": 43,
         "w": 24,
         "h": 10
       },
@@ -2195,14 +1449,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -2224,13 +1478,13 @@
       }
     },
     {
-      "id": 21,
+      "id": 13,
       "title": "API 4xx·5xx 상세",
       "type": "logs",
       "description": "",
       "gridPos": {
         "x": 0,
-        "y": 65,
+        "y": 53,
         "w": 24,
         "h": 10
       },
@@ -2254,14 +1508,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -2283,13 +1537,13 @@
       }
     },
     {
-      "id": 22,
+      "id": 14,
       "title": "업무 상세 · 요청 ID 검색",
       "type": "logs",
       "description": "",
       "gridPos": {
         "x": 0,
-        "y": 75,
+        "y": 63,
         "w": 24,
         "h": 10
       },
@@ -2313,14 +1567,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }

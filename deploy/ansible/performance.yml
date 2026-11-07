@@ -1,0 +1,134 @@
+---
+# Existing VMs only. No site.yml import, database reset, log purge or migration.
+- name: Set persistent MariaDB connection headroom without restarting the database
+  hosts: mariadb_master:mariadb_replica
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Persist the measured connection ceiling
+      ansible.builtin.copy:
+        dest: /etc/mysql/mariadb.conf.d/99-podobank-connections.cnf
+        mode: '0644'
+        content: |
+          [mysqld]
+          max_connections=250
+    - name: Read the current ceiling
+      ansible.builtin.command: mariadb -N -e 'SELECT @@global.max_connections'
+      register: db_limit
+      changed_when: false
+    - name: Apply connection headroom online
+      ansible.builtin.command: mariadb -e 'SET GLOBAL max_connections=250'
+      when: db_limit.stdout | trim != '250'
+
+- name: Configure bounded proxy concurrency and upstream reuse
+  hosts: nginx
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Set worker connection slots
+      ansible.builtin.replace:
+        path: /etc/nginx/nginx.conf
+        regexp: 'worker_connections\s+\d+;'
+        replace: 'worker_connections 4096;'
+        validate: /usr/sbin/nginx -t -c %s
+      notify: Reload nginx performance settings
+    - name: Set the worker file limit as well as connection slots
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '^\s*worker_rlimit_nofile\s+'
+        line: 'worker_rlimit_nofile 8192;'
+        insertafter: '^worker_processes'
+        validate: /usr/sbin/nginx -t -c %s
+      notify: Reload nginx performance settings
+    - name: Manage the reusable HAProxy upstream
+      ansible.builtin.copy:
+        dest: /etc/nginx/conf.d/podobank-upstream.conf
+        mode: '0644'
+        content: |
+          upstream podobank_haproxy {
+              server {{ hostvars[groups['haproxy'][0]].ansible_host }}:8000;
+              keepalive 128;
+          }
+          proxy_http_version 1.1;
+      notify: Reload nginx performance settings
+    - name: Route the existing HTTP and TLS locations through the reusable upstream
+      ansible.builtin.replace:
+        path: /etc/nginx/conf.d/podobank.conf
+        regexp: 'proxy_pass http://[0-9.]+:8000;'
+        replace: 'proxy_pass http://podobank_haproxy;'
+      notify: Reload nginx performance settings
+    - name: Remove the close header inside each existing server block
+      ansible.builtin.replace:
+        path: /etc/nginx/conf.d/podobank.conf
+        regexp: '(?m)^(    proxy_set_header Host \$host;)(?!\n    proxy_set_header Connection)'
+        replace: '\1\n    proxy_set_header Connection "";'
+      notify: Reload nginx performance settings
+    - name: Validate the complete Nginx configuration before reload
+      ansible.builtin.command: nginx -t
+      changed_when: false
+    - ansible.builtin.meta: flush_handlers
+  handlers:
+    - name: Reload nginx performance settings
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded
+
+- name: Roll out bounded worker pools one API VM at a time
+  hosts: api
+  serial: 1
+  become: true
+  gather_facts: false
+  vars:
+    performance_disable_db_tls: false
+  tasks:
+    - name: Install the configurable engine without running installers or migrations
+      ansible.builtin.copy:
+        src: ../../backend/app/db/mariadb.py
+        dest: /opt/podobank/backend/app/db/mariadb.py
+        owner: podobank
+        group: podobank
+        mode: '0644'
+      notify: Restart performance API
+    - name: Install worker-local pool settings separately from credentials
+      ansible.builtin.copy:
+        dest: /etc/podobank/performance.env
+        owner: root
+        group: podobank
+        mode: '0640'
+        content: |
+          DB_POOL_SIZE=20
+          DB_MAX_OVERFLOW=0
+          DB_POOL_TIMEOUT_SECONDS=5
+          DB_TLS_DISABLED={{ performance_disable_db_tls | bool | ternary('true', 'false') }}
+      notify: Restart performance API
+    - name: Ensure the service override directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/podobank-api.service.d
+        state: directory
+        mode: '0755'
+    - name: Configure four workers and load the measured pool settings
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/podobank-api.service.d/workers.conf
+        mode: '0644'
+        content: |
+          [Service]
+          EnvironmentFile=/etc/podobank/performance.env
+          ExecStart=
+          ExecStart=/opt/podobank/backend/.venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --workers 4
+      notify: Restart performance API
+    - ansible.builtin.meta: flush_handlers
+    - name: Require database health before continuing to the second VM
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/api/v1/health
+        status_code: 200
+        return_content: true
+      register: health
+      retries: 30
+      delay: 2
+      until: health.status | default(0) == 200 and health.json.mariadb | default('') == 'ok' and health.json.mongodb | default('') == 'ok'
+  handlers:
+    - name: Restart performance API
+      ansible.builtin.systemd:
+        name: podobank-api
+        state: restarted
+        daemon_reload: true

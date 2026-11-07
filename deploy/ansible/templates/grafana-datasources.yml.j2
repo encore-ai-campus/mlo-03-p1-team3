@@ -1,3 +1,5 @@
+# Increase data-source versions when changing managed endpoints. Grafana ignores
+# provisioning whose version is lower than the stored data-source version.
 apiVersion: 1
 datasources:
   - name: Prometheus
@@ -7,11 +9,11 @@ datasources:
     url: http://{{ hostvars[groups['prometheus'][0]].ansible_host }}:9090
     isDefault: true
     editable: false
-    version: 1
+    version: 3
   - name: Loki
     uid: podobank-loki
     type: loki
     access: proxy
     url: http://{{ hostvars[groups['loki'][0]].ansible_host }}:3100
     editable: false
-    version: 1
+    version: 3

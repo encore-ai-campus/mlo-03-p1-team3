@@ -1,0 +1,36 @@
+---
+# Add dedicated test customers only. Existing users/accounts/ledger rows are retained.
+- name: Prepare and retrieve the private reusable test pool
+  hosts: api-1
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install the dedicated seed command
+      ansible.builtin.copy:
+        src: ../../loadtest/account_pool.py
+        dest: /opt/podobank-account-pool.py
+        mode: '0644'
+    - name: Seed only when this VM has no existing pool env
+      ansible.builtin.shell: |
+        set -a
+        . /etc/podobank/api.env
+        . /etc/podobank/performance.env
+        set +a
+        exec /opt/podobank/backend/.venv/bin/python /opt/podobank-account-pool.py --seed --count 10000 --output /etc/podobank/loadtest-pool/.env
+      args:
+        executable: /bin/bash
+      register: pool_ready
+      changed_when: "'prepared_accounts' in pool_ready.stdout"
+      no_log: true
+    - name: Fetch the private pool only to the controller env
+      ansible.builtin.fetch:
+        src: /etc/podobank/loadtest-pool/.env
+        dest: '{{ playbook_dir }}/../../loadtest/pool/.env'
+        flat: true
+      no_log: true
+    - name: Restrict the controller env without controller privilege escalation
+      ansible.builtin.file:
+        path: '{{ playbook_dir }}/../../loadtest/pool/.env'
+        mode: '0600'
+      delegate_to: localhost
+      become: false

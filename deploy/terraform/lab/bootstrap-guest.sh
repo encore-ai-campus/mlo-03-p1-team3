@@ -11,7 +11,7 @@ export VMX_LINUX="$vmx"
 seed_dir=$(mktemp -d)
 trap 'rm -rf "$seed_dir"' EXIT
 python3 - "$seed_dir" <<'PY'
-import hashlib,json,os,re,sys
+import hashlib,ipaddress,json,os,re,sys
 from pathlib import Path
 root=Path(sys.argv[1]); vmid=os.environ['VM_ID']; ip=os.environ['VM_IP']; gateway=os.environ['VM_GATEWAY']
 h=hashlib.sha256(vmid.encode()).digest()
@@ -20,9 +20,13 @@ network={'version':2,'ethernets':{'lan':{'match':{'macaddress':mac},'set-name':'
  'addresses':[ip+'/24'],'routes':[{'to':'default','via':gateway}],
  'nameservers':{'addresses':[gateway,'1.1.1.1']}}}}
 pubkey=Path(os.environ['VM_SSH_PUBLIC_KEY']).read_text().strip()
-user={'users':['default'],'ssh_authorized_keys':[pubkey],'ssh_pwauth':False,'disable_root':True}
+cidr=str(ipaddress.ip_network(ip+'/24',strict=False))
+# Existing guests may allow SSH only from their previous LAN. Open the selected
+# management source before Ansible reconnects; retain all other firewall rules.
+user={'users':['default'],'ssh_authorized_keys':[pubkey],'ssh_pwauth':False,'disable_root':True,
+ 'bootcmd':[['sh','-c','if command -v ufw >/dev/null 2>&1; then ufw allow from '+cidr+' to any port 22 proto tcp; fi']]}
 (root/'user-data').write_text('#cloud-config\n'+json.dumps(user))
-netkey=hashlib.sha256((json.dumps(network,sort_keys=True)+pubkey).encode()).hexdigest()[:12]
+netkey=hashlib.sha256((json.dumps(network,sort_keys=True)+json.dumps(user,sort_keys=True)).encode()).hexdigest()[:12]
 (root/'meta-data').write_text('instance-id: '+vmid+'-'+netkey+'\nlocal-hostname: '+os.environ['VM_NAME']+'\n')
 (root/'network-config').write_text(json.dumps(network))
 p=Path(os.environ['VMX_LINUX']);s=p.read_text()
