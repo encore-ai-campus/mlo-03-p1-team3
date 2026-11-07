@@ -335,3 +335,9 @@ deploy/vm/vm.env
 crash.log
 deploy/vm/monitoring.env
 drafts/
+
+# Local load test reports
+loadtest/results/
+
+# Browser verification artifacts
+.playwright-mcp/

@@ -19,8 +19,8 @@
           MARIADB_MASTER_IP: "{{ hostvars[groups['mariadb_master'][0]].ansible_host }}"
           MARIADB_REPLICA_IP: "{{ hostvars[groups['mariadb_replica'][0]].ansible_host }}"
           MONGODB_IP: "{{ hostvars[groups['mongodb'][0]].ansible_host }}"
-          MARIADB_CLIENT_SUBNET: 192.168.0.%
-          MONGODB_CLIENT_CIDR: 192.168.0.0/24
+          MARIADB_CLIENT_SUBNET: "{{ mariadb_client_subnet | default('192.168.0.%') }}"
+          MONGODB_CLIENT_CIDR: "{{ mongodb_client_cidr | default('192.168.0.0/24') }}"
       changed_when: false
 
 - name: Apply the MariaDB account rule without deleting databases
@@ -62,7 +62,7 @@
           - -e
           - >-
             SELECT COUNT(*) FROM information_schema.SCHEMA_PRIVILEGES
-            WHERE GRANTEE = "'podobank'@'192.168.0.%'"
+            WHERE GRANTEE = "'podobank'@'{{ mariadb_client_subnet | default('192.168.0.%') }}'"
             AND TABLE_SCHEMA = 'podobank'
             AND PRIVILEGE_TYPE = 'SELECT'
       register: mariadb_subnet_grant
@@ -82,16 +82,13 @@
   become: true
   gather_facts: false
   tasks:
-    - name: Permit management SSH from the bridged LAN
-      ansible.builtin.command: ufw allow from 192.168.0.0/24 to any port 22 proto tcp
-      register: mongodb_lan_ssh_rule
-      changed_when: "'Skipping adding existing rule' not in mongodb_lan_ssh_rule.stdout"
-    - name: Permit management SSH from the host-only network
-      ansible.builtin.command: ufw allow from 192.168.222.0/24 to any port 22 proto tcp
-      register: mongodb_hostonly_ssh_rule
-      changed_when: "'Skipping adding existing rule' not in mongodb_hostonly_ssh_rule.stdout"
+    - name: Permit management SSH from the configured networks
+      ansible.builtin.command: "ufw allow from {{ item }} to any port 22 proto tcp"
+      loop: "{{ ssh_allowed_cidrs | default(['192.168.0.0/24', '192.168.222.0/24']) }}"
+      register: mongodb_ssh_rule
+      changed_when: "'Skipping adding existing rule' not in mongodb_ssh_rule.stdout"
     - name: Permit MongoDB connections from the LAN subnet
-      ansible.builtin.command: ufw allow from 192.168.0.0/24 to any port 27017 proto tcp
+      ansible.builtin.command: ufw allow from {{ mongodb_client_cidr | default('192.168.0.0/24') }} to any port 27017 proto tcp
       register: mongodb_client_rule
       changed_when: "'Skipping adding existing rule' not in mongodb_client_rule.stdout"
     - name: Keep the database firewall enabled
@@ -129,7 +126,7 @@
       register: mongodb_firewall_status
       changed_when: false
       failed_when: >-
-        '192.168.0.0/24' not in mongodb_firewall_status.stdout
+        (mongodb_client_cidr | default('192.168.0.0/24')) not in mongodb_firewall_status.stdout
         or '27017/tcp' not in mongodb_firewall_status.stdout
 
 - name: Remove MongoDB deployment credentials from the other VMs

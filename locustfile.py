@@ -1,7 +1,8 @@
 """계정 생성 없이 Nginx를 통해 FastAPI·MariaDB·MongoDB 상태를 확인합니다.
 
-실행: .venv/bin/locust -f locustfile.py --host http://192.168.0.191 --web-host 127.0.0.1
+실행: .venv/bin/locust -f locustfile.py --host http://192.168.219.191 --web-host 127.0.0.1
 화면: http://127.0.0.1:8089
+단계별 측정·보고서: .venv/bin/python loadtest/run.py (loadtest/README.md 참고)
 """
 
 from locust import HttpUser, between, task

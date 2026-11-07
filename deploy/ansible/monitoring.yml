@@ -21,11 +21,11 @@
         cache_valid_time: 3600
     - name: Allow management SSH before enabling firewall
       ansible.builtin.command: 'ufw allow from {{ item }} to any port 22 proto tcp'
-      loop: [192.168.0.0/24, 192.168.222.0/24]
+      loop: "{{ ssh_allowed_cidrs | default(['192.168.0.0/24', '192.168.222.0/24']) }}"
       register: ssh_rule
       changed_when: "'Skipping adding existing rule' not in ssh_rule.stdout"
     - name: Permit monitoring interface from the LAN
-      ansible.builtin.command: 'ufw allow from 192.168.0.0/24 to any port {{ monitoring_port }} proto tcp'
+      ansible.builtin.command: "ufw allow from {{ lan_cidr | default('192.168.0.0/24') }} to any port {{ monitoring_port }} proto tcp"
       register: interface_rule
       changed_when: "'Skipping adding existing rule' not in interface_rule.stdout"
     - name: Enable monitoring VM firewall
