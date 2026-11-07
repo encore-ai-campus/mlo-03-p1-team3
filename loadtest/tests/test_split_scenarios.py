@@ -83,6 +83,48 @@ class SplitScenariosTests(unittest.TestCase):
         self.assertEqual(self.experiment.uncertain, {0, 1})
         self.assertFalse(evaluate(row)[0])
 
+    def test_busy_accounts_are_reported_separately_from_scheduler_lateness(self):
+        import gevent
+        self.experiment.ready = True
+        self.experiment.flow = lambda account: gevent.sleep(0.25)
+        row = self.experiment.stage("transfer", 100, 0.1)
+        reasons = row["missed_schedule_reasons"]
+        self.assertGreater(reasons["account_busy"], 0)
+        self.assertEqual(reasons["scheduler_late"], 0)
+        self.assertEqual(sum(reasons[k] for k in ("account_busy", "scheduler_late")), row["missed_schedule"])
+        self.assertEqual(row["peak_inflight_flows"], 2)
+        self.assertGreater(row["flow_duration_ms"]["95"], 200)
+
+    def test_blocked_scheduler_records_lateness_instead_of_account_pressure(self):
+        from gevent.monkey import get_original
+        self.experiment.ready = True
+        self.experiment.flow = lambda account: get_original("time", "sleep")(0.25)
+        row = self.experiment.stage("transfer", 100, 0.1)
+        self.assertGreater(row["missed_schedule_reasons"]["scheduler_late"], 0)
+        self.assertGreater(row["schedule_delay_ms"]["95"], 100)
+        self.assertEqual(row["undrained"], 0)
+
+    def test_reused_pool_reads_baseline_without_signup_or_deposit(self):
+        self.experiment.capture_balances()
+        self.assertEqual(set(self.paths), {"/api/v1/accounts/me"})
+        self.assertEqual([a.initial for a in self.experiment.accounts], [100, 100])
+
+    def test_prelogin_bounds_password_verification_concurrency(self):
+        import gevent
+        active = peak = 0
+        def login(account):
+            nonlocal active, peak
+            active += 1
+            peak = max(peak, active)
+            gevent.sleep(0.03)
+            active -= 1
+            return True
+        self.experiment.login = login
+        result = self.experiment.prelogin(1000, concurrency=1)
+        self.assertTrue(result["ready"])
+        self.assertEqual(peak, 1)
+        self.assertEqual(result["max_inflight_logins"], 1)
+
     def test_transport_error_records_types_without_private_exception_text(self):
         error = ConnectionError("private-secret-value")
         error.__cause__ = TimeoutError("private-cookie-value")

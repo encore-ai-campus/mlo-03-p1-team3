@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "192.168.219.197. MongoDB 운영 메트릭과 Loki 업무 이벤트를 별도로 표시합니다.",
+  "description": "172.30.1.197. MongoDB 운영 메트릭과 Loki 업무 이벤트를 별도로 표시합니다.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -105,7 +105,7 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
+          "noValue": "수집 없음",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -122,7 +122,19 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -145,8 +157,8 @@
           "values": false
         },
         "text": {
-          "titleSize": 13,
-          "valueSize": 34
+          "valueSize": 30,
+          "titleSize": 14
         },
         "textMode": "value"
       },
@@ -180,8 +192,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "short"
+          "noValue": "수집 없음",
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -204,8 +228,8 @@
           "values": false
         },
         "text": {
-          "titleSize": 13,
-          "valueSize": 34
+          "valueSize": 30,
+          "titleSize": 14
         },
         "textMode": "value"
       },
@@ -239,8 +263,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "short"
+          "noValue": "수집 없음",
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -263,8 +299,8 @@
           "values": false
         },
         "text": {
-          "titleSize": 13,
-          "valueSize": 34
+          "valueSize": 30,
+          "titleSize": 14
         },
         "textMode": "value"
       },
@@ -298,8 +334,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "bytes"
+          "noValue": "수집 없음",
+          "unit": "bytes",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -322,8 +370,8 @@
           "values": false
         },
         "text": {
-          "titleSize": 13,
-          "valueSize": 34
+          "valueSize": 30,
+          "titleSize": 14
         },
         "textMode": "value"
       },
@@ -373,14 +421,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "수집 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "수집 없음",
                   "color": "gray"
                 }
               }
@@ -395,16 +443,16 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": true
+          "values": false
         },
         "text": {
-          "valueSize": 28,
-          "titleSize": 12
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
@@ -438,14 +486,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "수집 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "수집 없음",
                   "color": "gray"
                 }
               }
@@ -460,16 +508,16 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": true
+          "values": false
         },
         "text": {
-          "valueSize": 28,
-          "titleSize": 12
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
@@ -503,14 +551,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "수집 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "수집 없음",
                   "color": "gray"
                 }
               }
@@ -538,16 +586,16 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": true
+          "values": false
         },
         "text": {
-          "valueSize": 28,
-          "titleSize": 12
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
@@ -581,14 +629,14 @@
           "unit": "s",
           "decimals": 1,
           "min": 0,
-          "noValue": "—",
+          "noValue": "수집 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "수집 없음",
                   "color": "gray"
                 }
               }
@@ -620,16 +668,16 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": true
+          "values": false
         },
         "text": {
-          "valueSize": 28,
-          "titleSize": 12
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
@@ -664,14 +712,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "수집 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "수집 없음",
                   "color": "gray"
                 }
               }
@@ -865,14 +913,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "수집 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "수집 없음",
                   "color": "gray"
                 }
               }
@@ -887,16 +935,16 @@
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": true
+          "values": false
         },
         "text": {
-          "valueSize": 28,
-          "titleSize": 12
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
@@ -931,14 +979,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -1133,14 +1181,14 @@
           "unit": "short",
           "decimals": 0,
           "min": 0,
-          "noValue": "—",
+          "noValue": "기록 없음",
           "mappings": [
             {
               "type": "special",
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "—",
+                  "text": "기록 없음",
                   "color": "gray"
                 }
               }
@@ -1192,7 +1240,7 @@
         "defaults": {
           "unit": "short",
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
+          "noValue": "수집 없음",
           "decimals": 0,
           "color": {
             "mode": "palette-classic"
@@ -1205,7 +1253,19 @@
             "showPoints": "never",
             "spanNulls": false,
             "axisBorderShow": false
-          }
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -1244,8 +1304,20 @@
           },
           "decimals": 1,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "ops"
+          "noValue": "수집 없음",
+          "unit": "ops",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "수집 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },

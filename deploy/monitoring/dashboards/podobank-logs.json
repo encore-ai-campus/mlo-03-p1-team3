@@ -105,8 +105,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "short"
+          "noValue": "기록 없음",
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "기록 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -151,8 +163,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "short"
+          "noValue": "기록 없음",
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "기록 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -201,8 +225,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "short"
+          "noValue": "기록 없음",
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "기록 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -251,8 +287,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "short"
+          "noValue": "기록 없음",
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "기록 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -301,8 +349,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "short"
+          "noValue": "기록 없음",
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "기록 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
@@ -351,8 +411,20 @@
           },
           "decimals": 0,
           "min": 0,
-          "noValue": "해당 기간 데이터 없음",
-          "unit": "short"
+          "noValue": "기록 없음",
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "기록 없음",
+                  "color": "gray"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },

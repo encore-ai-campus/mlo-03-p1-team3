@@ -1,0 +1,1259 @@
+{
+  "environment": {
+    "ssh_host": "172.30.1.92",
+    "ingress": "http://172.30.1.191",
+    "api_vcpu_each": 4,
+    "api_ram_gib_each": 2,
+    "workers_each": 4,
+    "pool_size_each_worker": 20,
+    "max_overflow": 0,
+    "db_max_connections": 250,
+    "db_tls_disabled_for_lab_comparison": true,
+    "nginx_worker_connections": 4096,
+    "nginx_worker_rlimit_nofile": 8192,
+    "upstream_keepalive": 128,
+    "apm_imported": false,
+    "existing_database_reset": false,
+    "dedicated_customers_added": 10000
+  },
+  "records": [
+    {
+      "mode": "login",
+      "host": "http://172.30.1.191",
+      "accounts": 1000,
+      "rates": [
+        20.0
+      ],
+      "started": "2026-11-07T16:06:50.684480+00:00",
+      "conditions": {
+        "seconds": 60.0,
+        "warmup": 10.0,
+        "cooldown": 10,
+        "prelogin_rate": 20.0,
+        "financial_retries": 0,
+        "database_reset": false,
+        "transfer_flow": [
+          "balance",
+          "recipient_lookup",
+          "transfer",
+          "balance"
+        ],
+        "reused_account_pool": true
+      },
+      "stages": [
+        {
+          "mode": "login",
+          "target_rate": 20.0,
+          "accounts": 1000,
+          "start": "2026-11-07T16:07:00.762392+00:00",
+          "window_end": "2026-11-07T16:08:00.765197+00:00",
+          "drained_end": "2026-11-07T16:08:00.867588+00:00",
+          "window_seconds": 60.0,
+          "elapsed_with_drain": 60.107,
+          "scheduled": 1200,
+          "missed_schedule": 0,
+          "missed_schedule_reasons": {
+            "account_busy": 0,
+            "scheduler_late": 0,
+            "both": 0
+          },
+          "schedule_delay_ms": {
+            "50": 3.5336250002728775,
+            "95": 5.113999999593943,
+            "99": 5.170292000002519,
+            "100": 5.409624999629159
+          },
+          "flow_duration_ms": {
+            "50": 140.62562500021158,
+            "95": 248.55604099957418,
+            "99": 346.20941699995456,
+            "100": 460.26283399987733
+          },
+          "peak_inflight_flows": 9,
+          "loadgen_process_cpu_seconds": 3.4139050000000006,
+          "loadgen_process_cpu_percent_one_core": 5.679710557836647,
+          "completed": 1200,
+          "undrained": 0,
+          "transfer_attempts": 0,
+          "transfer_tps": 0.0,
+          "requests": 1200,
+          "failures": 0,
+          "fail_ratio": 0.0,
+          "rps": 20.0,
+          "p50_ms": 140,
+          "p95_ms": 250,
+          "p99_ms": 350,
+          "errors": {},
+          "worker_exceptions": {},
+          "by_name": [
+            {
+              "name": "로그인",
+              "method": "POST",
+              "requests": 1200,
+              "failures": 0,
+              "p50_ms": 140,
+              "p95_ms": 250,
+              "p99_ms": 350
+            }
+          ],
+          "auth_during_transfer": 0,
+          "loadgen_cpu_warning": false,
+          "passed": true,
+          "reasons": [],
+          "resource_peaks": {
+            "podobank-nginx": {
+              "cpu": 11.600000000000577,
+              "memory": 38.98457348427877
+            },
+            "podobank-haproxy": {
+              "cpu": 7.04444444444462,
+              "memory": 37.88947379118311
+            },
+            "api-1": {
+              "cpu": 67.76111111111125,
+              "memory": 41.47364740844331
+            },
+            "api-2": {
+              "cpu": 69.2277777777776,
+              "memory": 40.926057254327056
+            },
+            "podobank-mariadb-master": {
+              "cpu": 10.322222222222187,
+              "memory": 27.67955899845308
+            },
+            "podobank-mariadb-replica": {
+              "cpu": 9.266666666666834,
+              "memory": 26.259309189169866
+            },
+            "podobank-mongodb": {
+              "cpu": 4.844444444444096,
+              "memory": 23.86011386450243
+            },
+            "podobank-prometheus": {
+              "cpu": 2.3666666666668057,
+              "memory": 25.14133773911248
+            },
+            "podobank-loki": {
+              "cpu": 2.94444444444506,
+              "memory": 20.732198920129708
+            },
+            "podobank-grafana": {
+              "cpu": 5.400000000000659,
+              "memory": 63.47213866441196
+            }
+          }
+        }
+      ],
+      "prepared": "2026-11-07T16:06:50.705958+00:00",
+      "finished": "2026-11-07T16:08:10.875300+00:00",
+      "artifact": "results/20261107T160650Z-login/manifest.json",
+      "group": "results"
+    },
+    {
+      "mode": "transfer",
+      "host": "http://172.30.1.191",
+      "accounts": 1000,
+      "rates": [
+        80.0,
+        160.0
+      ],
+      "started": "2026-11-07T16:08:11.239306+00:00",
+      "conditions": {
+        "seconds": 60.0,
+        "warmup": 10.0,
+        "cooldown": 10,
+        "prelogin_rate": 20.0,
+        "financial_retries": 0,
+        "database_reset": false,
+        "transfer_flow": [
+          "balance",
+          "recipient_lookup",
+          "transfer",
+          "balance"
+        ],
+        "reused_account_pool": true
+      },
+      "stages": [],
+      "prepared": "2026-11-07T16:08:11.260604+00:00",
+      "prelogin": {
+        "accounts": 1000,
+        "successful": 678,
+        "ready": false,
+        "seconds": 50.66,
+        "errors": {
+          "로그인:HTTP502:unexpected_response": 320,
+          "로그인:HTTP0:ChunkedEncodingError,IncompleteRead,ProtocolError": 2
+        }
+      },
+      "execution_error": "RuntimeError",
+      "preparation_errors": {
+        "로그인:HTTP502:unexpected_response": 320,
+        "로그인:HTTP0:ChunkedEncodingError,IncompleteRead,ProtocolError": 2
+      },
+      "finished": "2026-11-07T16:09:01.919568+00:00",
+      "artifact": "results/20261107T160811Z-transfer/manifest.json",
+      "group": "results"
+    },
+    {
+      "mode": "transfer",
+      "host": "http://172.30.1.191",
+      "accounts": 1000,
+      "rates": [
+        80.0,
+        160.0
+      ],
+      "started": "2026-11-07T16:10:11.056083+00:00",
+      "conditions": {
+        "seconds": 60.0,
+        "warmup": 10.0,
+        "cooldown": 10,
+        "prelogin_rate": 5.0,
+        "financial_retries": 0,
+        "database_reset": false,
+        "transfer_flow": [
+          "balance",
+          "recipient_lookup",
+          "transfer",
+          "balance"
+        ],
+        "reused_account_pool": true
+      },
+      "stages": [
+        {
+          "mode": "transfer",
+          "target_rate": 80.0,
+          "accounts": 1000,
+          "start": "2026-11-07T16:13:54.312532+00:00",
+          "window_end": "2026-11-07T16:14:54.311328+00:00",
+          "drained_end": "2026-11-07T16:14:54.399141+00:00",
+          "window_seconds": 60.0,
+          "elapsed_with_drain": 60.088,
+          "scheduled": 4800,
+          "missed_schedule": 0,
+          "missed_schedule_reasons": {
+            "account_busy": 0,
+            "scheduler_late": 0,
+            "both": 0
+          },
+          "schedule_delay_ms": {
+            "50": 0.3790830005527823,
+            "95": 1.345624999885331,
+            "99": 2.1814170004290645,
+            "100": 29.711749999478343
+          },
+          "flow_duration_ms": {
+            "50": 97.90770800009341,
+            "95": 138.80299999982526,
+            "99": 190.52525000006426,
+            "100": 545.2527910001663
+          },
+          "peak_inflight_flows": 20,
+          "loadgen_process_cpu_seconds": 15.469088,
+          "loadgen_process_cpu_percent_one_core": 25.744076575198772,
+          "completed": 4800,
+          "undrained": 0,
+          "transfer_attempts": 4800,
+          "transfer_tps": 80.0,
+          "requests": 19200,
+          "failures": 0,
+          "fail_ratio": 0.0,
+          "rps": 320.0,
+          "p50_ms": 21,
+          "p95_ms": 44,
+          "p99_ms": 58,
+          "errors": {},
+          "worker_exceptions": {},
+          "by_name": [
+            {
+              "name": "조회-잔액",
+              "method": "GET",
+              "requests": 9600,
+              "failures": 0,
+              "p50_ms": 19,
+              "p95_ms": 29,
+              "p99_ms": 40
+            },
+            {
+              "name": "조회-받는사람",
+              "method": "POST",
+              "requests": 4800,
+              "failures": 0,
+              "p50_ms": 20,
+              "p95_ms": 29,
+              "p99_ms": 40
+            },
+            {
+              "name": "송금",
+              "method": "POST",
+              "requests": 4669,
+              "failures": 0,
+              "p50_ms": 39,
+              "p95_ms": 55,
+              "p99_ms": 73
+            },
+            {
+              "name": "송금(잔액부족)",
+              "method": "POST",
+              "requests": 131,
+              "failures": 0,
+              "p50_ms": 34,
+              "p95_ms": 50,
+              "p99_ms": 69
+            }
+          ],
+          "auth_during_transfer": 0,
+          "loadgen_cpu_warning": false,
+          "passed": true,
+          "reasons": [],
+          "resource_peaks": {
+            "podobank-nginx": {
+              "cpu": 26.555555555555156,
+              "memory": 35.310664417389894
+            },
+            "podobank-haproxy": {
+              "cpu": 31.355555555554837,
+              "memory": 37.419158147192135
+            },
+            "api-1": {
+              "cpu": 37.06666666666681,
+              "memory": 33.30764157614957
+            },
+            "api-2": {
+              "cpu": 35.133333333332715,
+              "memory": 34.14381718027107
+            },
+            "podobank-mariadb-master": {
+              "cpu": 45.777777777778596,
+              "memory": 30.790875747893587
+            },
+            "podobank-mariadb-replica": {
+              "cpu": 11.511111111111772,
+              "memory": 25.822117303228907
+            },
+            "podobank-mongodb": {
+              "cpu": 8.111111111110315,
+              "memory": 24.63178714049974
+            },
+            "podobank-prometheus": {
+              "cpu": 1.7111111111100752,
+              "memory": 25.811736344302105
+            },
+            "podobank-loki": {
+              "cpu": 2.588888888887819,
+              "memory": 20.80825451418744
+            },
+            "podobank-grafana": {
+              "cpu": 3.8222222222207836,
+              "memory": 66.35379912521748
+            }
+          }
+        },
+        {
+          "mode": "transfer",
+          "target_rate": 160.0,
+          "accounts": 1000,
+          "start": "2026-11-07T16:15:15.227995+00:00",
+          "window_end": "2026-11-07T16:16:15.226902+00:00",
+          "drained_end": "2026-11-07T16:16:16.495844+00:00",
+          "window_seconds": 60.0,
+          "elapsed_with_drain": 61.269,
+          "scheduled": 7987,
+          "missed_schedule": 1613,
+          "missed_schedule_reasons": {
+            "account_busy": 1613,
+            "scheduler_late": 0,
+            "both": 0
+          },
+          "schedule_delay_ms": {
+            "50": 0.37929200061626034,
+            "95": 1.4362080009959755,
+            "99": 4.374207999717328,
+            "100": 67.41012500060606
+          },
+          "flow_duration_ms": {
+            "50": 3560.838416000479,
+            "95": 7010.576083999695,
+            "99": 7228.411374999268,
+            "100": 7498.085457999878
+          },
+          "peak_inflight_flows": 990,
+          "loadgen_process_cpu_seconds": 20.150196,
+          "loadgen_process_cpu_percent_one_core": 32.88797153389652,
+          "completed": 7987,
+          "undrained": 0,
+          "transfer_attempts": 7987,
+          "transfer_tps": 133.11666666666667,
+          "requests": 31948,
+          "failures": 0,
+          "fail_ratio": 0.0,
+          "rps": 532.4666666666667,
+          "p50_ms": 880,
+          "p95_ms": 1900,
+          "p99_ms": 2100,
+          "errors": {},
+          "worker_exceptions": {},
+          "by_name": [
+            {
+              "name": "조회-잔액",
+              "method": "GET",
+              "requests": 15974,
+              "failures": 0,
+              "p50_ms": 780,
+              "p95_ms": 1800,
+              "p99_ms": 2000
+            },
+            {
+              "name": "조회-받는사람",
+              "method": "POST",
+              "requests": 7987,
+              "failures": 0,
+              "p50_ms": 880,
+              "p95_ms": 1900,
+              "p99_ms": 2000
+            },
+            {
+              "name": "송금",
+              "method": "POST",
+              "requests": 7854,
+              "failures": 0,
+              "p50_ms": 1100,
+              "p95_ms": 2100,
+              "p99_ms": 2200
+            },
+            {
+              "name": "송금(잔액부족)",
+              "method": "POST",
+              "requests": 133,
+              "failures": 0,
+              "p50_ms": 960,
+              "p95_ms": 2000,
+              "p99_ms": 2100
+            }
+          ],
+          "auth_during_transfer": 0,
+          "loadgen_cpu_warning": false,
+          "passed": false,
+          "reasons": [
+            "latency",
+            "invalid_load_delivery",
+            "target_transfer_tps_not_reached"
+          ],
+          "resource_peaks": {
+            "podobank-nginx": {
+              "cpu": 50.20000000000033,
+              "memory": 37.417125668177476
+            },
+            "podobank-haproxy": {
+              "cpu": 73.82222222222077,
+              "memory": 37.73703786508405
+            },
+            "api-1": {
+              "cpu": 84.3166666666664,
+              "memory": 35.37854288007247
+            },
+            "api-2": {
+              "cpu": 84.64444444444477,
+              "memory": 35.81603605858527
+            },
+            "podobank-mariadb-master": {
+              "cpu": 91.41666666666728,
+              "memory": 32.00696610872929
+            },
+            "podobank-mariadb-replica": {
+              "cpu": 20.444444444444056,
+              "memory": 25.56758506082367
+            },
+            "podobank-mongodb": {
+              "cpu": 12.899999999999645,
+              "memory": 24.5048959353113
+            },
+            "podobank-prometheus": {
+              "cpu": 2.3111111111110416,
+              "memory": 25.39770166070602
+            },
+            "podobank-loki": {
+              "cpu": 4.566666666665298,
+              "memory": 20.639065568659532
+            },
+            "podobank-grafana": {
+              "cpu": 5.844444444444696,
+              "memory": 66.33428724736183
+            }
+          }
+        }
+      ],
+      "prepared": "2026-11-07T16:10:11.078222+00:00",
+      "prelogin": {
+        "accounts": 1000,
+        "successful": 1000,
+        "ready": true,
+        "seconds": 200.04,
+        "errors": {}
+      },
+      "balances": {
+        "checked": 1000,
+        "uncertain": 0,
+        "mismatched": 0,
+        "errors": 0,
+        "total_diff": 0
+      },
+      "finished": "2026-11-07T16:16:19.239144+00:00",
+      "artifact": "retry-results/20261107T161011Z-transfer/manifest.json",
+      "group": "retry-results"
+    },
+    {
+      "mode": "transfer",
+      "host": "http://172.30.1.191",
+      "accounts": 3000,
+      "rates": [
+        160.0
+      ],
+      "started": "2026-11-07T16:17:34.198870+00:00",
+      "conditions": {
+        "seconds": 60.0,
+        "warmup": 10.0,
+        "cooldown": 10,
+        "prelogin_rate": 20.0,
+        "prelogin_concurrency": 8,
+        "financial_retries": 0,
+        "database_reset": false,
+        "transfer_flow": [
+          "balance",
+          "recipient_lookup",
+          "transfer",
+          "balance"
+        ],
+        "reused_account_pool": true
+      },
+      "stages": [
+        {
+          "mode": "transfer",
+          "target_rate": 160.0,
+          "accounts": 3000,
+          "start": "2026-11-07T16:20:35.382040+00:00",
+          "window_end": "2026-11-07T16:21:35.381712+00:00",
+          "drained_end": "2026-11-07T16:21:45.827311+00:00",
+          "window_seconds": 60.0,
+          "elapsed_with_drain": 70.447,
+          "scheduled": 8801,
+          "missed_schedule": 799,
+          "missed_schedule_reasons": {
+            "account_busy": 755,
+            "scheduler_late": 44,
+            "both": 1
+          },
+          "schedule_delay_ms": {
+            "50": 0.3865829994538217,
+            "95": 1.5085829991221544,
+            "99": 45.7452500004365,
+            "100": 182.08920799952466
+          },
+          "flow_duration_ms": {
+            "50": 10552.64758300018,
+            "95": 21541.862208000566,
+            "99": 24524.127042000146,
+            "100": 26664.16879100052
+          },
+          "peak_inflight_flows": 2049,
+          "loadgen_process_cpu_seconds": 24.748639000000004,
+          "loadgen_process_cpu_percent_one_core": 35.13099411426086,
+          "completed": 8801,
+          "undrained": 0,
+          "transfer_attempts": 8245,
+          "transfer_tps": 137.41666666666666,
+          "requests": 33952,
+          "failures": 1308,
+          "fail_ratio": 0.03852497643732328,
+          "rps": 565.8666666666667,
+          "p50_ms": 2300,
+          "p95_ms": 7600,
+          "p99_ms": 8600,
+          "errors": {
+            "조회-잔액:HTTP0:ConnectionError,ConnectionResetError,ProtocolError": 178,
+            "조회-잔액:HTTP0:ConnectionError,ProtocolError,RemoteDisconnected": 119,
+            "조회-잔액:HTTP503:unexpected_response": 197,
+            "송금:HTTP503:unexpected_response": 56,
+            "조회-받는사람:HTTP503:unexpected_response": 62,
+            "조회-받는사람:HTTP0:ConnectionError,ProtocolError,RemoteDisconnected": 173,
+            "송금:HTTP0:ConnectionError,ProtocolError,RemoteDisconnected": 187,
+            "조회-받는사람:HTTP0:ConnectionError,ConnectionResetError,ProtocolError": 181,
+            "송금:HTTP0:ConnectionError,ConnectionResetError,ProtocolError": 154,
+            "조회-잔액:HTTP500:unexpected_response": 1
+          },
+          "worker_exceptions": {},
+          "by_name": [
+            {
+              "name": "조회-잔액",
+              "method": "GET",
+              "requests": 17046,
+              "failures": 495,
+              "p50_ms": 2300,
+              "p95_ms": 7600,
+              "p99_ms": 8500
+            },
+            {
+              "name": "조회-받는사람",
+              "method": "POST",
+              "requests": 8661,
+              "failures": 416,
+              "p50_ms": 2300,
+              "p95_ms": 7400,
+              "p99_ms": 8600
+            },
+            {
+              "name": "송금",
+              "method": "POST",
+              "requests": 8033,
+              "failures": 397,
+              "p50_ms": 2400,
+              "p95_ms": 7800,
+              "p99_ms": 8700
+            },
+            {
+              "name": "송금(잔액부족)",
+              "method": "POST",
+              "requests": 212,
+              "failures": 0,
+              "p50_ms": 2100,
+              "p95_ms": 7700,
+              "p99_ms": 8700
+            }
+          ],
+          "auth_during_transfer": 0,
+          "loadgen_cpu_warning": false,
+          "passed": false,
+          "reasons": [
+            "failure_ratio",
+            "latency",
+            "invalid_load_delivery",
+            "target_transfer_tps_not_reached"
+          ],
+          "resource_peaks": {
+            "podobank-nginx": {
+              "cpu": 52.77777777777779,
+              "memory": 39.28131542041828
+            },
+            "podobank-haproxy": {
+              "cpu": 78.20217978202191,
+              "memory": 43.2100973557448
+            },
+            "api-1": {
+              "cpu": 77.98888888888794,
+              "memory": 36.69954946722712
+            },
+            "api-2": {
+              "cpu": 76.27777777777787,
+              "memory": 37.26735835900858
+            },
+            "podobank-mariadb-master": {
+              "cpu": 86.53333333333346,
+              "memory": 32.50023332889843
+            },
+            "podobank-mariadb-replica": {
+              "cpu": 22.777777777777786,
+              "memory": 25.440517482711854
+            },
+            "podobank-mongodb": {
+              "cpu": 12.46666666666696,
+              "memory": 25.576421668013683
+            },
+            "podobank-prometheus": {
+              "cpu": 2.13333333333241,
+              "memory": 25.306753034765016
+            },
+            "podobank-loki": {
+              "cpu": 7.633333333333225,
+              "memory": 24.577673016547553
+            },
+            "podobank-grafana": {
+              "cpu": 5.644444444444375,
+              "memory": 64.50220321620786
+            }
+          }
+        }
+      ],
+      "prepared": "2026-11-07T16:17:34.253635+00:00",
+      "prelogin": {
+        "accounts": 3000,
+        "max_inflight_logins": 8,
+        "successful": 3000,
+        "ready": true,
+        "seconds": 150.03,
+        "errors": {}
+      },
+      "balances": {
+        "checked": 2281,
+        "uncertain": 719,
+        "mismatched": 0,
+        "errors": 0,
+        "total_diff": 0
+      },
+      "finished": "2026-11-07T16:21:54.975494+00:00",
+      "artifact": "expanded-results/20261107T161734Z-transfer/manifest.json",
+      "group": "expanded-results"
+    }
+  ],
+  "stages": [
+    {
+      "group": "results",
+      "mode": "login",
+      "accounts": 1000,
+      "target_rate": 20.0,
+      "start": "2026-11-07T16:07:00.762392+00:00",
+      "window_end": "2026-11-07T16:08:00.765197+00:00",
+      "drained_end": "2026-11-07T16:08:00.867588+00:00",
+      "window_seconds": 60.0,
+      "elapsed_with_drain": 60.107,
+      "scheduled": 1200,
+      "missed_schedule": 0,
+      "missed_schedule_reasons": {
+        "account_busy": 0,
+        "scheduler_late": 0,
+        "both": 0
+      },
+      "schedule_delay_ms": {
+        "50": 3.5336250002728775,
+        "95": 5.113999999593943,
+        "99": 5.170292000002519,
+        "100": 5.409624999629159
+      },
+      "flow_duration_ms": {
+        "50": 140.62562500021158,
+        "95": 248.55604099957418,
+        "99": 346.20941699995456,
+        "100": 460.26283399987733
+      },
+      "peak_inflight_flows": 9,
+      "loadgen_process_cpu_seconds": 3.4139050000000006,
+      "loadgen_process_cpu_percent_one_core": 5.679710557836647,
+      "completed": 1200,
+      "undrained": 0,
+      "transfer_attempts": 0,
+      "transfer_tps": 0.0,
+      "requests": 1200,
+      "failures": 0,
+      "fail_ratio": 0.0,
+      "rps": 20.0,
+      "p50_ms": 140,
+      "p95_ms": 250,
+      "p99_ms": 350,
+      "errors": {},
+      "worker_exceptions": {},
+      "by_name": [
+        {
+          "name": "로그인",
+          "method": "POST",
+          "requests": 1200,
+          "failures": 0,
+          "p50_ms": 140,
+          "p95_ms": 250,
+          "p99_ms": 350
+        }
+      ],
+      "auth_during_transfer": 0,
+      "loadgen_cpu_warning": false,
+      "passed": true,
+      "reasons": [],
+      "resource_peaks": {
+        "podobank-nginx": {
+          "cpu": 11.600000000000577,
+          "memory": 38.98457348427877
+        },
+        "podobank-haproxy": {
+          "cpu": 7.04444444444462,
+          "memory": 37.88947379118311
+        },
+        "api-1": {
+          "cpu": 67.76111111111125,
+          "memory": 41.47364740844331
+        },
+        "api-2": {
+          "cpu": 69.2277777777776,
+          "memory": 40.926057254327056
+        },
+        "podobank-mariadb-master": {
+          "cpu": 10.322222222222187,
+          "memory": 27.67955899845308
+        },
+        "podobank-mariadb-replica": {
+          "cpu": 9.266666666666834,
+          "memory": 26.259309189169866
+        },
+        "podobank-mongodb": {
+          "cpu": 4.844444444444096,
+          "memory": 23.86011386450243
+        },
+        "podobank-prometheus": {
+          "cpu": 2.3666666666668057,
+          "memory": 25.14133773911248
+        },
+        "podobank-loki": {
+          "cpu": 2.94444444444506,
+          "memory": 20.732198920129708
+        },
+        "podobank-grafana": {
+          "cpu": 5.400000000000659,
+          "memory": 63.47213866441196
+        }
+      }
+    },
+    {
+      "group": "retry-results",
+      "mode": "transfer",
+      "accounts": 1000,
+      "target_rate": 80.0,
+      "start": "2026-11-07T16:13:54.312532+00:00",
+      "window_end": "2026-11-07T16:14:54.311328+00:00",
+      "drained_end": "2026-11-07T16:14:54.399141+00:00",
+      "window_seconds": 60.0,
+      "elapsed_with_drain": 60.088,
+      "scheduled": 4800,
+      "missed_schedule": 0,
+      "missed_schedule_reasons": {
+        "account_busy": 0,
+        "scheduler_late": 0,
+        "both": 0
+      },
+      "schedule_delay_ms": {
+        "50": 0.3790830005527823,
+        "95": 1.345624999885331,
+        "99": 2.1814170004290645,
+        "100": 29.711749999478343
+      },
+      "flow_duration_ms": {
+        "50": 97.90770800009341,
+        "95": 138.80299999982526,
+        "99": 190.52525000006426,
+        "100": 545.2527910001663
+      },
+      "peak_inflight_flows": 20,
+      "loadgen_process_cpu_seconds": 15.469088,
+      "loadgen_process_cpu_percent_one_core": 25.744076575198772,
+      "completed": 4800,
+      "undrained": 0,
+      "transfer_attempts": 4800,
+      "transfer_tps": 80.0,
+      "requests": 19200,
+      "failures": 0,
+      "fail_ratio": 0.0,
+      "rps": 320.0,
+      "p50_ms": 21,
+      "p95_ms": 44,
+      "p99_ms": 58,
+      "errors": {},
+      "worker_exceptions": {},
+      "by_name": [
+        {
+          "name": "조회-잔액",
+          "method": "GET",
+          "requests": 9600,
+          "failures": 0,
+          "p50_ms": 19,
+          "p95_ms": 29,
+          "p99_ms": 40
+        },
+        {
+          "name": "조회-받는사람",
+          "method": "POST",
+          "requests": 4800,
+          "failures": 0,
+          "p50_ms": 20,
+          "p95_ms": 29,
+          "p99_ms": 40
+        },
+        {
+          "name": "송금",
+          "method": "POST",
+          "requests": 4669,
+          "failures": 0,
+          "p50_ms": 39,
+          "p95_ms": 55,
+          "p99_ms": 73
+        },
+        {
+          "name": "송금(잔액부족)",
+          "method": "POST",
+          "requests": 131,
+          "failures": 0,
+          "p50_ms": 34,
+          "p95_ms": 50,
+          "p99_ms": 69
+        }
+      ],
+      "auth_during_transfer": 0,
+      "loadgen_cpu_warning": false,
+      "passed": true,
+      "reasons": [],
+      "resource_peaks": {
+        "podobank-nginx": {
+          "cpu": 26.555555555555156,
+          "memory": 35.310664417389894
+        },
+        "podobank-haproxy": {
+          "cpu": 31.355555555554837,
+          "memory": 37.419158147192135
+        },
+        "api-1": {
+          "cpu": 37.06666666666681,
+          "memory": 33.30764157614957
+        },
+        "api-2": {
+          "cpu": 35.133333333332715,
+          "memory": 34.14381718027107
+        },
+        "podobank-mariadb-master": {
+          "cpu": 45.777777777778596,
+          "memory": 30.790875747893587
+        },
+        "podobank-mariadb-replica": {
+          "cpu": 11.511111111111772,
+          "memory": 25.822117303228907
+        },
+        "podobank-mongodb": {
+          "cpu": 8.111111111110315,
+          "memory": 24.63178714049974
+        },
+        "podobank-prometheus": {
+          "cpu": 1.7111111111100752,
+          "memory": 25.811736344302105
+        },
+        "podobank-loki": {
+          "cpu": 2.588888888887819,
+          "memory": 20.80825451418744
+        },
+        "podobank-grafana": {
+          "cpu": 3.8222222222207836,
+          "memory": 66.35379912521748
+        }
+      }
+    },
+    {
+      "group": "retry-results",
+      "mode": "transfer",
+      "accounts": 1000,
+      "target_rate": 160.0,
+      "start": "2026-11-07T16:15:15.227995+00:00",
+      "window_end": "2026-11-07T16:16:15.226902+00:00",
+      "drained_end": "2026-11-07T16:16:16.495844+00:00",
+      "window_seconds": 60.0,
+      "elapsed_with_drain": 61.269,
+      "scheduled": 7987,
+      "missed_schedule": 1613,
+      "missed_schedule_reasons": {
+        "account_busy": 1613,
+        "scheduler_late": 0,
+        "both": 0
+      },
+      "schedule_delay_ms": {
+        "50": 0.37929200061626034,
+        "95": 1.4362080009959755,
+        "99": 4.374207999717328,
+        "100": 67.41012500060606
+      },
+      "flow_duration_ms": {
+        "50": 3560.838416000479,
+        "95": 7010.576083999695,
+        "99": 7228.411374999268,
+        "100": 7498.085457999878
+      },
+      "peak_inflight_flows": 990,
+      "loadgen_process_cpu_seconds": 20.150196,
+      "loadgen_process_cpu_percent_one_core": 32.88797153389652,
+      "completed": 7987,
+      "undrained": 0,
+      "transfer_attempts": 7987,
+      "transfer_tps": 133.11666666666667,
+      "requests": 31948,
+      "failures": 0,
+      "fail_ratio": 0.0,
+      "rps": 532.4666666666667,
+      "p50_ms": 880,
+      "p95_ms": 1900,
+      "p99_ms": 2100,
+      "errors": {},
+      "worker_exceptions": {},
+      "by_name": [
+        {
+          "name": "조회-잔액",
+          "method": "GET",
+          "requests": 15974,
+          "failures": 0,
+          "p50_ms": 780,
+          "p95_ms": 1800,
+          "p99_ms": 2000
+        },
+        {
+          "name": "조회-받는사람",
+          "method": "POST",
+          "requests": 7987,
+          "failures": 0,
+          "p50_ms": 880,
+          "p95_ms": 1900,
+          "p99_ms": 2000
+        },
+        {
+          "name": "송금",
+          "method": "POST",
+          "requests": 7854,
+          "failures": 0,
+          "p50_ms": 1100,
+          "p95_ms": 2100,
+          "p99_ms": 2200
+        },
+        {
+          "name": "송금(잔액부족)",
+          "method": "POST",
+          "requests": 133,
+          "failures": 0,
+          "p50_ms": 960,
+          "p95_ms": 2000,
+          "p99_ms": 2100
+        }
+      ],
+      "auth_during_transfer": 0,
+      "loadgen_cpu_warning": false,
+      "passed": false,
+      "reasons": [
+        "latency",
+        "invalid_load_delivery",
+        "target_transfer_tps_not_reached"
+      ],
+      "resource_peaks": {
+        "podobank-nginx": {
+          "cpu": 50.20000000000033,
+          "memory": 37.417125668177476
+        },
+        "podobank-haproxy": {
+          "cpu": 73.82222222222077,
+          "memory": 37.73703786508405
+        },
+        "api-1": {
+          "cpu": 84.3166666666664,
+          "memory": 35.37854288007247
+        },
+        "api-2": {
+          "cpu": 84.64444444444477,
+          "memory": 35.81603605858527
+        },
+        "podobank-mariadb-master": {
+          "cpu": 91.41666666666728,
+          "memory": 32.00696610872929
+        },
+        "podobank-mariadb-replica": {
+          "cpu": 20.444444444444056,
+          "memory": 25.56758506082367
+        },
+        "podobank-mongodb": {
+          "cpu": 12.899999999999645,
+          "memory": 24.5048959353113
+        },
+        "podobank-prometheus": {
+          "cpu": 2.3111111111110416,
+          "memory": 25.39770166070602
+        },
+        "podobank-loki": {
+          "cpu": 4.566666666665298,
+          "memory": 20.639065568659532
+        },
+        "podobank-grafana": {
+          "cpu": 5.844444444444696,
+          "memory": 66.33428724736183
+        }
+      }
+    },
+    {
+      "group": "expanded-results",
+      "mode": "transfer",
+      "accounts": 3000,
+      "target_rate": 160.0,
+      "start": "2026-11-07T16:20:35.382040+00:00",
+      "window_end": "2026-11-07T16:21:35.381712+00:00",
+      "drained_end": "2026-11-07T16:21:45.827311+00:00",
+      "window_seconds": 60.0,
+      "elapsed_with_drain": 70.447,
+      "scheduled": 8801,
+      "missed_schedule": 799,
+      "missed_schedule_reasons": {
+        "account_busy": 755,
+        "scheduler_late": 44,
+        "both": 1
+      },
+      "schedule_delay_ms": {
+        "50": 0.3865829994538217,
+        "95": 1.5085829991221544,
+        "99": 45.7452500004365,
+        "100": 182.08920799952466
+      },
+      "flow_duration_ms": {
+        "50": 10552.64758300018,
+        "95": 21541.862208000566,
+        "99": 24524.127042000146,
+        "100": 26664.16879100052
+      },
+      "peak_inflight_flows": 2049,
+      "loadgen_process_cpu_seconds": 24.748639000000004,
+      "loadgen_process_cpu_percent_one_core": 35.13099411426086,
+      "completed": 8801,
+      "undrained": 0,
+      "transfer_attempts": 8245,
+      "transfer_tps": 137.41666666666666,
+      "requests": 33952,
+      "failures": 1308,
+      "fail_ratio": 0.03852497643732328,
+      "rps": 565.8666666666667,
+      "p50_ms": 2300,
+      "p95_ms": 7600,
+      "p99_ms": 8600,
+      "errors": {
+        "조회-잔액:HTTP0:ConnectionError,ConnectionResetError,ProtocolError": 178,
+        "조회-잔액:HTTP0:ConnectionError,ProtocolError,RemoteDisconnected": 119,
+        "조회-잔액:HTTP503:unexpected_response": 197,
+        "송금:HTTP503:unexpected_response": 56,
+        "조회-받는사람:HTTP503:unexpected_response": 62,
+        "조회-받는사람:HTTP0:ConnectionError,ProtocolError,RemoteDisconnected": 173,
+        "송금:HTTP0:ConnectionError,ProtocolError,RemoteDisconnected": 187,
+        "조회-받는사람:HTTP0:ConnectionError,ConnectionResetError,ProtocolError": 181,
+        "송금:HTTP0:ConnectionError,ConnectionResetError,ProtocolError": 154,
+        "조회-잔액:HTTP500:unexpected_response": 1
+      },
+      "worker_exceptions": {},
+      "by_name": [
+        {
+          "name": "조회-잔액",
+          "method": "GET",
+          "requests": 17046,
+          "failures": 495,
+          "p50_ms": 2300,
+          "p95_ms": 7600,
+          "p99_ms": 8500
+        },
+        {
+          "name": "조회-받는사람",
+          "method": "POST",
+          "requests": 8661,
+          "failures": 416,
+          "p50_ms": 2300,
+          "p95_ms": 7400,
+          "p99_ms": 8600
+        },
+        {
+          "name": "송금",
+          "method": "POST",
+          "requests": 8033,
+          "failures": 397,
+          "p50_ms": 2400,
+          "p95_ms": 7800,
+          "p99_ms": 8700
+        },
+        {
+          "name": "송금(잔액부족)",
+          "method": "POST",
+          "requests": 212,
+          "failures": 0,
+          "p50_ms": 2100,
+          "p95_ms": 7700,
+          "p99_ms": 8700
+        }
+      ],
+      "auth_during_transfer": 0,
+      "loadgen_cpu_warning": false,
+      "passed": false,
+      "reasons": [
+        "failure_ratio",
+        "latency",
+        "invalid_load_delivery",
+        "target_transfer_tps_not_reached"
+      ],
+      "resource_peaks": {
+        "podobank-nginx": {
+          "cpu": 52.77777777777779,
+          "memory": 39.28131542041828
+        },
+        "podobank-haproxy": {
+          "cpu": 78.20217978202191,
+          "memory": 43.2100973557448
+        },
+        "api-1": {
+          "cpu": 77.98888888888794,
+          "memory": 36.69954946722712
+        },
+        "api-2": {
+          "cpu": 76.27777777777787,
+          "memory": 37.26735835900858
+        },
+        "podobank-mariadb-master": {
+          "cpu": 86.53333333333346,
+          "memory": 32.50023332889843
+        },
+        "podobank-mariadb-replica": {
+          "cpu": 22.777777777777786,
+          "memory": 25.440517482711854
+        },
+        "podobank-mongodb": {
+          "cpu": 12.46666666666696,
+          "memory": 25.576421668013683
+        },
+        "podobank-prometheus": {
+          "cpu": 2.13333333333241,
+          "memory": 25.306753034765016
+        },
+        "podobank-loki": {
+          "cpu": 7.633333333333225,
+          "memory": 24.577673016547553
+        },
+        "podobank-grafana": {
+          "cpu": 5.644444444444375,
+          "memory": 64.50220321620786
+        }
+      }
+    }
+  ],
+  "validation": {
+    "pytest_backend_and_deploy": 215,
+    "unittest_loadtest": 15,
+    "pytest_warnings": 1,
+    "ruff": "passed",
+    "financial_integrity_verification": "See final-verification.log"
+  },
+  "final_window_diagnostics": {
+    "window": {
+      "start": "2026-11-07T16:20:35.382040+00:00",
+      "end": "2026-11-07T16:21:45.827311+00:00",
+      "experiment_start": "2026-11-07T16:17:34.198870+00:00"
+    },
+    "hosts": {
+      "api-1": {
+        "nginx_connection_limit": 0,
+        "nginx_file_limit": 0,
+        "nginx_upstream_timeout": 0,
+        "haproxy_down": 0,
+        "haproxy_no_server": 0,
+        "kernel_oom": 0
+      },
+      "api-2": {
+        "nginx_connection_limit": 0,
+        "nginx_file_limit": 0,
+        "nginx_upstream_timeout": 0,
+        "haproxy_down": 0,
+        "haproxy_no_server": 0,
+        "kernel_oom": 0
+      },
+      "podobank-nginx": {
+        "nginx_connection_limit": 1,
+        "nginx_file_limit": 0,
+        "nginx_upstream_timeout": 0,
+        "haproxy_down": 0,
+        "haproxy_no_server": 0,
+        "kernel_oom": 0
+      },
+      "podobank-haproxy": {
+        "nginx_connection_limit": 0,
+        "nginx_file_limit": 0,
+        "nginx_upstream_timeout": 0,
+        "haproxy_down": 10,
+        "haproxy_no_server": 2,
+        "kernel_oom": 0
+      }
+    }
+  }
+}

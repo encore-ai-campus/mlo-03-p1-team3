@@ -71,6 +71,67 @@ def panel(d,title,q,kind='timeseries',source=P,unit='short',w=12,h=7,description
 def note(d,text):panel(d,'읽는 방법',text,'text',w=24,h=5)
 
 
+
+def operational_summary(d):
+    """Keep the existing overview UID and service pages, independent of target IPs."""
+    uid = d['uid']
+    if uid == 'podobank-overview':
+        d['title'] = 'PodoBank / 운영 요약'
+        d['panels'] = []
+        traffic = 'podobank_http_requests_total{job="fastapi",route!~"/health|unmatched"}'
+        observed = 'sum(increase(podobank_http_requests_total{job="fastapi"}[$__range]))'
+        total = '(sum(increase(' + traffic + '[$__range])) or (0 * ' + observed + '))'
+        panel(d, 'API 요청 · 선택 기간', total, 'stat', w=6, h=4,
+              description='Prometheus counter 증가량의 표본 추정치입니다. 헬스체크는 제외합니다.')
+        for code, color in [('2', 'green'), ('4', 'orange'), ('5', 'red')]:
+            filtered = traffic[:-1] + ',status_code=~"' + code + '.."}'
+            q = 'sum(increase(' + filtered + '[$__range])) or (0 * ' + total + ')'
+            item = panel(d, 'API ' + code + 'xx · 선택 기간', q, 'stat', w=6, h=4)
+            item['fieldConfig']['defaults']['color'] = {'mode':'fixed','fixedColor':color}
+        panel(d, 'API 요청률', '(sum(rate(' + traffic + '[$__rate_interval])) or (0 * sum(rate(podobank_http_requests_total{job="fastapi"}[$__rate_interval]))))', 'stat', unit='reqps', w=6, h=4)
+        panel(d, 'API 응답 p95', '1000*histogram_quantile(0.95,sum by(le)(rate(podobank_http_request_duration_seconds_bucket{job="fastapi",route!~"/health|unmatched"}[$__rate_interval])))', 'stat', unit='ms', w=6, h=4)
+        panel(d, '정상 API 백엔드 · 목표 2', 'sum(haproxy_server_status{job="haproxy",proxy="fastapi",state="UP"})', 'stat', w=6, h=4)
+        item = panel(d, '수집 실패 대상', 'sum(1-up)', 'stat', w=6, h=4)
+        item['fieldConfig']['defaults'].update(color={'mode':'thresholds'}, thresholds={'mode':'absolute','steps':[{'color':'green','value':None},{'color':'red','value':1}]})
+        panel(d, 'HTTP 응답 추이', 'sum by(status_code)(rate(' + traffic + '[$__rate_interval]))', unit='reqps', legend='HTTP {{status_code}}', h=7)
+        panel(d, '오류 API · 선택 기간', 'sum by(route,status_code)(increase(podobank_http_requests_total{job="fastapi",route!~"/health|unmatched",status_code=~"4..|5.."}[$__range])) > 0', 'table', h=7)
+        for store, dataset, title in [('mariadb','ledger_entries','MariaDB 거래 원장'),('mariadb','card_payments','MariaDB 카드 결제'),('mongodb','events_bronze','MongoDB 이벤트'),('mongodb','card_payment_locations','MongoDB 카드 위치')]:
+            selector = 'podobank_db_records{store="' + store + '",dataset="' + dataset + '"' + (',server!~".*replica"' if store=='mariadb' else '') + '}'
+            panel(d, title, 'sum(' + selector + ' and on(instance) (' + FRESH + '))', 'stat', w=6, h=4, description='現在 저장된 누적 건수입니다. 2분 주기 읽기 전용 집계이며 집계 장애 시 수집 없음으로 표시합니다.'.replace('現在','현재'))
+        panel(d, 'DB 적재 현황 · 현재 건수', 'sum by(store,dataset,kind)(podobank_db_records{server!~".*replica"} and on(instance) (' + FRESH + '))', 'table', w=12, h=9)
+        panel(d, 'DB 저장 건수 추이', 'sum by(store,dataset)(podobank_db_records{server!~".*replica"} and on(instance) (' + FRESH + '))', w=12, h=9, legend='{{store}} · {{dataset}}')
+        panel(d, 'DB 집계 경과', 'max by(store)(time()-podobank_business_collect_success_timestamp_seconds)', 'stat', unit='s', w=12, h=4, legend='{{store}}', description='180초 이상이면 집계 상태를 확인하세요.')
+        panel(d, 'MariaDB 복제 지연', 'mysql_slave_status_seconds_behind_master{role="replica"}', 'stat', unit='s', w=12, h=4)
+        panel(d, '서버별 CPU', '100*(1-avg by(server)(rate(node_cpu_seconds_total{job="node",mode="idle"}[$__rate_interval])))', unit='percent', h=8)
+        panel(d, '서버별 메모리', '100*(1-node_memory_MemAvailable_bytes{job="node"}/node_memory_MemTotal_bytes{job="node"})', unit='percent', h=8)
+    elif uid == 'podobank-api':
+        # Financial outcomes remain in one compact table instead of six empty tiles.
+        d['panels'] = [p for p in d['panels'] if not p['title'].endswith(' · 성공/실패') and p['title'] not in ['대출 심사 결과 · 승인 / 반려','대출 상환 결과 · 납부 / 연체 / 회복']]
+    for item in d['panels']:
+        defaults = item.get('fieldConfig', {}).get('defaults', {})
+        defaults['noValue'] = '수집 없음' if item['datasource']['type'] == 'prometheus' else '기록 없음'
+        defaults['mappings'] = [m for m in defaults.get('mappings', []) if m.get('type') != 'special']
+        defaults['mappings'].append({'type':'special','options':{'match':'null','result':{'text':defaults['noValue'],'color':'gray'}}})
+        if item['title'] == 'API 응답 p95':
+            defaults['mappings'].append({'type':'special','options':{'match':'nan','result':{'text':'요청 없음','color':'gray'}}})
+        if item['title'] in ['MariaDB 거래 원장','MariaDB 카드 결제','MongoDB 이벤트','MongoDB 카드 위치']:
+            defaults.update(unit='none',decimals=0)
+        if item['type'] == 'stat':
+            item['gridPos']['h'] = 4
+            item['options'].update(textMode='value', reduceOptions={'calcs':['lastNotNull'],'values':False}, text={'valueSize':30,'titleSize':14})
+        if item['type'] == 'state-timeline':
+            # Stable identity collapses old/new endpoint series after address changes.
+            target = item['targets'][0]
+            target.update(expr='max by(server,job)(' + ('up{job="node"}' if uid == 'podobank-servers' else 'up{job!="node"}') + ')', legendFormat='{{server}} · {{job}}')
+            item['gridPos'].update(w=24,h=12)
+            item['options'].update(showValue='never',rowHeight=0.8,mergeValues=True,perPage=10)
+            item['description']='서버 역할·서비스 기준 상태입니다. 주소 변경 시 같은 역할의 응답 대상 중 하나 이상 정상일 때 UP으로 표시합니다.'
+        for target in item.get('targets', []):
+            legend = target.get('legendFormat','')
+            if '{{instance}}' in legend:
+                target['legendFormat'] = legend.replace(' {{instance}}','').replace('{{instance}}','')
+
+
 def main():
     b=board('business','금융 업무 · 성공·실패·실제 저장')
     note(b,'**① 업무 로그 → ② 실제 DB 저장 → ③ 요청 ID 추적 순서로 확인하세요.**\n\n업무 성공 이벤트는 MariaDB 커밋 후 생성됩니다. Loki 도착이 MongoDB 저장 성공까지 보장하지는 않습니다. 아래 DB 값은 **현재 저장 건수(2분 주기)**이며 선택 기간의 요청 건수가 아닙니다. 빈 값은 0건과 다릅니다. API/업무 필터는 로그에 적용되며 DB 합계는 전체 서버·전체 업무 기준입니다. 요청 ID 검색은 하단 상세 로그에만 적용됩니다. 승인 완료와 대출 신청 성공도 구분합니다.')
@@ -169,6 +230,7 @@ def main():
             indexed={p['title']:p for p in d['panels']};d['panels']=[indexed[t] for t in order]
             for title in ['MongoDB 업무 이벤트 · 전체 문서 수','MongoDB 카드 위치 · 전체 문서 수']:indexed[title]['gridPos']['w']=12
             for title in ['로그·MongoDB 저장 오류 · 선택 기간','MongoDB 연산률']:indexed[title]['gridPos']['w']=24
+        operational_summary(d)
         d['panels']=pack(d['panels'])
         d['links']=[{'type':'link','title':title,'url':'/d/podobank-'+slug,'keepTime':True,'targetBlank':False} for slug,title in NAV]
         path.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')

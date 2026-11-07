@@ -1,6 +1,6 @@
 """Isolate login RPS from transfer-flow TPS using Locust's HTTP statistics.
 
-Accounts and credentials exist only in memory. No resets, financial retries,
+Credentials stay in memory or a private .env file. No resets, financial retries,
 user respawning, or login requests during a measured transfer phase.
 """
 
@@ -10,6 +10,7 @@ monkey.patch_all()
 
 import argparse
 import json
+import math
 import random
 import re
 import secrets
@@ -69,7 +70,7 @@ class Account:
 
 
 class Experiment:
-    def __init__(self, host, count=1000, seed=20261107):
+    def __init__(self, host, count=1000, seed=20261107, accounts=None):
         self.env = Environment(host=host)
         self.runner = self.env.create_local_runner()
         prefix = secrets.randbelow(100_000)
@@ -83,6 +84,10 @@ class Experiment:
             )
             for i in range(count)
         ]
+        if accounts is not None:
+            for a, record in zip(self.accounts, accounts, strict=True):
+                a.phone, a.password = record["phone_number"], record["password"]
+        self.reusing_accounts = accounts is not None
         for a in self.accounts:
             a.client.trust_env = False
         self.rng = random.Random(seed)
@@ -193,10 +198,10 @@ class Experiment:
         for _ in Pool(8).imap_unordered(signup, self.accounts):
             pass
 
-    def prelogin(self, rate):
+    def prelogin(self, rate, concurrency=8):
         self.phase = "prelogin"
         successes = []
-        pending = Group()
+        pending = Pool(concurrency)
         started = time.monotonic()
         for i, a in enumerate(self.accounts):
             gevent.sleep(max(0, started + i / rate - time.monotonic()))
@@ -209,6 +214,7 @@ class Experiment:
             pending.kill(block=True)
         return {
             "accounts": len(self.accounts),
+            "max_inflight_logins": concurrency,
             "successful": sum(successes),
             "ready": self.ready,
             "seconds": round(time.monotonic() - started, 2),
@@ -267,17 +273,26 @@ class Experiment:
         self.transfer_attempts = 0
         pending, exceptions = Group(), []
         scheduled = missed = completed = 0
+        missed_reasons = Counter()
+        delays, durations = [], []
+        active = peak_active = 0
+        cpu_started = time.process_time()
         started, stamp = time.monotonic(), now()
         slots = round(rate * seconds)
 
         def work(a):
-            nonlocal completed
+            nonlocal completed, active, peak_active
+            active += 1
+            peak_active = max(peak_active, active)
+            flow_started = time.monotonic()
             try:
                 self.login(a) if mode == "login" else self.flow(a)
                 completed += 1
             except Exception as exc:  # noqa: BLE001 - record worker failure without leaking request data
                 exceptions.append(type(exc).__name__)
             finally:
+                durations.append((time.monotonic() - flow_started) * 1000)
+                active -= 1
                 a.busy = False
 
         for slot in range(slots):
@@ -285,8 +300,15 @@ class Experiment:
             gevent.sleep(max(0, deadline - time.monotonic()))
             a = self.accounts[self.cursor % len(self.accounts)]
             self.cursor += 1
-            if time.monotonic() - deadline > max(0.1, 2 / rate) or a.busy:
+            delay = max(0, time.monotonic() - deadline)
+            delays.append(delay * 1000)
+            late = delay > max(0.1, 2 / rate)
+            if late or a.busy:
                 missed += 1
+                # Disjoint categories; retain overlap separately without double counting.
+                missed_reasons["scheduler_late" if late else "account_busy"] += 1
+                if late and a.busy:
+                    missed_reasons["both"] += 1
                 continue
             a.busy = True
             scheduled += 1
@@ -298,6 +320,10 @@ class Experiment:
         if pending:
             pending.kill(block=True)
         elapsed = time.monotonic() - started
+        cpu_seconds = time.process_time() - cpu_started
+        def summary(values):
+            ordered = sorted(values)
+            return {str(p): ordered[max(0, math.ceil(len(ordered)*p/100)-1)] if ordered else None for p in (50, 95, 99, 100)}
         total = self.env.stats.total
         rows = [
             {
@@ -323,6 +349,12 @@ class Experiment:
             "elapsed_with_drain": round(elapsed, 3),
             "scheduled": scheduled,
             "missed_schedule": missed,
+            "missed_schedule_reasons": {k: missed_reasons[k] for k in ("account_busy", "scheduler_late", "both")},
+            "schedule_delay_ms": summary(delays),
+            "flow_duration_ms": summary(durations),
+            "peak_inflight_flows": peak_active,
+            "loadgen_process_cpu_seconds": cpu_seconds,
+            "loadgen_process_cpu_percent_one_core": 100 * cpu_seconds / elapsed,
             "completed": completed,
             "undrained": undrained,
             "transfer_attempts": self.transfer_attempts,
@@ -340,6 +372,17 @@ class Experiment:
             "auth_during_transfer": self.auth_during_transfer,
             "loadgen_cpu_warning": bool(self.runner.cpu_warning_emitted),
         }
+
+    def capture_balances(self):
+        """Read the baseline of reused accounts; never fund or reset them."""
+        self.phase = "baseline"
+        def one(a):
+            _status, data, ok = self.request(a, "GET", "/accounts/me", "준비-잔액")
+            if not ok or not isinstance(data.get("balance"), int):
+                raise RuntimeError("Account baseline unavailable")
+            a.initial = data["balance"]
+        for _ in Pool(8).imap_unordered(one, self.accounts):
+            pass
 
     def verify_balances(self):
         self.phase = "verification"
@@ -399,10 +442,12 @@ def main():
     p.add_argument("--allow-remote", action="store_true")
     p.add_argument("--accounts", type=int, default=1000)
     p.add_argument("--rates", default=None)
+    p.add_argument("--pool-env", type=Path, help="Reuse private PODOBANK_ACCOUNTS_JSON; never signup or fund")
     p.add_argument("--seconds", type=float, default=60)
     p.add_argument("--warmup", type=float, default=10)
     p.add_argument("--cooldown", type=float, default=10)
     p.add_argument("--prelogin-rate", type=float, default=5)
+    p.add_argument("--prelogin-concurrency", type=int, default=8)
     p.add_argument("--output", type=Path, default=Path("loadtest/results"))
     args = p.parse_args()
     origin = urlsplit(args.host)
@@ -429,11 +474,12 @@ def main():
         ).split(",")
     ]
     if (
-        not 2 <= args.accounts <= 1000
+        not 2 <= args.accounts <= (10000 if args.pool_env else 1000)
         or min(rates) <= 0
         or args.seconds <= 0
         or min(args.warmup, args.cooldown) < 0
         or args.prelogin_rate <= 0
+        or not 1 <= args.prelogin_concurrency <= 32
     ):
         p.error("invalid account count, rates or durations")
     folder = args.output / (
@@ -451,16 +497,23 @@ def main():
             "warmup": args.warmup,
             "cooldown": args.cooldown,
             "prelogin_rate": args.prelogin_rate,
+            "prelogin_concurrency": args.prelogin_concurrency,
             "financial_retries": 0,
             "database_reset": False,
             "transfer_flow": ["balance", "recipient_lookup", "transfer", "balance"],
         },
         "stages": [],
     }
-    experiment = Experiment(args.host, args.accounts)
+    records = None
+    if args.pool_env:
+        from handoff_common import parse_accounts, read_env
+        records = parse_accounts(read_env(args.pool_env).get("PODOBANK_ACCOUNTS_JSON"), args.accounts)[:args.accounts]
+    manifest["conditions"]["reused_account_pool"] = records is not None
+    experiment = Experiment(args.host, args.accounts, accounts=records)
     try:
         print("Preparing", args.accounts, "accounts for", args.mode, flush=True)
-        experiment.prepare(funded=args.mode == "transfer")
+        if records is None:
+            experiment.prepare(funded=args.mode == "transfer")
         manifest["prepared"] = now()
         write(folder / "manifest.json", manifest)
         if args.mode == "transfer":
@@ -469,12 +522,14 @@ def main():
                 flush=True,
             )
             experiment.codes.clear()
-            manifest["prelogin"] = experiment.prelogin(args.prelogin_rate)
+            manifest["prelogin"] = experiment.prelogin(args.prelogin_rate, args.prelogin_concurrency)
             write(folder / "manifest.json", manifest)
             if not experiment.ready:
                 raise RuntimeError(
                     "Prelogin barrier failed; no transfer measurement started"
                 )
+            if records is not None:
+                experiment.capture_balances()
             print("All sessions ready", flush=True)
             gevent.sleep(10)
         for rate in rates:

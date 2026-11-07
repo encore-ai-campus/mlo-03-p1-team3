@@ -1,3 +1,4 @@
+import os
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
@@ -9,15 +10,25 @@ from app.core.config import DB_MAX_OVERFLOW, DB_POOL_SIZE, DB_POOL_TIMEOUT_SECON
 
 
 def make_engine(url: str) -> Engine:
+    pool_size = int(os.environ.get("DB_POOL_SIZE", DB_POOL_SIZE))
+    overflow = int(os.environ.get("DB_MAX_OVERFLOW", DB_MAX_OVERFLOW))
+    timeout = int(os.environ.get("DB_POOL_TIMEOUT_SECONDS", DB_POOL_TIMEOUT_SECONDS))
+    if not 1 <= pool_size <= 100 or not 0 <= overflow <= 100 or not 1 <= timeout <= 60:
+        raise ValueError("Invalid database pool limits")
+    connect_args = {"connect_timeout": 2, "charset": "utf8mb4",
+                    "init_command": "SET time_zone = '+09:00', innodb_lock_wait_timeout = 3"}
+    # Opt-in laboratory comparison only; normal deployment retains driver TLS behavior.
+    if os.environ.get("DB_TLS_DISABLED", "false").lower() == "true":
+        connect_args["ssl_disabled"] = True
     return create_engine(
         url,
-        pool_size=DB_POOL_SIZE,
-        max_overflow=DB_MAX_OVERFLOW,
-        pool_timeout=DB_POOL_TIMEOUT_SECONDS,
+        pool_size=pool_size,
+        max_overflow=overflow,
+        pool_timeout=timeout,
         pool_pre_ping=True,
         # 잠금을 기다린 뒤 다른 트랜잭션이 커밋한 원장(1일 한도 합계 등)을 읽어야 한다.
         isolation_level="READ COMMITTED",
-        connect_args={"connect_timeout": 2, "charset": "utf8mb4", "init_command": "SET time_zone = '+09:00', innodb_lock_wait_timeout = 3"},
+        connect_args=connect_args,
     )
 
 
