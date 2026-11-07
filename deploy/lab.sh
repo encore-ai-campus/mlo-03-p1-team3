@@ -39,11 +39,13 @@ case "$action" in
   if [ "$action" = plan ]; then
     terraform -chdir=deploy/terraform/lab plan -input=false -var-file="$runtime/lab.tfvars.json" -var=power_state=on
   else
-    # Stop only VMs owned by this module; refresh their cloud-init seed, then boot.
+    # Stop only managed VMs before CPU, disk or network changes; preserve existing data.
     python3 deploy/lab/power-off.py
     python3 deploy/lab/windows-bridge.py
     terraform -chdir=deploy/terraform/lab apply -input=false -auto-approve -parallelism=1 -var-file="$runtime/lab.tfvars.json" -var=power_state=off
+    python3 deploy/lab/resize-db-disks.py
     terraform -chdir=deploy/terraform/lab apply -input=false -auto-approve -parallelism=1 -var-file="$runtime/lab.tfvars.json" -var=power_state=on
+    ANSIBLE_TIMEOUT=60 ansible-playbook -i "$inventory" deploy/ansible/resize-db-filesystems.yml
   fi
   ;;
  install)

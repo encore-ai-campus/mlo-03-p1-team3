@@ -1,0 +1,35 @@
+---
+- name: Expand database root filesystems after virtual disk growth
+  hosts: mariadb_master:mariadb_replica:mongodb
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for guest SSH after power on
+      ansible.builtin.wait_for_connection:
+        timeout: 240
+    - name: Install supported partition expansion tools
+      ansible.builtin.apt:
+        name: cloud-guest-utils
+        state: present
+    - name: Expand supported direct ext4 root partition without formatting
+      ansible.builtin.shell: |
+        set -eu
+        root=$(findmnt -n -o SOURCE /)
+        fs=$(findmnt -n -o FSTYPE /)
+        test "$fs" = ext4
+        parent=$(lsblk -r -n -o PKNAME "$root")
+        partition=$(lsblk -r -n -o PARTN "$root")
+        test -n "$parent"
+        test -n "$partition"
+        test "$(blockdev --getsize64 /dev/$parent)" -ge 42949672960
+        result=$(growpart "/dev/$parent" "$partition" 2>&1) || {
+          case "$result" in *NOCHANGE*) ;; *) printf '%s\n' "$result"; exit 1 ;; esac
+        }
+        printf '%s\n' "$result"
+        resize2fs "$root"
+        test "$(df -B1 --output=size / | tail -n 1 | tr -d ' ')" -ge 38000000000
+        df -B1 --output=size,avail /
+      args:
+        executable: /bin/bash
+      register: expansion
+      changed_when: "'CHANGED:' in expansion.stdout"
