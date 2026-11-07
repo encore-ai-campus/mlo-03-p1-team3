@@ -10,8 +10,8 @@ from pathlib import Path
 ROLES = [
     ('nginx', 'NGINX_IP', 'nginx', 1, 1024),
     ('haproxy', 'HAPROXY_IP', 'haproxy', 1, 1024),
-    ('api-1', 'API1_IP', 'api', 2, 2048),
-    ('api-2', 'API2_IP', 'api', 2, 2048),
+    ('api-1', 'API1_IP', 'api', 4, 2048),
+    ('api-2', 'API2_IP', 'api', 4, 2048),
     ('mariadb-master', 'MARIADB_MASTER_IP', 'mariadb_master', 2, 2048),
     ('mariadb-replica', 'MARIADB_REPLICA_IP', 'mariadb_replica', 1, 2048),
     ('mongodb', 'MONGODB_IP', 'mongodb', 2, 2048),
