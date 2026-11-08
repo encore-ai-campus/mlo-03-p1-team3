@@ -95,7 +95,7 @@ export function fingerprint(row) {
   return createHash('sha256').update(JSON.stringify(row)).digest('hex')
 }
 
-export async function executePlan({ profiles, rows, concurrency, state, save, report, driver, retryFailedReads = false }) {
+export async function executePlan({ profiles, rows, concurrency, state, save, report, driver, retryFailedReads = false, reusePrepared = false, prepareOnly = false }) {
   const sessions = validatePlan(profiles, rows)
   state.customers ??= {}; state.plans ??= {}
   for (const row of rows) {
@@ -129,6 +129,10 @@ export async function executePlan({ profiles, rows, concurrency, state, save, re
     await workerPool(profiles, concurrency, async profile => {
       const entry = state.customers[profile.sim_user_id] ??= {}
       if (entry.safety_hold || entry.write_in_flight) return
+      if (reusePrepared && entry.backend_user_id && (entry.opening_funded ?? 0) >= profile.opening_balance_krw) {
+        ready.add(profile.sim_user_id)
+        return
+      }
       try {
         await driver.prepare(profile)
         ready.add(profile.sim_user_id)
@@ -137,6 +141,7 @@ export async function executePlan({ profiles, rows, concurrency, state, save, re
       }
     })
   }
+  if (prepareOnly) return { prepared_users: ready.size, planned_users: 0, planned_rows: 0, outcomes: {} }
   const byUser = new Map()
   for (const session of sessions) {
     if (retryFailedReads && !retrySessions.has(session[0].session_key)) continue
