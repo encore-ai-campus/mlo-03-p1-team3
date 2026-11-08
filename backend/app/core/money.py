@@ -11,8 +11,10 @@ from sqlalchemy.engine import Connection
 from app.api.events.service import record, transaction
 from app.core.errors import AppError
 from app.db.mariadb import translate_db_errors, with_deadlock_retry
+from app.observability.tracing import traced
 
 
+@traced("money.execute")
 def run_money(request: Request, event_type: str, properties: dict,
               action: Callable[[Connection], dict]) -> dict:
     engine, sink = request.app.state.engine, request.app.state.events

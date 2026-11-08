@@ -1,0 +1,32 @@
+- hosts: api
+  serial: 1
+  become: true
+  gather_facts: false
+  tasks:
+    - file:
+        path: /etc/systemd/system/podobank-api.service.d
+        state: directory
+        mode: '0755'
+    - copy:
+        dest: /etc/systemd/system/podobank-api.service.d/workers.conf
+        mode: '0644'
+        content: |
+          [Service]
+          EnvironmentFile=-/etc/podobank/performance.env
+          ExecStart=
+          ExecStart=/opt/podobank/backend/.venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --workers 4 --no-access-log
+      register: config
+    - systemd:
+        name: podobank-api
+        daemon_reload: true
+        state: restarted
+      when: config.changed
+    - uri:
+        url: http://127.0.0.1:8000/api/v1/health
+        status_code: 200
+      register: ready
+      until: ready.status | default(0) == 200
+      retries: 30
+      delay: 2
+    - shell: ps -eo pid,ppid,rss,args | awk '/multiprocessing.spawn/ && !/awk/{print $1,$2,$3,"worker"}'
+      changed_when: false

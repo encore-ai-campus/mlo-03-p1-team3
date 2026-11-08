@@ -98,8 +98,8 @@ def operational_summary(d):
         for store, dataset, title in [('mariadb','ledger_entries','MariaDB 거래 원장'),('mariadb','card_payments','MariaDB 카드 결제'),('mongodb','events_bronze','MongoDB 이벤트'),('mongodb','card_payment_locations','MongoDB 카드 위치')]:
             selector = 'podobank_db_records{store="' + store + '",dataset="' + dataset + '"' + (',server!~".*replica"' if store=='mariadb' else '') + '}'
             panel(d, title, 'sum(' + selector + ' and on(instance) (' + FRESH + '))', 'stat', w=6, h=4, description='現在 저장된 누적 건수입니다. 2분 주기 읽기 전용 집계이며 집계 장애 시 수집 없음으로 표시합니다.'.replace('現在','현재'))
-        panel(d, 'DB 적재 현황 · 현재 건수', 'sum by(store,dataset,kind)(podobank_db_records{server!~".*replica"} and on(instance) (' + FRESH + '))', 'table', w=12, h=9)
-        panel(d, 'DB 저장 건수 추이', 'sum by(store,dataset)(podobank_db_records{server!~".*replica"} and on(instance) (' + FRESH + '))', w=12, h=9, legend='{{store}} · {{dataset}}')
+        panel(d, 'DB 적재 현황 · 현재 건수', 'sum by(dataset)(podobank_db_table_rows{store="mariadb",server!~".*replica"} and on(instance) (' + FRESH + '))', 'table', w=12, h=9)
+        panel(d, 'DB 저장 건수 추이', 'sum by(dataset)(podobank_db_table_rows{store="mariadb",server!~".*replica"} and on(instance) (' + FRESH + '))', w=12, h=9, legend='{{store}} · {{dataset}}')
         panel(d, 'DB 집계 경과', 'max by(store)(time()-podobank_business_collect_success_timestamp_seconds)', 'stat', unit='s', w=12, h=4, legend='{{store}}', description='180초 이상이면 집계 상태를 확인하세요.')
         panel(d, 'MariaDB 복제 지연', 'mysql_slave_status_seconds_behind_master{role="replica"}', 'stat', unit='s', w=12, h=4)
         panel(d, '서버별 CPU', '100*(1-avg by(server)(rate(node_cpu_seconds_total{job="node",mode="idle"}[$__rate_interval])))', unit='percent', h=8)
@@ -130,6 +130,106 @@ def operational_summary(d):
             legend = target.get('legendFormat','')
             if '{{instance}}' in legend:
                 target['legendFormat'] = legend.replace(' {{instance}}','').replace('{{instance}}','')
+
+
+def operations_layout(d):
+    """Service pages share VM resources; database pages lead with storage, not ledger types."""
+    uid = d['uid']
+    roles = {'nginx':'.*nginx', 'haproxy':'.*haproxy', 'api':'api-[12]',
+             'mariadb':'.*mariadb-(master|replica)', 'storage':'.*mongodb',
+             'alloy':'.*(nginx|haproxy)|api-[12]', 'loki':'.*loki'}
+    role = roles.get(uid.removeprefix('podobank-'), '.*')
+    selector = '{job="node",server=~"' + role + '"}'
+    cpu = '100*(1-avg by(server)(rate(node_cpu_seconds_total{job="node",server=~"' + role + '",mode="idle"}[$__rate_interval])))'
+    mem = 'max by(server)(100*(1-node_memory_MemAvailable_bytes' + selector + '/node_memory_MemTotal_bytes' + selector + '))'
+    disk_selector = '{job="node",server=~"' + role + '",mountpoint="/",fstype!="rootfs"}'
+    disk = 'max by(server)(100*(1-node_filesystem_avail_bytes' + disk_selector + '/node_filesystem_size_bytes' + disk_selector + '))'
+    resource_titles = {'CPU 사용률','메모리 사용률','디스크 사용률','CPU 추이','메모리 추이','디스크 추이'}
+    d['panels'] = [p for p in d['panels'] if p['title'] not in resource_titles and not any(
+        token in t.get('expr','') for t in p.get('targets',[]) for token in ('node_cpu_seconds_total','node_memory_','node_filesystem_'))]
+    all_servers = uid in ('podobank-overview','podobank-servers','podobank-logs','podobank-alloy')
+    d['panels']=[p for p in d['panels'] if p['title'] not in {'최대 CPU 사용률','최대 메모리 사용률','최대 디스크 사용률'}]
+    charts={'panels':[]}
+    for title,q in [('CPU 추이',cpu),('메모리 추이',mem),('디스크 추이',disk)]:
+        item=panel(charts,title,q,unit='percent',w=24 if title=='디스크 추이' else 12,h=8 if all_servers else 7)
+        item['fieldConfig']['defaults']['max']=100
+        item['options']['legend'].update(displayMode='list',placement='right' if all_servers else 'bottom',calcs=[])
+    if uid in ('podobank-mariadb','podobank-storage'):
+        store='mariadb' if uid=='podobank-mariadb' else 'mongodb'
+        database={'panels':[]}
+        current=' and on(instance) ('+FRESH+')'
+        primary=',server!~".*replica"' if store=='mariadb' else ''
+        size='podobank_db_size_bytes{store="'+store+'",kind="total"'+primary+'}'+current
+        panel(database,'DB 저장 용량','sum('+size+')','stat',unit='bytes',w=12,h=4,description='MariaDB는 테이블 데이터+인덱스 할당량, MongoDB는 storageSize+indexSize입니다. OS 디스크 전체 사용량과 다릅니다.')
+        if store=='mariadb':
+            counts='sum(podobank_db_table_rows{store="mariadb",server!~".*replica"}'+current+')'
+            panel(database,'총 저장 행 수',counts,'stat',unit='none',w=12,h=4,description='관측 대상 회원·계좌·세션·원장·카드 결제·대출 테이블의 행 수 합계입니다. 복제 서버는 중복 합산하지 않습니다.')
+            keep=['DB 응답 정상 · 목표 2','복제 IO 스레드','복제 SQL 스레드','복제 지연','서버별 현재 DB 연결','쿼리 처리률','실행 중인 DB 스레드','느린 쿼리 증가량 · 선택 기간','DB 연결 오류률','MariaDB 집계 성공 여부 · 목표 2','MariaDB 마지막 성공 집계 경과']
+        else:
+            counts='sum(podobank_db_records{store="mongodb"}'+current+')'
+            panel(database,'총 저장 문서 수',counts,'stat',unit='none',w=12,h=4,description='업무 이벤트와 카드 위치 컬렉션의 문서 수 합계입니다.')
+            keep=['MongoDB 인증·응답','현재 연결','활성 연결','MongoDB 프로세스 메모리','MongoDB 연산률','MongoDB 연결 추이','MongoDB 집계 성공 여부 · 목표 1','MongoDB 마지막 성공 집계 경과','로그·MongoDB 저장 오류 · 선택 기간']
+        panel(database,'총 적재 건수 추이',counts,w=12,h=8,legend=store)
+        panel(database,'DB 저장 용량 추이','sum('+size+')',unit='bytes',w=12,h=8,legend=store)
+        status=[p for p in d['panels'] if p['title'] in keep]
+        d['panels']=charts['panels']+database['panels']+status
+    else:
+        d['panels']=charts['panels']+d['panels']
+        if uid=='podobank-overview':
+            removed={'DB 적재 현황 · 현재 건수','DB 저장 건수 추이','MariaDB 거래 원장','MariaDB 카드 결제','MongoDB 이벤트','MongoDB 카드 위치'}
+            d['panels']=[p for p in d['panels'] if p['title'] not in removed]
+            current=' and on(instance) ('+FRESH+')'
+            sql='sum(podobank_db_table_rows{store="mariadb",server!~".*replica"}'+current+')'
+            mongo='sum(podobank_db_records{store="mongodb"}'+current+')'
+            panel(d,'MariaDB 총 저장 행 수',sql,'stat',unit='none',w=12,h=4,description='관측 테이블의 행 수 합계입니다. 복제본은 제외합니다.')
+            panel(d,'MongoDB 총 저장 문서 수',mongo,'stat',unit='none',w=12,h=4,description='업무 이벤트와 카드 위치 컬렉션 합계입니다.')
+            panel(d,'총 적재 건수 추이','sum by(store)(podobank_db_table_rows{store="mariadb",server!~".*replica"}'+current+') or sum by(store)(podobank_db_records{store="mongodb"}'+current+')',w=24,h=8,legend='{{store}}')
+    # Count every worker via the shared request log instead of one worker's /metrics.
+    request_logs = '{job="podobank",log_type="application"} | json | __error__="" | message="request_completed"'
+    if uid == 'podobank-api':
+        request_logs = A
+    activity_logs = request_logs + ' | route!~"/health|unmatched"'
+    for item in d['panels']:
+        title=item['title']
+        expression=None
+        if uid=='podobank-overview':
+            if title=='API 요청 · 선택 기간':
+                expression='sum(count_over_time('+activity_logs+'[$__range])) or (0*sum(count_over_time('+request_logs+'[$__range])))'
+            elif title.startswith('API ') and 'xx · 선택 기간' in title:
+                lower=int(title.split()[1][0])*100
+                expression='sum(count_over_time('+activity_logs+' | status_code >= '+str(lower)+' | status_code < '+str(lower+100)+' [$__range])) or (0*sum(count_over_time('+request_logs+'[$__range])))'
+            elif title=='API 요청률':expression='sum(rate('+activity_logs+'[$__auto]))'
+            elif title=='API 응답 p95':expression='quantile_over_time(0.95,'+activity_logs+' | unwrap duration_ms | __error__="" [$__auto]) by ()'
+            elif title=='HTTP 응답 추이':expression='sum by(status_code)(rate('+activity_logs+'[$__auto]))'
+            elif title=='오류 API · 선택 기간':expression='sum by(route,status_code)(count_over_time('+activity_logs+' | status_code >= 400 [$__range]))'
+        elif uid=='podobank-api':
+            if title=='전체 요청률':expression='sum(rate('+activity_logs+'[$__auto]))'
+            elif title=='API별 요청률':expression='sum by(instance)(rate('+activity_logs+'[$__auto]))'
+            elif title=='서버별 처리 지연 p50 / p95 / p99':
+                item['datasource']=L
+                item['targets']=[{'refId':ref,'expr':'quantile_over_time('+str(q)+','+activity_logs+' | unwrap duration_ms | __error__="" [$__auto]) by (instance)','legendFormat':'{{instance}} · '+label,'queryType':'range'} for ref,q,label in [('A',0.5,'p50'),('B',0.95,'p95'),('C',0.99,'p99')]]
+        if expression:
+            item['datasource']=L
+            item['targets'][0]['expr']=expression
+            if title=='API별 요청률':item['targets'][0]['legendFormat']='{{instance}}'
+            item['targets'][0]['queryType']='instant' if item['type'] in ('stat','table') else 'range'
+            item['description']='모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.'
+    for item in d['panels']:
+        defaults=item.get('fieldConfig',{}).get('defaults',{})
+        if item['type']=='stat':
+            item['options'].update(reduceOptions={'calcs':['lastNotNull'],'values':False},text={'valueSize':30,'titleSize':14})
+            if item['title'] not in {'CPU 사용률','메모리 사용률','디스크 사용률'}:
+                item['options']['textMode']='value'
+            if defaults.get('unit')=='none':defaults['decimals']=0
+
+        if defaults.get('noValue')=='—':defaults['noValue']='수집 없음'
+        if item['type']=='table' and item['title'] in {'테이블별 저장 행 수','컬렉션별 문서 수','선택 기간 저장 건수 순증감','DB 적재 현황 · 현재 건수'}:
+            # Grafana range queries expose Value #A rather than Value; keep the count column visible.
+            item['transformations']=[{'id':'organize','options':{'excludeByName':{k:True for k in ['Time','__name__','instance','job','server','store','kind']},'renameByName':{'dataset':'저장 대상','Value':'건수','Value #A':'건수','Value #B':'건수'}}}]
+            item['fieldConfig']['defaults']['unit']='none'
+            item['fieldConfig']['overrides'].append({'matcher':{'id':'byName','options':'저장 대상'},'properties':[{'id':'mappings','value':[{'type':'value','options':{k:{'text':v} for k,v in {'users':'회원','accounts':'계좌','sessions':'로그인 세션','ledger_entries':'거래 원장','card_payments':'카드 결제','loan_applications':'대출 신청','loan_repayments':'대출 상환','events_bronze':'업무 이벤트','card_payment_locations':'카드 위치'}.items()}}]}]})
+
+            item['fieldConfig']['defaults']['custom']={'minWidth':100,'cellOptions':{'type':'auto'}}
 
 
 def main():
@@ -223,14 +323,15 @@ def main():
             d['panels']=[p for p in d['panels'] if p['title'] not in additions]+select(h,additions)
         if uid=='podobank-mariadb':
             order=['DB 응답 정상 · 목표 2','복제 IO 스레드','복제 SQL 스레드','복제 지연','MariaDB 집계 성공 여부 · 목표 2','MariaDB 마지막 성공 집계 경과','MariaDB 원장 · 종류별 실제 저장 건수','MariaDB 대출 · 현재 상태별 저장 건수','MariaDB 카드 결제 · 실제 저장 건수','MariaDB Master−Replica 저장 건수 차이','서버별 현재 DB 연결','쿼리 처리률','실행 중인 DB 스레드','느린 쿼리 증가량 · 선택 기간','MariaDB VM CPU','DB 연결 오류률']
-            indexed={p['title']:p for p in d['panels']};d['panels']=[indexed[t] for t in order]
+            indexed={p['title']:p for p in d['panels']};d['panels']=[indexed[t] for t in order if t in indexed]
             indexed['MariaDB Master−Replica 저장 건수 차이']['gridPos']['w']=18
         elif uid=='podobank-storage':
             order=['MongoDB 인증·응답','현재 연결','활성 연결','MongoDB 프로세스 메모리','MongoDB 업무 이벤트 · 전체 문서 수','MongoDB 카드 위치 · 전체 문서 수','MongoDB 집계 성공 여부 · 목표 1','MongoDB 마지막 성공 집계 경과','MongoDB 금융 업무 · 종류·결과별 실제 문서 수','카드 결제 SQL 기록−MongoDB 위치 문서 차이','로그·MongoDB 저장 오류 · 선택 기간','업무 상세 · 요청 ID 검색','MongoDB 연결 추이','MongoDB 연산률']
-            indexed={p['title']:p for p in d['panels']};d['panels']=[indexed[t] for t in order]
+            indexed={p['title']:p for p in d['panels']};d['panels']=[indexed[t] for t in order if t in indexed]
             for title in ['MongoDB 업무 이벤트 · 전체 문서 수','MongoDB 카드 위치 · 전체 문서 수']:indexed[title]['gridPos']['w']=12
             for title in ['로그·MongoDB 저장 오류 · 선택 기간','MongoDB 연산률']:indexed[title]['gridPos']['w']=24
         operational_summary(d)
+        operations_layout(d)
         d['panels']=pack(d['panels'])
         d['links']=[{'type':'link','title':title,'url':'/d/podobank-'+slug,'keepTime':True,'targetBlank':False} for slug,title in NAV]
         path.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')

@@ -6,7 +6,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 
-from app.core.config import DB_MAX_OVERFLOW, DB_POOL_SIZE, DB_POOL_TIMEOUT_SECONDS
+from app.core.config import DB_MAX_OVERFLOW, DB_POOL_RECYCLE_SECONDS, DB_POOL_SIZE, DB_POOL_TIMEOUT_SECONDS
 
 
 def make_engine(url: str) -> Engine:
@@ -25,7 +25,11 @@ def make_engine(url: str) -> Engine:
         pool_size=pool_size,
         max_overflow=overflow,
         pool_timeout=timeout,
-        pool_pre_ping=True,
+        # 연결을 꺼낼 때마다 ping 왕복을 보내지 않는다(160건/초에서 DB CPU 포화의 한 원인).
+        # 대신 DB wait_timeout(28800초)보다 짧게 연결을 교체한다. DB 재시작 직후 끊긴 연결을 처음 쓴
+        # 요청은 503이 될 수 있고, SQLAlchemy가 그 풀의 연결을 모두 무효화한 뒤 다시 연결한다.
+        pool_pre_ping=os.environ.get("DB_POOL_PRE_PING", "false").lower() == "true",
+        pool_recycle=DB_POOL_RECYCLE_SECONDS,
         # 잠금을 기다린 뒤 다른 트랜잭션이 커밋한 원장(1일 한도 합계 등)을 읽어야 한다.
         isolation_level="READ COMMITTED",
         connect_args=connect_args,

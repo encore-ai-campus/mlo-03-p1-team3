@@ -2,8 +2,11 @@
 
 import json
 import sys
+import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from gevent.pywsgi import WSGIServer
@@ -105,6 +108,7 @@ class SplitScenariosTests(unittest.TestCase):
         self.assertEqual(row["undrained"], 0)
 
     def test_reused_pool_reads_baseline_without_signup_or_deposit(self):
+        self.experiment.ready = True
         self.experiment.capture_balances()
         self.assertEqual(set(self.paths), {"/api/v1/accounts/me"})
         self.assertEqual([a.initial for a in self.experiment.accounts], [100, 100])
@@ -129,6 +133,25 @@ class SplitScenariosTests(unittest.TestCase):
         error = ConnectionError("private-secret-value")
         error.__cause__ = TimeoutError("private-cookie-value")
         self.assertEqual(error_classes(error), "ConnectionError,TimeoutError")
+
+    def test_schedule_misses_distinguish_busy_late_and_overlap(self):
+        for late, busy, reason in [
+            (False, True, "account_busy"),
+            (True, False, "scheduler_late"),
+            (True, True, "both"),
+        ]:
+            with self.subTest(reason=reason):
+                self.experiment.cursor = 0
+                self.experiment.accounts[0].busy = busy
+                # One slot: start, sleep calculation, dispatch check, end, elapsed.
+                clock = iter([0, 0, 0.3 if late else 0, 0.3, 0.3])
+                with patch("split_scenarios.time", SimpleNamespace(monotonic=lambda clock=clock: next(clock), process_time=time.process_time)):
+                    row = self.experiment.stage("login", 10, 0.1)
+                self.assertEqual(row["scheduled"], 0)
+                self.assertEqual(row["missed_schedule"], 1)
+                self.assertEqual(row["missed_schedule_reasons"][reason], 1)
+                self.assertEqual(sum(row["missed_schedule_reasons"].values()), 1)
+                self.assertEqual(row["requests"], 0)
 
 
 if __name__ == "__main__":

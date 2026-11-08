@@ -1,0 +1,35 @@
+stream_over_http_enabled: true
+server:
+  http_listen_address: 0.0.0.0
+  http_listen_port: 3200
+  grpc_listen_address: 127.0.0.1
+  grpc_listen_port: 9097
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+ingester:
+  lifecycler:
+    address: 127.0.0.1
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+  max_block_duration: 5m
+compactor:
+  compaction:
+    block_retention: 24h
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/lib/tempo/wal
+    local:
+      path: /var/lib/tempo/blocks
+overrides:
+  defaults:
+    ingestion:
+      rate_limit_bytes: 5000000
+      burst_size_bytes: 10000000

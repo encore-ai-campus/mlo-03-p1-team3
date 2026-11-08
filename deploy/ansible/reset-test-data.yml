@@ -4,6 +4,12 @@
   hosts: api
   become: true
   gather_facts: false
+  pre_tasks:
+    - name: Require explicit confirmation before stopping services or deleting test data
+      ansible.builtin.assert:
+        that: (confirm_database_reset | default('')) == 'ERASE_PODOBANK_TEST_DATA'
+        fail_msg: Reset blocked. Set confirm_database_reset=ERASE_PODOBANK_TEST_DATA only for an intentional test reset.
+      run_once: true
   tasks:
     - ansible.builtin.systemd:
         name: '{{ item }}'

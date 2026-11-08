@@ -93,6 +93,483 @@
   ],
   "panels": [
     {
+      "id": 1,
+      "title": "CPU 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100*(1-avg by(server)(rate(node_cpu_seconds_total{job=\"node\",server=~\".*mariadb-(master|replica)\",mode=\"idle\"}[$__rate_interval])))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "메모리 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(server)(100*(1-node_memory_MemAvailable_bytes{job=\"node\",server=~\".*mariadb-(master|replica)\"}/node_memory_MemTotal_bytes{job=\"node\",server=~\".*mariadb-(master|replica)\"}))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "디스크 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(server)(100*(1-node_filesystem_avail_bytes{job=\"node\",server=~\".*mariadb-(master|replica)\",mountpoint=\"/\",fstype!=\"rootfs\"}/node_filesystem_size_bytes{job=\"node\",server=~\".*mariadb-(master|replica)\",mountpoint=\"/\",fstype!=\"rootfs\"}))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "DB 저장 용량",
+      "type": "stat",
+      "description": "MariaDB는 테이블 데이터+인덱스 할당량, MongoDB는 storageSize+indexSize입니다. OS 디스크 전체 사용량과 다릅니다.",
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(podobank_db_size_bytes{store=\"mariadb\",kind=\"total\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
+          "legendFormat": "{{server}}",
+          "instant": true,
+          "range": false,
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "text": {
+          "valueSize": 30,
+          "titleSize": 14
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "총 저장 행 수",
+      "type": "stat",
+      "description": "관측 대상 회원·계좌·세션·원장·카드 결제·대출 테이블의 행 수 합계입니다. 복제 서버는 중복 합산하지 않습니다.",
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(podobank_db_table_rows{store=\"mariadb\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
+          "legendFormat": "{{server}}",
+          "instant": true,
+          "range": false,
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "text": {
+          "valueSize": 30,
+          "titleSize": 14
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "총 적재 건수 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(podobank_db_table_rows{store=\"mariadb\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
+          "legendFormat": "mariadb",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "DB 저장 용량 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(podobank_db_size_bytes{store=\"mariadb\",kind=\"total\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
+          "legendFormat": "mariadb",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
       "datasource": {
         "type": "prometheus",
         "uid": "podobank-prometheus"
@@ -140,11 +617,11 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 0,
+        "y": 26,
         "w": 6,
         "h": 4
       },
-      "id": 1,
+      "id": 8,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -226,11 +703,11 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 0,
+        "y": 26,
         "w": 6,
         "h": 4
       },
-      "id": 2,
+      "id": 9,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -312,11 +789,11 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 26,
         "w": 6,
         "h": 4
       },
-      "id": 3,
+      "id": 10,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -398,11 +875,11 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 0,
+        "y": 26,
         "w": 6,
         "h": 4
       },
-      "id": 4,
+      "id": 11,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -437,13 +914,13 @@
       "type": "stat"
     },
     {
-      "id": 5,
+      "id": 12,
       "title": "MariaDB 집계 성공 여부 · 목표 2",
       "type": "stat",
       "description": "",
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 30,
         "w": 12,
         "h": 4
       },
@@ -515,13 +992,13 @@
       }
     },
     {
-      "id": 6,
+      "id": 13,
       "title": "MariaDB 마지막 성공 집계 경과",
       "type": "stat",
       "description": "",
       "gridPos": {
         "x": 12,
-        "y": 4,
+        "y": 30,
         "w": 12,
         "h": 4
       },
@@ -597,677 +1074,6 @@
       }
     },
     {
-      "id": 7,
-      "title": "MariaDB 원장 · 종류별 실제 저장 건수",
-      "type": "table",
-      "description": "송금 한 건은 transfer_out·transfer_in 두 원장 기록입니다. loan_disbursement는 대출 승인 후 실제 지급 기록입니다.",
-      "gridPos": {
-        "x": 0,
-        "y": 8,
-        "w": 12,
-        "h": 7
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "podobank_db_records{store=\"mariadb\",dataset=\"ledger_entries\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "구분"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "deposit": {
-                        "text": "입금"
-                      },
-                      "withdrawal": {
-                        "text": "출금"
-                      },
-                      "transfer_out": {
-                        "text": "송금 출금"
-                      },
-                      "transfer_in": {
-                        "text": "송금 입금"
-                      },
-                      "card_payment": {
-                        "text": "카드 결제"
-                      },
-                      "loan_disbursement": {
-                        "text": "대출 지급"
-                      },
-                      "loan_repayment": {
-                        "text": "대출 상환"
-                      },
-                      "pending": {
-                        "text": "심사 대기"
-                      },
-                      "repaying": {
-                        "text": "상환 중"
-                      },
-                      "rejected": {
-                        "text": "반려"
-                      },
-                      "repaid": {
-                        "text": "상환 완료"
-                      },
-                      "scheduled": {
-                        "text": "예정"
-                      },
-                      "paid": {
-                        "text": "납부"
-                      },
-                      "overdue": {
-                        "text": "연체"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "결과"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "success": {
-                        "text": "성공"
-                      },
-                      "failure": {
-                        "text": "실패"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "저장 대상"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "ledger_entries": {
-                        "text": "거래 원장"
-                      },
-                      "loan_applications": {
-                        "text": "대출 신청"
-                      },
-                      "loan_repayments": {
-                        "text": "대출 상환 회차"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Value",
-            "desc": true
-          }
-        ]
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true,
-              "instance": true,
-              "job": true,
-              "server": true,
-              "store": true
-            },
-            "renameByName": {
-              "method": "메서드",
-              "route": "API 경로",
-              "status_code": "HTTP 코드",
-              "error_code": "오류 코드",
-              "event_type": "업무",
-              "outcome": "결과",
-              "reason": "사유",
-              "properties_result": "상환 결과",
-              "dataset": "저장 대상",
-              "kind": "구분",
-              "Value": "건수",
-              "Value #A": "건수"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 8,
-      "title": "MariaDB 대출 · 현재 상태별 저장 건수",
-      "type": "table",
-      "description": "",
-      "gridPos": {
-        "x": 12,
-        "y": 8,
-        "w": 12,
-        "h": 7
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "podobank_db_records{store=\"mariadb\",dataset=~\"loan_applications|loan_repayments\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "구분"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "deposit": {
-                        "text": "입금"
-                      },
-                      "withdrawal": {
-                        "text": "출금"
-                      },
-                      "transfer_out": {
-                        "text": "송금 출금"
-                      },
-                      "transfer_in": {
-                        "text": "송금 입금"
-                      },
-                      "card_payment": {
-                        "text": "카드 결제"
-                      },
-                      "loan_disbursement": {
-                        "text": "대출 지급"
-                      },
-                      "loan_repayment": {
-                        "text": "대출 상환"
-                      },
-                      "pending": {
-                        "text": "심사 대기"
-                      },
-                      "repaying": {
-                        "text": "상환 중"
-                      },
-                      "rejected": {
-                        "text": "반려"
-                      },
-                      "repaid": {
-                        "text": "상환 완료"
-                      },
-                      "scheduled": {
-                        "text": "예정"
-                      },
-                      "paid": {
-                        "text": "납부"
-                      },
-                      "overdue": {
-                        "text": "연체"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "결과"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "success": {
-                        "text": "성공"
-                      },
-                      "failure": {
-                        "text": "실패"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "저장 대상"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "ledger_entries": {
-                        "text": "거래 원장"
-                      },
-                      "loan_applications": {
-                        "text": "대출 신청"
-                      },
-                      "loan_repayments": {
-                        "text": "대출 상환 회차"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Value",
-            "desc": true
-          }
-        ]
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true,
-              "instance": true,
-              "job": true,
-              "server": true,
-              "store": true
-            },
-            "renameByName": {
-              "method": "메서드",
-              "route": "API 경로",
-              "status_code": "HTTP 코드",
-              "error_code": "오류 코드",
-              "event_type": "업무",
-              "outcome": "결과",
-              "reason": "사유",
-              "properties_result": "상환 결과",
-              "dataset": "저장 대상",
-              "kind": "구분",
-              "Value": "건수",
-              "Value #A": "건수"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "title": "MariaDB 카드 결제 · 실제 저장 건수",
-      "type": "stat",
-      "description": "",
-      "gridPos": {
-        "x": 0,
-        "y": 15,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "podobank_db_records{store=\"mariadb\",dataset=\"card_payments\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        },
-        "text": {
-          "valueSize": 30,
-          "titleSize": 14
-        }
-      }
-    },
-    {
-      "id": 10,
-      "title": "MariaDB Master−Replica 저장 건수 차이",
-      "type": "table",
-      "description": "0이면 집계 건수가 같습니다. 두 서버 집계 시각 차이로 일시적 차이가 날 수 있고, 내용 전체가 같은지를 증명하지는 않습니다.",
-      "gridPos": {
-        "x": 6,
-        "y": 15,
-        "w": 18,
-        "h": 7
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(dataset,kind)(podobank_db_records{store=\"mariadb\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180))) - sum by(dataset,kind)(podobank_db_records{store=\"mariadb\",server=~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "구분"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "deposit": {
-                        "text": "입금"
-                      },
-                      "withdrawal": {
-                        "text": "출금"
-                      },
-                      "transfer_out": {
-                        "text": "송금 출금"
-                      },
-                      "transfer_in": {
-                        "text": "송금 입금"
-                      },
-                      "card_payment": {
-                        "text": "카드 결제"
-                      },
-                      "loan_disbursement": {
-                        "text": "대출 지급"
-                      },
-                      "loan_repayment": {
-                        "text": "대출 상환"
-                      },
-                      "pending": {
-                        "text": "심사 대기"
-                      },
-                      "repaying": {
-                        "text": "상환 중"
-                      },
-                      "rejected": {
-                        "text": "반려"
-                      },
-                      "repaid": {
-                        "text": "상환 완료"
-                      },
-                      "scheduled": {
-                        "text": "예정"
-                      },
-                      "paid": {
-                        "text": "납부"
-                      },
-                      "overdue": {
-                        "text": "연체"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "결과"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "success": {
-                        "text": "성공"
-                      },
-                      "failure": {
-                        "text": "실패"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "저장 대상"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "ledger_entries": {
-                        "text": "거래 원장"
-                      },
-                      "loan_applications": {
-                        "text": "대출 신청"
-                      },
-                      "loan_repayments": {
-                        "text": "대출 상환 회차"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Value",
-            "desc": true
-          }
-        ]
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true,
-              "instance": true,
-              "job": true,
-              "server": true,
-              "store": true
-            },
-            "renameByName": {
-              "method": "메서드",
-              "route": "API 경로",
-              "status_code": "HTTP 코드",
-              "error_code": "오류 코드",
-              "event_type": "업무",
-              "outcome": "결과",
-              "reason": "사유",
-              "properties_result": "상환 결과",
-              "dataset": "저장 대상",
-              "kind": "구분",
-              "Value": "건수",
-              "Value #A": "건수"
-            }
-          }
-        }
-      ]
-    },
-    {
       "datasource": {
         "type": "prometheus",
         "uid": "podobank-prometheus"
@@ -1308,11 +1114,11 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 22,
+        "y": 34,
         "w": 12,
         "h": 7
       },
-      "id": 11,
+      "id": 14,
       "options": {
         "legend": {
           "calcs": [],
@@ -1381,11 +1187,11 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 22,
+        "y": 34,
         "w": 12,
         "h": 7
       },
-      "id": 12,
+      "id": 15,
       "options": {
         "legend": {
           "calcs": [],
@@ -1414,13 +1220,13 @@
       "type": "timeseries"
     },
     {
-      "id": 13,
+      "id": 16,
       "title": "실행 중인 DB 스레드",
       "description": "",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 29,
+        "y": 41,
         "w": 12,
         "h": 7
       },
@@ -1487,13 +1293,13 @@
       }
     },
     {
-      "id": 14,
+      "id": 17,
       "title": "느린 쿼리 증가량 · 선택 기간",
       "description": "",
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 29,
+        "y": 41,
         "w": 12,
         "h": 7
       },
@@ -1560,87 +1366,13 @@
       }
     },
     {
-      "id": 15,
-      "title": "MariaDB VM CPU",
-      "description": "",
-      "type": "timeseries",
-      "gridPos": {
-        "x": 0,
-        "y": 36,
-        "w": 12,
-        "h": 7
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "100*(1-avg by(server)(rate(node_cpu_seconds_total{job=\"node\",server=~\"podobank-mariadb-.*\",mode=\"idle\"}[$__rate_interval])))",
-          "legendFormat": "{{server}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "podobank-prometheus"
-          },
-          "range": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "noValue": "수집 없음",
-          "decimals": 1,
-          "color": {
-            "mode": "palette-classic"
-          },
-          "max": 100,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "fillOpacity": 8,
-            "showPoints": "never",
-            "spanNulls": false,
-            "axisBorderShow": false
-          },
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": [],
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 16,
+      "id": 18,
       "title": "DB 연결 오류률",
       "description": "",
       "type": "timeseries",
       "gridPos": {
-        "x": 12,
-        "y": 36,
+        "x": 0,
+        "y": 48,
         "w": 12,
         "h": 7
       },

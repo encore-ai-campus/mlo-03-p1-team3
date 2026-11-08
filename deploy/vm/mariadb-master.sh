@@ -5,9 +5,14 @@ source "$(dirname "$0")/common.sh"
 require_root
 check_ubuntu_2404
 reset_policy_override="${RESET_DATABASES:-}"
+reset_confirmation_override="${CONFIRM_DATABASE_RESET:-}"
 load_env MARIADB_PASSWORD MARIADB_REPL_PASSWORD MARIADB_REPLICA_IP API1_IP API2_IP MARIADB_CLIENT_SUBNET
-RESET_DATABASES="${reset_policy_override:-${RESET_DATABASES:-true}}"
+RESET_DATABASES="${reset_policy_override:-${RESET_DATABASES:-false}}"
+CONFIRM_DATABASE_RESET="${reset_confirmation_override:-${CONFIRM_DATABASE_RESET:-}}"
 [[ "$RESET_DATABASES" == true || "$RESET_DATABASES" == false ]] || die "RESET_DATABASES는 true 또는 false여야 합니다."
+if [ "$RESET_DATABASES" = true ] && [ "${CONFIRM_DATABASE_RESET:-}" != ERASE_PODOBANK_TEST_DATA ]; then
+  die "Explicit CONFIRM_DATABASE_RESET=ERASE_PODOBANK_TEST_DATA is required before deleting test data."
+fi
 check_password MARIADB_PASSWORD
 check_password MARIADB_REPL_PASSWORD
 

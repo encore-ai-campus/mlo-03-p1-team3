@@ -4,6 +4,7 @@ if (admin.auth('podobank-admin', process.env.MONGODB_ADMIN_PASSWORD).ok !== 1) {
 }
 // Only the two event collections are readable; no application write privileges.
 const metricsRole = {role: 'podobankEventMetrics', privileges: [
+  {resource: {db: 'podobank', collection: ''}, actions: ['dbStats']},
   {resource: {db: 'podobank', collection: 'events_bronze'}, actions: ['find']},
   {resource: {db: 'podobank', collection: 'card_payment_locations'}, actions: ['find']}
 ], roles: []};

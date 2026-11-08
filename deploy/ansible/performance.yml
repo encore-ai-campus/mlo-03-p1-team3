@@ -20,6 +20,35 @@
       ansible.builtin.command: mariadb -e 'SET GLOBAL max_connections=250'
       when: db_limit.stdout | trim != '250'
 
+- name: Size the primary InnoDB buffer pool to hold the one-year ledger and sessions
+  hosts: mariadb_master
+  become: true
+  gather_facts: false
+  tasks:
+    # 1-year history = ledger + sessions about 1.9GB with indexes; the 128MB default re-read pages every transfer.
+    - name: Read actual memory before allocating the enlarged buffer pool
+      ansible.builtin.command: awk '/MemTotal/ {print $2}' /proc/meminfo
+      register: db_memory_kib
+      changed_when: false
+    - name: Require the planned 4GB DB VM before memory tuning
+      ansible.builtin.assert:
+        that: db_memory_kib.stdout | int >= 3500000
+        fail_msg: Resize the primary VM to 4GB before applying the 2GB InnoDB pool.
+    - name: Persist the buffer pool size (VM has 4GB)
+      ansible.builtin.copy:
+        dest: /etc/mysql/mariadb.conf.d/99-podobank-memory.cnf
+        mode: '0644'
+        content: |
+          [mysqld]
+          innodb_buffer_pool_size=2G
+    - name: Read the current buffer pool size
+      ansible.builtin.command: mariadb -N -e 'SELECT @@global.innodb_buffer_pool_size'
+      register: db_pool
+      changed_when: false
+    - name: Resize the buffer pool online
+      ansible.builtin.command: mariadb -e 'SET GLOBAL innodb_buffer_pool_size=2147483648'
+      when: db_pool.stdout | trim != '2147483648'
+
 - name: Configure bounded proxy concurrency and upstream reuse
   hosts: nginx
   become: true
@@ -114,7 +143,7 @@
           [Service]
           EnvironmentFile=/etc/podobank/performance.env
           ExecStart=
-          ExecStart=/opt/podobank/backend/.venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --workers 4
+          ExecStart=/opt/podobank/backend/.venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --workers 4 --no-access-log
       notify: Restart performance API
     - ansible.builtin.meta: flush_handlers
     - name: Require database health before continuing to the second VM

@@ -125,7 +125,8 @@ def main():
     for instance in sorted(instances):
         wait_for_line(loki, {'instance': instance, 'log_type': 'application'}, health[instance], start, instance + ' application file -> Alloy -> Loki')
         wait_for_line(loki, {'instance': instance, 'log_type': 'event'}, events[instance], start, instance + ' event file -> Alloy -> Loki')
-        wait_for_line(loki, {'instance': instance, 'log_type': 'service'}, marker, start, instance + ' service journal -> Alloy -> Loki')
+        # Uvicorn runs with --no-access-log: the request line duplicated nginx access.log and app.log
+        # (checked above by request ID). The API journal now holds only startup, warnings and errors.
     print('PASS: all four hosts deliver real request logs to Loki; no financial API writes.', flush=True)
     print('Probe marker: ' + marker, flush=True)
 

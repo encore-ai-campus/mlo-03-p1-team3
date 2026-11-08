@@ -12,9 +12,9 @@ spec.loader.exec_module(m)
 
 class BusinessSnapshotTests(unittest.TestCase):
     def test_successful_empty_database_has_explicit_zeros_and_freshness(self):
-        with patch.object(m.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'card_payments\tall\t0\n', '')):
+        with patch.object(m.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'card_payments\tall\t0\n' + ''.join('__table__\t'+n+'\t0\n' for n in ('users','accounts','sessions')) + ''.join('__size__\t'+n+'\t0\n' for n in ('data','index','total')), '')):
             rows = m.maria_snapshot()
-        self.assertEqual(len(rows), 15)
+        self.assertEqual(len(rows), 25)
         self.assertTrue(all(row.endswith(' 0.0') for row in rows))
 
     def test_collector_failure_removes_previous_counts_and_success_timestamp(self):
@@ -41,8 +41,8 @@ class BusinessSnapshotTests(unittest.TestCase):
             for word in ('INSERT','UPDATE','DELETE','DROP'):self.assertNotIn(word,sql)
 
     def test_mongo_only_exports_known_collections_and_bounded_event_labels(self):
-        result='{"collections":{"events_bronze":2,"card_payment_locations":0},"events":[{"event_type":"deposit","outcome":"success","count":1}]}'
+        result='{"collections":{"events_bronze":2,"card_payment_locations":0},"events":[{"event_type":"deposit","outcome":"success","count":1}],"sizes":{"data":100,"index":20,"total":120}}'
         with patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],0,result,'')):
             rows=m.mongo_snapshot(Path('fixed.js'))
-        self.assertEqual(len(rows),16)
+        self.assertEqual(len(rows),19)
         self.assertIn('podobank_mongo_events{event_type="deposit",outcome="success"} 1.0',rows)

@@ -26,3 +26,19 @@ def test_normal_deployment_does_not_disable_tls():
 def test_invalid_pool_limits_fail_before_engine_creation():
     with patch.dict('os.environ', {'DB_POOL_SIZE': '0'}), pytest.raises(ValueError, match='Invalid database pool limits'):
         make_engine('mysql+pymysql://unused')
+
+
+def test_no_ping_per_checkout_and_recycle_below_server_timeout():
+    with patch.dict('os.environ', {}, clear=False), patch('app.db.mariadb.create_engine') as create:
+        import os
+        os.environ.pop('DB_POOL_PRE_PING', None)
+        make_engine('mysql+pymysql://unused')
+    options = create.call_args.kwargs
+    assert options['pool_pre_ping'] is False
+    assert 0 < options['pool_recycle'] < 28800
+
+
+def test_ping_can_be_restored_by_environment():
+    with patch.dict('os.environ', {'DB_POOL_PRE_PING': 'true'}), patch('app.db.mariadb.create_engine') as create:
+        make_engine('mysql+pymysql://unused')
+    assert create.call_args.kwargs['pool_pre_ping'] is True

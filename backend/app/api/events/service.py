@@ -3,7 +3,7 @@ import logging
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from pymongo.database import Database
@@ -11,7 +11,9 @@ from pymongo.errors import PyMongoError
 from sqlalchemy.engine import Connection, Engine
 
 from app.core.time import kst_iso
+from app.observability.append_file import AppendFile
 from app.observability.application_log import ApplicationLog
+from app.observability.tracing import span
 
 LOG_COLLECTION = "events_bronze"
 _PENDING = "podobank_pending_events"
@@ -68,6 +70,10 @@ class EventSink:
     log_path: Path
     instance: str = "api"  # 어느 FastAPI 서버에서 난 이벤트인지 (api-1, api-2)
     application_log: ApplicationLog | None = None
+    _file: AppendFile = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self):
+        object.__setattr__(self, "_file", AppendFile(self.log_path))
 
     def warn(self, message: str, exc: Exception) -> None:
         if self.application_log is not None:
@@ -82,14 +88,14 @@ class EventSink:
         try:
             lines = [json.dumps(event, ensure_ascii=False) for collection, event in items if collection == LOG_COLLECTION]
             if lines:
-                self.log_path.parent.mkdir(parents=True, exist_ok=True)
-                with self.log_path.open("a", encoding="utf-8") as f:
-                    f.write("\n".join(lines) + "\n")
+                with span("events.file_write"):
+                    self._file.write(("\n".join(lines) + "\n").encode("utf-8"))
         except Exception as exc:  # noqa: BLE001
             self.warn("event_log_write_failed", exc)
         for collection, event in items:
             try:
-                self.mongo_db[collection].insert_one(dict(event))
+                with span("events.mongodb_insert"):
+                    self.mongo_db[collection].insert_one(dict(event))
             except PyMongoError as exc:
                 # MongoDB가 죽어 있으면 남은 이벤트도 같은 시간만큼 기다리게 되므로 여기서 멈춘다.
                 self.warn("mongodb_write_failed", exc)
@@ -116,7 +122,7 @@ def make_sink(settings, application_log: ApplicationLog | None = None) -> EventS
 def transaction(engine: Engine, sink: EventSink) -> Iterator[Connection]:
     """engine.begin()과 같지만, 안에서 record()한 이벤트를 커밋이 성공한 뒤에만 sink에 쓴다. 롤백되면 버린다."""
     items: list[tuple[str, dict]] = []
-    with engine.begin() as conn:
+    with span("db.transaction"), engine.begin() as conn:
         conn.info[_PENDING] = items
         try:
             yield conn

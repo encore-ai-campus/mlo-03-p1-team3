@@ -1,0 +1,35 @@
+- hosts: nginx
+  become: true
+  gather_facts: false
+  tasks:
+    - copy:
+        src: /etc/nginx/conf.d/podobank.conf
+        dest: /etc/nginx/conf.d/podobank.conf.before-reuse
+        remote_src: true
+        force: false
+    - blockinfile:
+        path: /etc/nginx/conf.d/podobank.conf
+        insertbefore: '^server \{'
+        marker: '# {mark} PODOBANK CONNECTION REUSE'
+        block: |
+          upstream podobank_reuse {
+              server {{ hostvars[groups['haproxy'][0]].ansible_host }}:8000;
+              keepalive 128;
+          }
+    - replace:
+        path: /etc/nginx/conf.d/podobank.conf
+        regexp: 'proxy_pass http://192\.168\.1\.192:8000;'
+        replace: 'proxy_pass http://podobank_reuse;'
+    - lineinfile:
+        path: /etc/nginx/conf.d/podobank.conf
+        insertafter: '^    client_max_body_size'
+        line: '    proxy_http_version 1.1;'
+    - lineinfile:
+        path: /etc/nginx/conf.d/podobank.conf
+        insertafter: '^    proxy_http_version'
+        line: '    proxy_set_header Connection "";'
+    - command: nginx -t
+      changed_when: false
+    - systemd:
+        name: nginx
+        state: reloaded

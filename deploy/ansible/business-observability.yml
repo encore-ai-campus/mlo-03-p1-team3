@@ -43,6 +43,22 @@
         SQL
       changed_when: false
       when: business_store == 'mariadb'
+    - name: Grant identifier-only counts and metadata visibility without password access
+      ansible.builtin.shell: |
+        set -e
+        mariadb <<'SQL'
+        SET SESSION sql_log_bin=0;
+        GRANT SELECT (id) ON podobank.users TO 'podobank-metrics'@'localhost';
+        GRANT SELECT (id) ON podobank.accounts TO 'podobank-metrics'@'localhost';
+        GRANT SELECT (id) ON podobank.sessions TO 'podobank-metrics'@'localhost';
+        GRANT SELECT (id) ON podobank.cards TO 'podobank-metrics'@'localhost';
+        GRANT SELECT (id) ON podobank.merchants TO 'podobank-metrics'@'localhost';
+        GRANT SELECT (id) ON podobank.loan_products TO 'podobank-metrics'@'localhost';
+        GRANT SELECT (id) ON podobank.kakao_signups TO 'podobank-metrics'@'localhost';
+        GRANT SELECT (version) ON podobank.schema_migrations TO 'podobank-metrics'@'localhost';
+        SQL
+      changed_when: false
+      when: business_store == 'mariadb'
     - name: Create aggregate output directory for node exporter
       ansible.builtin.file:
         path: /var/lib/prometheus/node-exporter

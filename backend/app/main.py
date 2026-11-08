@@ -16,13 +16,14 @@ from app.db.mariadb import make_engine
 from app.observability.application_log import ApplicationLog, install_application_log
 from app.observability.metrics import install_metrics
 from app.observability.request_id import install_request_id
+from app.observability.tracing import install_tracing, tracing_lifespan
 
 API_PREFIX = "/api/v1"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
-    app = FastAPI(title="PodoBank API")
+    app = FastAPI(title="PodoBank API", lifespan=tracing_lifespan)
     app.state.settings = settings
     app.state.engine = make_engine(settings.mariadb_url)
     application_log = ApplicationLog(settings.app_log_path, settings.instance_name)
@@ -42,4 +43,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(cards_router, prefix=API_PREFIX)
     app.include_router(loans_router, prefix=API_PREFIX)
     app.include_router(admin_router, prefix=API_PREFIX)
+    install_tracing(app, settings)
     return app

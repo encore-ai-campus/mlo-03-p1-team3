@@ -38,6 +38,11 @@ def main():
     samples=get(prom+'/api/v1/query?'+urllib.parse.urlencode({'query':query}))['data']['result']
     assert {s['metric']['store']:int(float(s['value'][1])) for s in samples}=={'mariadb':30,'mongodb':2}
     print('PASS: 30 SQL aggregate series and 2 MongoDB collection counts exported',flush=True)
+    for metric,expected in [('podobank_db_table_rows',{'mariadb':14}),('podobank_db_size_bytes',{'mariadb':6,'mongodb':3})]:
+        samples=get(prom+'/api/v1/query?'+urllib.parse.urlencode({'query':'count by(store)('+metric+')'}))['data']['result']
+        assert {s['metric']['store']:int(float(s['value'][1])) for s in samples}==expected
+    print('PASS: database table row counts and storage byte metrics exported',flush=True)
+
     private={}
     for line in (ROOT/'deploy/vm/monitoring.env').read_text().splitlines():
         if '=' not in line or line.lstrip().startswith('#'):continue

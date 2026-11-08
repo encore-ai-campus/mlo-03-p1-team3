@@ -4,6 +4,11 @@
   become: true
   gather_facts: false
   tasks:
+    - name: Refuse unconfirmed database deletion before any deployment changes
+      ansible.builtin.assert:
+        that: not (reset_databases | default(false) | bool) or (confirm_database_reset | default('')) == 'ERASE_PODOBANK_TEST_DATA'
+        fail_msg: Normal deployment preserves data. Use the dedicated reset playbook with explicit confirmation.
+      run_once: true
     - name: Validate private employee configuration before any database reset
       ansible.builtin.command:
         argv:
@@ -101,7 +106,7 @@
       ansible.builtin.systemd:
         name: podobank-api
         state: stopped
-      when: api_service_before_reset.stat.exists
+      when: api_service_before_reset.stat.exists and (reset_databases | default(false) | bool)
 
 - name: Install MariaDB master
   hosts: mariadb_master

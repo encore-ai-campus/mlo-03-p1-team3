@@ -1,13 +1,18 @@
 #!/bin/bash
-# MongoDB VM: install, enable authentication, and reset the test DB by default.
+# MongoDB VM: install, enable authentication, and preserve existing data unless an explicit reset is confirmed.
 # The application user is limited to readWrite on the podobank database.
 source "$(dirname "$0")/common.sh"
 require_root
 check_ubuntu_2404
 reset_policy_override="${RESET_DATABASES:-}"
+reset_confirmation_override="${CONFIRM_DATABASE_RESET:-}"
 load_env MONGODB_VERSION MARIADB_PASSWORD MONGODB_ADMIN_PASSWORD
-RESET_DATABASES="${reset_policy_override:-${RESET_DATABASES:-true}}"
+RESET_DATABASES="${reset_policy_override:-${RESET_DATABASES:-false}}"
+CONFIRM_DATABASE_RESET="${reset_confirmation_override:-${CONFIRM_DATABASE_RESET:-}}"
 [[ "$RESET_DATABASES" == true || "$RESET_DATABASES" == false ]] || die "RESET_DATABASES는 true 또는 false여야 합니다."
+if [ "$RESET_DATABASES" = true ] && [ "${CONFIRM_DATABASE_RESET:-}" != ERASE_PODOBANK_TEST_DATA ]; then
+  die "Explicit CONFIRM_DATABASE_RESET=ERASE_PODOBANK_TEST_DATA is required before deleting test data."
+fi
 check_password MARIADB_PASSWORD
 check_password MONGODB_ADMIN_PASSWORD
 

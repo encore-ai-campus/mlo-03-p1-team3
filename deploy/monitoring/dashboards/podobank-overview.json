@@ -94,14 +94,14 @@
   "panels": [
     {
       "id": 1,
-      "title": "API 요청 · 선택 기간",
-      "type": "stat",
-      "description": "Prometheus counter 증가량의 표본 추정치입니다. 헬스체크는 제외합니다.",
+      "title": "CPU 추이",
+      "type": "timeseries",
+      "description": "",
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 6,
-        "h": 4
+        "w": 12,
+        "h": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -110,7 +110,214 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(increase(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\"}[$__range])) or (0 * sum(increase(podobank_http_requests_total{job=\"fastapi\"}[$__range]))))",
+          "expr": "100*(1-avg by(server)(rate(node_cpu_seconds_total{job=\"node\",server=~\".*\",mode=\"idle\"}[$__rate_interval])))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "메모리 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(server)(100*(1-node_memory_MemAvailable_bytes{job=\"node\",server=~\".*\"}/node_memory_MemTotal_bytes{job=\"node\",server=~\".*\"}))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "디스크 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(server)(100*(1-node_filesystem_avail_bytes{job=\"node\",server=~\".*\",mountpoint=\"/\",fstype!=\"rootfs\"}/node_filesystem_size_bytes{job=\"node\",server=~\".*\",mountpoint=\"/\",fstype!=\"rootfs\"}))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "API 요청 · 선택 기간",
+      "type": "stat",
+      "description": "모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "podobank-loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\" | route!~\"/health|unmatched\"[$__range])) or (0*sum(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\"[$__range])))",
           "legendFormat": "{{server}}",
           "instant": true,
           "range": false,
@@ -158,24 +365,24 @@
       }
     },
     {
-      "id": 2,
+      "id": 5,
       "title": "API 2xx · 선택 기간",
       "type": "stat",
-      "description": "",
+      "description": "모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.",
       "gridPos": {
         "x": 6,
-        "y": 0,
+        "y": 16,
         "w": 6,
         "h": 4
       },
       "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
+        "type": "loki",
+        "uid": "podobank-loki"
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\",status_code=~\"2..\"}[$__range])) or (0 * (sum(increase(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\"}[$__range])) or (0 * sum(increase(podobank_http_requests_total{job=\"fastapi\"}[$__range])))))",
+          "expr": "sum(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\" | route!~\"/health|unmatched\" | status_code >= 200 | status_code < 300 [$__range])) or (0*sum(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\"[$__range])))",
           "legendFormat": "{{server}}",
           "instant": true,
           "range": false,
@@ -224,24 +431,24 @@
       }
     },
     {
-      "id": 3,
+      "id": 6,
       "title": "API 4xx · 선택 기간",
       "type": "stat",
-      "description": "",
+      "description": "모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.",
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 16,
         "w": 6,
         "h": 4
       },
       "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
+        "type": "loki",
+        "uid": "podobank-loki"
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\",status_code=~\"4..\"}[$__range])) or (0 * (sum(increase(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\"}[$__range])) or (0 * sum(increase(podobank_http_requests_total{job=\"fastapi\"}[$__range])))))",
+          "expr": "sum(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\" | route!~\"/health|unmatched\" | status_code >= 400 | status_code < 500 [$__range])) or (0*sum(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\"[$__range])))",
           "legendFormat": "{{server}}",
           "instant": true,
           "range": false,
@@ -290,24 +497,24 @@
       }
     },
     {
-      "id": 4,
+      "id": 7,
       "title": "API 5xx · 선택 기간",
       "type": "stat",
-      "description": "",
+      "description": "모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.",
       "gridPos": {
         "x": 18,
-        "y": 0,
+        "y": 16,
         "w": 6,
         "h": 4
       },
       "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
+        "type": "loki",
+        "uid": "podobank-loki"
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\",status_code=~\"5..\"}[$__range])) or (0 * (sum(increase(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\"}[$__range])) or (0 * sum(increase(podobank_http_requests_total{job=\"fastapi\"}[$__range])))))",
+          "expr": "sum(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\" | route!~\"/health|unmatched\" | status_code >= 500 | status_code < 600 [$__range])) or (0*sum(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\"[$__range])))",
           "legendFormat": "{{server}}",
           "instant": true,
           "range": false,
@@ -356,24 +563,24 @@
       }
     },
     {
-      "id": 5,
+      "id": 8,
       "title": "API 요청률",
       "type": "stat",
-      "description": "",
+      "description": "모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.",
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 20,
         "w": 6,
         "h": 4
       },
       "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
+        "type": "loki",
+        "uid": "podobank-loki"
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(rate(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\"}[$__rate_interval])) or (0 * sum(rate(podobank_http_requests_total{job=\"fastapi\"}[$__rate_interval]))))",
+          "expr": "sum(rate({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\" | route!~\"/health|unmatched\"[$__auto]))",
           "legendFormat": "{{server}}",
           "instant": true,
           "range": false,
@@ -421,24 +628,24 @@
       }
     },
     {
-      "id": 6,
+      "id": 9,
       "title": "API 응답 p95",
       "type": "stat",
-      "description": "",
+      "description": "모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.",
       "gridPos": {
         "x": 6,
-        "y": 4,
+        "y": 20,
         "w": 6,
         "h": 4
       },
       "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
+        "type": "loki",
+        "uid": "podobank-loki"
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "1000*histogram_quantile(0.95,sum by(le)(rate(podobank_http_request_duration_seconds_bucket{job=\"fastapi\",route!~\"/health|unmatched\"}[$__rate_interval])))",
+          "expr": "quantile_over_time(0.95,{job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\" | route!~\"/health|unmatched\" | unwrap duration_ms | __error__=\"\" [$__auto]) by ()",
           "legendFormat": "{{server}}",
           "instant": true,
           "range": false,
@@ -496,13 +703,13 @@
       }
     },
     {
-      "id": 7,
+      "id": 10,
       "title": "정상 API 백엔드 · 목표 2",
       "type": "stat",
       "description": "",
       "gridPos": {
         "x": 12,
-        "y": 4,
+        "y": 20,
         "w": 6,
         "h": 4
       },
@@ -561,13 +768,13 @@
       }
     },
     {
-      "id": 8,
+      "id": 11,
       "title": "수집 실패 대상",
       "type": "stat",
       "description": "",
       "gridPos": {
         "x": 18,
-        "y": 4,
+        "y": 20,
         "w": 6,
         "h": 4
       },
@@ -639,24 +846,24 @@
       }
     },
     {
-      "id": 9,
+      "id": 12,
       "title": "HTTP 응답 추이",
       "type": "timeseries",
-      "description": "",
+      "description": "모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.",
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 24,
         "w": 12,
         "h": 7
       },
       "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
+        "type": "loki",
+        "uid": "podobank-loki"
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by(status_code)(rate(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\"}[$__rate_interval]))",
+          "expr": "sum by(status_code)(rate({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\" | route!~\"/health|unmatched\"[$__auto]))",
           "legendFormat": "HTTP {{status_code}}",
           "instant": false,
           "range": true,
@@ -709,24 +916,24 @@
       }
     },
     {
-      "id": 10,
+      "id": 13,
       "title": "오류 API · 선택 기간",
       "type": "table",
-      "description": "",
+      "description": "모든 API worker의 request_completed 로그에서 계산합니다. Loki에 도착한 기록 기준이며 헬스체크는 제외합니다.",
       "gridPos": {
         "x": 12,
-        "y": 8,
+        "y": 24,
         "w": 12,
         "h": 7
       },
       "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
+        "type": "loki",
+        "uid": "podobank-loki"
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by(route,status_code)(increase(podobank_http_requests_total{job=\"fastapi\",route!~\"/health|unmatched\",status_code=~\"4..|5..\"}[$__range])) > 0",
+          "expr": "sum by(route,status_code)(count_over_time({job=\"podobank\",log_type=\"application\"} | json | __error__=\"\" | message=\"request_completed\" | route!~\"/health|unmatched\" | status_code >= 400 [$__range]))",
           "legendFormat": "{{server}}",
           "instant": true,
           "range": false,
@@ -909,547 +1116,15 @@
           }
         }
       ]
-    },
-    {
-      "id": 11,
-      "title": "MariaDB 거래 원장",
-      "type": "stat",
-      "description": "현재 저장된 누적 건수입니다. 2분 주기 읽기 전용 집계이며 집계 장애 시 수집 없음으로 표시합니다.",
-      "gridPos": {
-        "x": 0,
-        "y": 15,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(podobank_db_records{store=\"mariadb\",dataset=\"ledger_entries\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        },
-        "text": {
-          "valueSize": 30,
-          "titleSize": 14
-        }
-      }
-    },
-    {
-      "id": 12,
-      "title": "MariaDB 카드 결제",
-      "type": "stat",
-      "description": "현재 저장된 누적 건수입니다. 2분 주기 읽기 전용 집계이며 집계 장애 시 수집 없음으로 표시합니다.",
-      "gridPos": {
-        "x": 6,
-        "y": 15,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(podobank_db_records{store=\"mariadb\",dataset=\"card_payments\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        },
-        "text": {
-          "valueSize": 30,
-          "titleSize": 14
-        }
-      }
-    },
-    {
-      "id": 13,
-      "title": "MongoDB 이벤트",
-      "type": "stat",
-      "description": "현재 저장된 누적 건수입니다. 2분 주기 읽기 전용 집계이며 집계 장애 시 수집 없음으로 표시합니다.",
-      "gridPos": {
-        "x": 12,
-        "y": 15,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(podobank_db_records{store=\"mongodb\",dataset=\"events_bronze\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        },
-        "text": {
-          "valueSize": 30,
-          "titleSize": 14
-        }
-      }
     },
     {
       "id": 14,
-      "title": "MongoDB 카드 위치",
-      "type": "stat",
-      "description": "현재 저장된 누적 건수입니다. 2분 주기 읽기 전용 집계이며 집계 장애 시 수집 없음으로 표시합니다.",
-      "gridPos": {
-        "x": 18,
-        "y": 15,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(podobank_db_records{store=\"mongodb\",dataset=\"card_payment_locations\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false
-        },
-        "text": {
-          "valueSize": 30,
-          "titleSize": 14
-        }
-      }
-    },
-    {
-      "id": 15,
-      "title": "DB 적재 현황 · 현재 건수",
-      "type": "table",
-      "description": "",
-      "gridPos": {
-        "x": 0,
-        "y": 19,
-        "w": 12,
-        "h": 9
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(store,dataset,kind)(podobank_db_records{server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
-          "legendFormat": "{{server}}",
-          "instant": true,
-          "range": false,
-          "queryType": "instant",
-          "format": "table"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "구분"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "deposit": {
-                        "text": "입금"
-                      },
-                      "withdrawal": {
-                        "text": "출금"
-                      },
-                      "transfer_out": {
-                        "text": "송금 출금"
-                      },
-                      "transfer_in": {
-                        "text": "송금 입금"
-                      },
-                      "card_payment": {
-                        "text": "카드 결제"
-                      },
-                      "loan_disbursement": {
-                        "text": "대출 지급"
-                      },
-                      "loan_repayment": {
-                        "text": "대출 상환"
-                      },
-                      "pending": {
-                        "text": "심사 대기"
-                      },
-                      "repaying": {
-                        "text": "상환 중"
-                      },
-                      "rejected": {
-                        "text": "반려"
-                      },
-                      "repaid": {
-                        "text": "상환 완료"
-                      },
-                      "scheduled": {
-                        "text": "예정"
-                      },
-                      "paid": {
-                        "text": "납부"
-                      },
-                      "overdue": {
-                        "text": "연체"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "결과"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "success": {
-                        "text": "성공"
-                      },
-                      "failure": {
-                        "text": "실패"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "저장 대상"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "ledger_entries": {
-                        "text": "거래 원장"
-                      },
-                      "loan_applications": {
-                        "text": "대출 신청"
-                      },
-                      "loan_repayments": {
-                        "text": "대출 상환 회차"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Value",
-            "desc": true
-          }
-        ]
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true,
-              "instance": true,
-              "job": true,
-              "server": true,
-              "store": true
-            },
-            "renameByName": {
-              "method": "메서드",
-              "route": "API 경로",
-              "status_code": "HTTP 코드",
-              "error_code": "오류 코드",
-              "event_type": "업무",
-              "outcome": "결과",
-              "reason": "사유",
-              "properties_result": "상환 결과",
-              "dataset": "저장 대상",
-              "kind": "구분",
-              "Value": "건수",
-              "Value #A": "건수"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 16,
-      "title": "DB 저장 건수 추이",
-      "type": "timeseries",
-      "description": "",
-      "gridPos": {
-        "x": 12,
-        "y": 19,
-        "w": 12,
-        "h": 9
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "podobank-prometheus"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum by(store,dataset)(podobank_db_records{server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
-          "legendFormat": "{{store}} · {{dataset}}",
-          "instant": false,
-          "range": true,
-          "queryType": "range"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "decimals": 0,
-          "min": 0,
-          "noValue": "수집 없음",
-          "mappings": [
-            {
-              "type": "special",
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "수집 없음",
-                  "color": "gray"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 5,
-            "showPoints": "never",
-            "spanNulls": false
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "calcs": [
-            "lastNotNull"
-          ]
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 17,
       "title": "DB 집계 경과",
       "type": "stat",
       "description": "180초 이상이면 집계 상태를 확인하세요.",
       "gridPos": {
         "x": 0,
-        "y": 28,
+        "y": 31,
         "w": 12,
         "h": 4
       },
@@ -1508,13 +1183,13 @@
       }
     },
     {
-      "id": 18,
+      "id": 15,
       "title": "MariaDB 복제 지연",
       "type": "stat",
       "description": "",
       "gridPos": {
         "x": 12,
-        "y": 28,
+        "y": 31,
         "w": 12,
         "h": 4
       },
@@ -1573,15 +1248,15 @@
       }
     },
     {
-      "id": 19,
-      "title": "서버별 CPU",
-      "type": "timeseries",
-      "description": "",
+      "id": 16,
+      "title": "MariaDB 총 저장 행 수",
+      "type": "stat",
+      "description": "관측 테이블의 행 수 합계입니다. 복제본은 제외합니다.",
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 35,
         "w": 12,
-        "h": 8
+        "h": 4
       },
       "datasource": {
         "type": "prometheus",
@@ -1590,17 +1265,17 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100*(1-avg by(server)(rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\"}[$__rate_interval])))",
+          "expr": "sum(podobank_db_table_rows{store=\"mariadb\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
           "legendFormat": "{{server}}",
-          "instant": false,
-          "range": true,
-          "queryType": "range"
+          "instant": true,
+          "range": false,
+          "queryType": "instant"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "decimals": 1,
+          "unit": "none",
+          "decimals": 0,
           "min": 0,
           "noValue": "수집 없음",
           "mappings": [
@@ -1609,7 +1284,7 @@
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "수집 없음",
+                  "text": "—",
                   "color": "gray"
                 }
               }
@@ -1617,40 +1292,100 @@
           ],
           "color": {
             "mode": "palette-classic"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "fillOpacity": 5,
-            "showPoints": "never",
-            "spanNulls": false
           }
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
           "calcs": [
             "lastNotNull"
-          ]
+          ],
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
+        "text": {
+          "valueSize": 30,
+          "titleSize": 14
         }
       }
     },
     {
-      "id": 20,
-      "title": "서버별 메모리",
+      "id": 17,
+      "title": "MongoDB 총 저장 문서 수",
+      "type": "stat",
+      "description": "업무 이벤트와 카드 위치 컬렉션 합계입니다.",
+      "gridPos": {
+        "x": 12,
+        "y": 35,
+        "w": 12,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(podobank_db_records{store=\"mongodb\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
+          "legendFormat": "{{server}}",
+          "instant": true,
+          "range": false,
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "text": {
+          "valueSize": 30,
+          "titleSize": 14
+        }
+      }
+    },
+    {
+      "id": 18,
+      "title": "총 적재 건수 추이",
       "type": "timeseries",
       "description": "",
       "gridPos": {
-        "x": 12,
-        "y": 32,
-        "w": 12,
+        "x": 0,
+        "y": 39,
+        "w": 24,
         "h": 8
       },
       "datasource": {
@@ -1660,8 +1395,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100*(1-node_memory_MemAvailable_bytes{job=\"node\"}/node_memory_MemTotal_bytes{job=\"node\"})",
-          "legendFormat": "{{server}}",
+          "expr": "sum by(store)(podobank_db_table_rows{store=\"mariadb\",server!~\".*replica\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180))) or sum by(store)(podobank_db_records{store=\"mongodb\"} and on(instance) ((podobank_business_collect_success == 1) and on(instance) (up{job=\"node\"} == 1) and on(instance) (time()-podobank_business_collect_success_timestamp_seconds < 180)))",
+          "legendFormat": "{{store}}",
           "instant": false,
           "range": true,
           "queryType": "range"
@@ -1669,8 +1404,8 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "decimals": 1,
+          "unit": "short",
+          "decimals": 0,
           "min": 0,
           "noValue": "수집 없음",
           "mappings": [
@@ -1679,7 +1414,7 @@
               "options": {
                 "match": "null",
                 "result": {
-                  "text": "수집 없음",
+                  "text": "—",
                   "color": "gray"
                 }
               }

@@ -1,0 +1,34 @@
+# Isolated fixture schemas on primary AND replica; production podobank is never emptied.
+---
+- hosts: mariadb_master:mariadb_replica
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Create an isolated integration schema and account, never modify podobank
+      ansible.builtin.command:
+        argv: [mariadb]
+        stdin: |
+          SET SESSION sql_log_bin=0;
+          CREATE DATABASE IF NOT EXISTS podobank_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+          CREATE USER IF NOT EXISTS 'podobank_test_runner'@'{{ mariadb_client_subnet }}' IDENTIFIED BY '{{ lookup("ansible.builtin.ini", "TEST_DB_PASSWORD", type="properties", file=playbook_dir ~ "/../../backend/.env.integration") }}';
+          GRANT ALL PRIVILEGES ON podobank_test.* TO 'podobank_test_runner'@'{{ mariadb_client_subnet }}';
+      no_log: true
+- hosts: mongodb
+  become: true
+  gather_facts: false
+  tasks:
+    - ansible.builtin.copy:
+        dest: /run/podobank-integration-user.js
+        mode: '0600'
+        content: |
+          const admin = db.getSiblingDB('admin');
+          if (admin.auth('podobank-admin', process.env.MONGODB_ADMIN_PASSWORD).ok !== 1) throw new Error('Test setup authentication failed');
+          const target = db.getSiblingDB('podobank_test');
+          const value={pwd:process.env.TEST_DB_PASSWORD,roles:[{role:'dbOwner',db:'podobank_test'}]};
+          if(target.getUser('podobank_test_runner')) target.updateUser('podobank_test_runner',value);
+          else target.createUser({user:'podobank_test_runner',...value});
+    - ansible.builtin.command: mongosh --quiet --file /run/podobank-integration-user.js
+      environment:
+        MONGODB_ADMIN_PASSWORD: '{{ lookup("ansible.builtin.ini", "MONGODB_ADMIN_PASSWORD", type="properties", file=playbook_dir ~ "/../vm/vm.env") }}'
+        TEST_DB_PASSWORD: '{{ lookup("ansible.builtin.ini", "TEST_DB_PASSWORD", type="properties", file=playbook_dir ~ "/../../backend/.env.integration") }}'
+      no_log: true
