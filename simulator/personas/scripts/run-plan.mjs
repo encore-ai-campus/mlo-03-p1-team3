@@ -12,7 +12,7 @@ import { loadEmployeeCredentials, makeEmployeeReviewer, verifyDisbursement } fro
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const CATEGORY = { convenience: '편의점', cafe: '카페', restaurant: '음식점', grocery: '마트', gas_station: '주유소', pharmacy: '약국' }
-const HELP = '사용법: npm run simulate -- --plan planner/data/plan_YYYY-MM-DD.jsonl --concurrency 10 --allow-remote --headed\n옵션: --profiles FILE (기본: 계획과 같은 폴더의 profiles.json), --dry-run, --approve-loans (신청 후 직원 API 승인), --retry-failed-reads (실패한 조회만 재시도), --limit N (계획 사용자 수), --all, --once\n전체 계획을 빠르게 재생하며 실제 시각은 서버가 기록합니다. 첫 실행은 600명 가입·초기 입금을 준비합니다.'
+const HELP = '사용법: npm run simulate -- --plan planner/data/plan_YYYY-MM-DD.jsonl --concurrency 10 --allow-remote --headed\n옵션: --profiles FILE (기본: 계획과 같은 폴더의 profiles.json), --dry-run, --approve-loans (신청 후 직원 API 승인), --retry-failed-reads (실패한 조회만 재시도), --reuse-prepared (준비된 계정 재사용), --prepare-only (최초 가입·입금만), --limit N (계획 사용자 수), --all, --once\n전체 계획을 빠르게 재생하며 실제 시각은 서버가 기록합니다. 첫 실행은 600명 가입·초기 입금을 준비합니다.'
 
 export function parsePlanArgs(args) {
   const o = { concurrency: 10, headed: false, allowRemote: false, dryRun: false }
@@ -26,6 +26,8 @@ export function parsePlanArgs(args) {
     else if (a === '--allow-remote') o.allowRemote = true
     else if (a === '--dry-run') o.dryRun = true
     else if (a === '--approve-loans') o.approveLoans = true
+    else if (a === '--reuse-prepared') o.reusePrepared = true
+    else if (a === '--prepare-only') o.prepareOnly = true
     else if (a === '--retry-failed-reads') o.retryFailedReads = true
     else if (a === '--help' || a === '-h') o.help = true
     else if (!['--all', '--once'].includes(a)) throw new SimulatorError('unsupported_plan_option')
@@ -289,7 +291,7 @@ export async function main(args) {
         const reviewer = credentials ? makeEmployeeReviewer({ request, base, credentials, report }) : null
         if (reviewer) await reviewer.verify()
         const driver = makeDriver({ browser, base, state, seed, profiles, report, reviewer })
-        const summary = await executePlan({ profiles, rows, concurrency: o.concurrency, state, save: saveState, report, driver, retryFailedReads: o.retryFailedReads })
+        const summary = await executePlan({ profiles, rows, concurrency: o.concurrency, state, save: saveState, report, driver, retryFailedReads: o.retryFailedReads, reusePrepared: o.reusePrepared, prepareOnly: o.prepareOnly })
         console.log(JSON.stringify({ phase: 'summary', ...summary }))
         if ((summary.outcomes.failed ?? 0) + (summary.outcomes.unknown ?? 0) > 0 || summary.prepared_users < profiles.length) process.exitCode = 1
       } finally { await browser.close() }

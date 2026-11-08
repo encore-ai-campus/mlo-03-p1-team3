@@ -131,3 +131,43 @@ npm run simulate:watch -- --all --concurrency 5
 - 대출 이용형은 고객 화면에서 신청만 합니다. 승인은 직원 API 담당자가 처리합니다. `anomaly-users.json`의 실패·복구 시나리오는 일반 행동과 분리되어 자동 실행하지 않습니다.
 
 상태와 JSONL 실행 기록은 `personas/state/`에 생성되며 Git에서 제외됩니다.
+
+### 맥북 cron으로 실제 브라우저 활동 반복
+
+Node.js 20.12 이상이 필요합니다. `.env`는 셸 코드로 실행하지 않고 Node의 내장 파서로 읽습니다.
+`planner/.env.example`의 예약 실행 변수를 비공개 `planner/.env`에 설정합니다.
+`SIMULATOR_PYTHON`과 cron의 Node 실행 파일은 절대 경로를 사용합니다.
+브라우저는 창 없이 실제 페이지를 조작합니다. 직원 승인만 별도 API 세션을 사용합니다.
+
+```bash
+# 최초 가입과 초기 입금만 준비합니다. 기존 계정의 준비 기록은 재사용합니다.
+bash scripts/run-scheduled.sh /absolute/path/to/node --prepare-only
+# 현재 시각까지 예정된 세션을 최대 SIMULATOR_SESSIONS_PER_TICK개 실행합니다.
+bash scripts/run-scheduled.sh /absolute/path/to/node
+```
+
+cron은 같은 명령을 `*/5 * * * *`로 등록합니다. 프로젝트와 Node의 절대 경로를 지정하고
+표준 출력·오류를 로컬 로그 파일에 기록합니다. 기존 cron 항목을 덮어쓰지 않습니다.
+최초 고객 준비가 성공한 뒤 예약을 등록합니다. 기본 동시 브라우저는 5개입니다.
+하루 계획은 한 번 생성하며, 이전 날짜의 미처리 세션도 오래된 날짜부터 처리합니다.
+세션은 시작 예정 시각 이후에 선택하고, 선택된 세션 내부 행동은 빠르게 실행합니다.
+로그인·로그아웃을 포함한 전체 세션 단위이므로 원래 행동 간 대기시간을 재현하지는 않습니다.
+완료된 금융 작업은 재전송하지 않으며, 실행 실패는 로그·실행 상태로 확인합니다.
+
+`scheduled-<대상 해시>.lock` 디렉터리가 있으면 겹치는 실행은 건너뜁니다.
+강제 종료로 잠금이 남았다면 해당 프로세스가 없는지 확인한 뒤 잠금 디렉터리만 제거합니다.
+DB 초기화는 cron에 포함하지 않습니다. 업무 DB를 새로 만들 때만 해당 대상의
+`execution-<대상 해시>.json` 및 이전 실행 보고서를 함께 정리합니다.
+페르소나 정의·프로필·비밀번호 seed·직원 설정은 유지합니다.
+맥북이 잠들거나 네트워크·VM이 꺼져 있으면 예약 작업은 정상 실행될 수 없습니다.
+
+cron 등록·해제(같은 사용자 계정, 기존의 다른 예약 유지):
+
+```bash
+node scripts/install-cron.mjs --dry-run
+node scripts/install-cron.mjs
+node scripts/install-cron.mjs --remove
+```
+
+로그는 `planner/data/cron.log`이며 Git에 포함하지 않습니다. 명령 실행 후 `crontab -l`로
+등록 여부를 확인하고, 실제 예약 시각의 `scheduled_tick`과 업무 실행 결과까지 확인합니다.
