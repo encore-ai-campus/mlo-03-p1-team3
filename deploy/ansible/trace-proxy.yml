@@ -1,0 +1,33 @@
+---
+- name: Correlate proxy timings with application traces
+  hosts: haproxy
+  become: true
+  gather_facts: false
+  vars:
+    correlation_log_format: '%ci:%cp [%tr] %ft %b/%s %TR/%Tw/%Tc/%Tr/%Ta %ST %B %CC %CS %tsc %ac/%fc/%bc/%sc/%rc %sq/%bq %hr %hs %{+Q}r backend_src=%bi:%bp target=%si:%sp'
+  tasks:
+    - name: Add connection addresses while retaining the standard HTTP log fields
+      ansible.builtin.replace:
+        path: /etc/haproxy/haproxy.cfg
+        regexp: '^    (?:option httplog|log-format .*)$'
+        replace: '    log-format "{{ correlation_log_format }}"'
+        backup: true
+        validate: /usr/sbin/haproxy -c -f %s
+      notify: Reload HAProxy
+    - name: Capture only the non-secret application trace identifier
+      ansible.builtin.lineinfile:
+        path: /etc/haproxy/haproxy.cfg
+        insertafter: '^frontend api_in$'
+        line: '    capture response header X-Trace-ID len 32'
+        backup: true
+        validate: /usr/sbin/haproxy -c -f %s
+      notify: Reload HAProxy
+    - ansible.builtin.meta: flush_handlers
+    - name: Verify the active service after reload
+      ansible.builtin.command: systemctl is-active haproxy
+      changed_when: false
+  handlers:
+    - name: Reload HAProxy
+      ansible.builtin.systemd:
+        name: haproxy
+        state: reloaded

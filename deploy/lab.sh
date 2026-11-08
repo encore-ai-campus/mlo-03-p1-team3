@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# WSL: bash deploy/lab.sh configure|plan|apply|install|observability|performance|verify
+# WSL: bash deploy/lab.sh configure|plan|apply|install|upgrade|observability|performance|resources|verify
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="${HOME}/.local/podobank-node/bin:${PATH}"
@@ -19,7 +19,7 @@ case "$action" in
  configure|plan|apply)
   python3 deploy/lab/configure.py --env "$config" --detect-network
   ;;
- install|observability|performance|verify)
+ install|upgrade|observability|performance|resources|verify)
   if [ ! -f "$inventory" ]; then
     echo 'Existing inventory missing. Run configure explicitly before deployment.' >&2
     exit 1
@@ -53,6 +53,20 @@ case "$action" in
   export ANSIBLE_PIPELINING=true ANSIBLE_TIMEOUT=60
   ansible-playbook -i "$inventory" deploy/ansible/site.yml
   ;;
+ upgrade)
+  export ANSIBLE_PIPELINING=true ANSIBLE_TIMEOUT=60
+  ansible-playbook -i "$inventory" deploy/ansible/tracing.yml "${@:2}"
+  ansible-playbook -i "$inventory" deploy/ansible/performance.yml "${@:2}"
+  ansible-playbook -i "$inventory" deploy/ansible/business-observability.yml "${@:2}"
+  python3 deploy/monitoring/verify.py --inventory "$inventory"
+  ;;
+ resources)
+  bash "$LAB_REPO/preflight.sh"
+  source "$LAB_REPO/lib/config.sh"
+  lab_require_credentials
+  export TF_VAR_vmrest_username="$VMWS_USERNAME" TF_VAR_vmrest_password="$VMWS_PASSWORD"
+  python3 deploy/lab/resize-resources.py
+  ;;
  performance)
   export ANSIBLE_PIPELINING=true ANSIBLE_TIMEOUT=60
   ansible-playbook -i "$inventory" deploy/ansible/performance.yml "${@:2}"
@@ -68,5 +82,5 @@ case "$action" in
   python3 deploy/ansible/verify-proxy-logs.py --inventory "$inventory" --read-only
   python3 deploy/monitoring/verify.py --inventory "$inventory"
   ;;
- *) echo 'Usage: bash deploy/lab.sh configure|plan|apply|install|observability|performance|verify' >&2; exit 1 ;;
+ *) echo 'Usage: bash deploy/lab.sh configure|plan|apply|install|upgrade|observability|performance|resources|verify' >&2; exit 1 ;;
 esac

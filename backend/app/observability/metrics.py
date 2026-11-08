@@ -2,7 +2,7 @@
 import time
 
 from fastapi import FastAPI, Response
-from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Histogram, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Gauge, Histogram, generate_latest
 
 
 class HttpMetricsMiddleware:
@@ -33,6 +33,9 @@ class HttpMetricsMiddleware:
 
 def install_metrics(app: FastAPI):
     registry = CollectorRegistry()
+    app.state.loop_lag = Gauge('podobank_event_loop_lag_seconds', 'Event loop scheduling delay', registry=registry)
+    app.state.threadpool_borrowed = Gauge('podobank_threadpool_borrowed', 'Busy AnyIO worker slots', registry=registry)
+    app.state.threadpool_total = Gauge('podobank_threadpool_total', 'AnyIO worker slot limit', registry=registry)
     requests = Counter('podobank_http_requests_total', 'Completed HTTP requests',
                        ['method', 'route', 'status_code'], registry=registry)
     duration = Histogram('podobank_http_request_duration_seconds', 'HTTP request duration',

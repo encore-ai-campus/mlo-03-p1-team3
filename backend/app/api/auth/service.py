@@ -21,6 +21,7 @@ from app.core.config import (
 from app.core.errors import AppError
 from app.core.security import verify_password
 from app.core.time import kst_now
+from app.observability.tracing import traced
 
 
 def _invalid() -> AppError:
@@ -118,21 +119,26 @@ def start_session(conn, user_id: int, device_id: str, client: str, user_agent: s
 
 
 def resolve_session(engine: Engine, token: str, now: datetime) -> SessionUser | None:
-    """살아 있는 세션이면 사용자를 돌려준다. 미사용 10분, 로그인 후 60분이 지났으면 끝내고 None."""
     with engine.begin() as conn:
-        row = repository.find_active_session(conn, hash_token(token))
-        if row is None:
-            return None
-        if now - row["last_seen_at"] >= timedelta(minutes=SESSION_IDLE_MINUTES):
-            repository.end_session(conn, row["id"], "idle_timeout", now)
-            return None
-        if now - row["created_at"] >= timedelta(minutes=SESSION_MAX_MINUTES):
-            repository.end_session(conn, row["id"], "max_age", now)
-            return None
-        stale_before = now - timedelta(seconds=SESSION_TOUCH_SECONDS)
-        if row["last_seen_at"] <= stale_before:
-            repository.touch_session(conn, row["id"], now, stale_before)
-        return SessionUser(id=row["user_id"], role=row["role"], name=row["name"])
+        return resolve_session_on(conn, token, now)
+
+
+@traced("auth.resolve_session")
+def resolve_session_on(conn, token: str, now: datetime) -> SessionUser | None:
+    """주어진 연결에서 세션을 확인한다. 커밋은 호출자가 담당한다."""
+    row = repository.find_active_session(conn, hash_token(token))
+    if row is None:
+        return None
+    if now - row["last_seen_at"] >= timedelta(minutes=SESSION_IDLE_MINUTES):
+        repository.end_session(conn, row["id"], "idle_timeout", now)
+        return None
+    if now - row["created_at"] >= timedelta(minutes=SESSION_MAX_MINUTES):
+        repository.end_session(conn, row["id"], "max_age", now)
+        return None
+    stale_before = now - timedelta(seconds=SESSION_TOUCH_SECONDS)
+    if row["last_seen_at"] <= stale_before:
+        repository.touch_session(conn, row["id"], now, stale_before)
+    return SessionUser(id=row["user_id"], role=row["role"], name=row["name"])
 
 
 def end_session(engine: Engine, token: str, now: datetime) -> None:

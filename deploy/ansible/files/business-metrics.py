@@ -30,6 +30,12 @@ def maria_snapshot():
         "SELECT 'loan_repayments',status,COUNT(*) FROM loan_repayments GROUP BY status",
         "SELECT 'card_payments','all',COUNT(*) FROM card_payments",
     ]
+    queries.extend("SELECT '__table__','" + name + "',COUNT(id) FROM " + name
+                   for name in ('users', 'accounts', 'sessions'))
+    queries.extend("SELECT '__size__','" + kind + "',COALESCE(SUM(" + column + "),0) "
+                   "FROM information_schema.tables WHERE table_schema='podobank'"
+                   for kind, column in [('data', 'data_length'), ('index', 'index_length'),
+                                        ('total', 'data_length+index_length')])
     sql = 'SET SESSION max_statement_time=5; START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY; ' + '; '.join(queries) + '; COMMIT;'
     result = subprocess.run(['mariadb', '--user=podobank-metrics', '--protocol=socket', '--batch', '--skip-column-names', 'podobank'],
                             input=sql, capture_output=True, text=True, timeout=25, check=True)
@@ -38,9 +44,18 @@ def maria_snapshot():
         dataset, kind, count = line.split('\t')
         actual[dataset, kind] = int(count)
     expected = [('ledger_entries', k) for k in LEDGER] + [('loan_applications', k) for k in LOANS] + [('loan_repayments', k) for k in REPAYMENTS] + [('card_payments', 'all')]
+    metadata = {k: actual.pop(k) for k in list(actual) if k[0] in ('__table__', '__size__')}
+    if set(metadata) != {('__table__', n) for n in ('users', 'accounts', 'sessions')} | {('__size__', n) for n in ('data', 'index', 'total')}:
+        raise ValueError('Missing storage aggregate shape')
     if set(actual) - set(expected) or ('card_payments', 'all') not in actual:
         raise ValueError('Unexpected aggregate shape')
-    return [sample('podobank_db_records', actual.get((dataset, kind), 0), store='mariadb', dataset=dataset, kind=kind) for dataset, kind in expected]
+    lines = [sample('podobank_db_records', actual.get((dataset, kind), 0), store='mariadb', dataset=dataset, kind=kind) for dataset, kind in expected]
+    tables = {n: metadata['__table__', n] for n in ('users', 'accounts', 'sessions')}
+    for dataset in ('ledger_entries', 'loan_applications', 'loan_repayments', 'card_payments'):
+        tables[dataset] = sum(v for (name, _), v in actual.items() if name == dataset)
+    lines.extend(sample('podobank_db_table_rows', count, store='mariadb', dataset=name) for name, count in tables.items())
+    lines.extend(sample('podobank_db_size_bytes', metadata['__size__', kind], store='mariadb', kind=kind) for kind in ('data', 'index', 'total'))
+    return lines
 
 
 def mongo_snapshot(script):
@@ -50,6 +65,10 @@ def mongo_snapshot(script):
     if set(data['collections']) != {'events_bronze', 'card_payment_locations'}:
         raise ValueError('Unexpected collection set')
     lines = [sample('podobank_db_records', count, store='mongodb', dataset=name, kind='all') for name, count in data['collections'].items()]
+    sizes = data['sizes']
+    if set(sizes) != {'data', 'index', 'total'}:
+        raise ValueError('Unexpected database size shape')
+    lines.extend(sample('podobank_db_size_bytes', count, store='mongodb', kind=kind) for kind, count in sizes.items())
     actual = {(row['event_type'], row['outcome']): row['count'] for row in data['events']}
     expected = {(e, o) for e in EVENTS for o in ('success', 'failure')}
     if set(actual) - expected:

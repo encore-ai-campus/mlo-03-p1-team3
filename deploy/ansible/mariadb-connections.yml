@@ -1,0 +1,12 @@
+- hosts: mariadb_master
+  become: true
+  gather_facts: false
+  tasks:
+    - copy:
+        dest: /etc/mysql/mariadb.conf.d/99-podobank-connections.cnf
+        mode: '0644'
+        content: |
+          [mysqld]
+          max_connections = 250
+    - command: mariadb --skip-ssl -N -e "SET GLOBAL max_connections=250; SHOW GLOBAL VARIABLES LIKE 'max_connections';"
+      changed_when: true

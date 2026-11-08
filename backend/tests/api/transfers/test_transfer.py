@@ -145,3 +145,54 @@ def test_kst_boundary_yesterday_not_counted(client, make_user, engine):
     response = client.post(TRANSFER, json={"recipient": receiver["account_number"], "amount": 6_000_000})
 
     assert response.status_code == 200
+
+
+def test_transfer_business_sql_budget_and_balances(engine, make_user):
+    from sqlalchemy import event
+
+    from app.api.events.service import transaction
+    from app.api.transfers.service import transfer
+
+    sender, receiver = make_user(balance=100_000), make_user(balance=7_000)
+    statements = []
+
+    class Sink:
+        def __init__(self):
+            self.items = []
+
+        def publish(self, items):
+            self.items.extend(items)
+
+    sink = Sink()
+
+    def count_sql(conn, cursor, statement, parameters, context, executemany):
+        statements.append(statement)
+
+    # 연결 초기화·인증·fixture·검증 SQL을 제외하고 송금 업무 SQL만 센다.
+    with transaction(engine, sink) as conn:
+        event.listen(conn, "before_cursor_execute", count_sql)
+        try:
+            result = transfer(conn, None, sender["id"], receiver["account_number"], 30_000)
+        finally:
+            event.remove(conn, "before_cursor_execute", count_sql)
+    assert len(statements) == 6, statements
+    assert [sql.lstrip().split()[0].upper() for sql in statements] == [
+        "SELECT", "SELECT", "SELECT", "SELECT", "UPDATE", "INSERT",
+    ]
+    assert result["balance"] == 70_000
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT l.account_id, l.entry_type, l.amount, l.balance_after, a.balance"
+                 " FROM ledger_entries l JOIN accounts a ON a.id = l.account_id"
+                 " WHERE l.transaction_id = :t ORDER BY l.id"),
+            {"t": result["transaction_id"]},
+        ).all()
+    assert [(r.account_id, r.entry_type, r.amount, r.balance_after, r.balance) for r in rows] == [
+        (sender["account_id"], "transfer_out", -30_000, 70_000, 70_000),
+        (receiver["account_id"], "transfer_in", 30_000, 37_000, 37_000),
+    ]
+    assert ledger_matches_balance(engine, sender["account_id"])
+    assert ledger_matches_balance(engine, receiver["account_id"])
+    assert len(sink.items) == 1
+    assert sink.items[0][1]["event_type"] == "transfer"
+    assert sink.items[0][1]["outcome"] == "success"

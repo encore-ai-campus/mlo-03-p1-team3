@@ -1,15 +1,20 @@
 from fastapi import APIRouter, Depends, Query, Request
+from starlette.concurrency import run_in_threadpool
 
-from app.api.accounts import service
+from app.api.accounts import repository, service
 from app.api.accounts.schemas import AccountResponse, LedgerResponse
-from app.core.deps import CurrentUser, require_customer
+from app.core.deps import CurrentUser, require_customer, run_customer_read, session_token
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
 
 @router.get("/me", response_model=AccountResponse)
-def my_account(request: Request, user: CurrentUser = Depends(require_customer)):
-    account = service.my_account(request.app.state.engine, user.id)
+async def my_account(request: Request, token: str = Depends(session_token)):
+    account = await run_in_threadpool(
+        run_customer_read, request, token, lambda conn, user: repository.find_by_user(conn, user.id),
+    )
+    if account is None:
+        raise service.account_not_found()
     return AccountResponse(account_number=account["account_number"], balance=account["balance"])
 
 

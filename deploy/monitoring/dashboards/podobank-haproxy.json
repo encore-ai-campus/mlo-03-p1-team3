@@ -93,6 +93,213 @@
   ],
   "panels": [
     {
+      "id": 1,
+      "title": "CPU 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100*(1-avg by(server)(rate(node_cpu_seconds_total{job=\"node\",server=~\".*haproxy\",mode=\"idle\"}[$__rate_interval])))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "메모리 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(server)(100*(1-node_memory_MemAvailable_bytes{job=\"node\",server=~\".*haproxy\"}/node_memory_MemTotal_bytes{job=\"node\",server=~\".*haproxy\"}))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "디스크 추이",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "podobank-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(server)(100*(1-node_filesystem_avail_bytes{job=\"node\",server=~\".*haproxy\",mountpoint=\"/\",fstype!=\"rootfs\"}/node_filesystem_size_bytes{job=\"node\",server=~\".*haproxy\",mountpoint=\"/\",fstype!=\"rootfs\"}))",
+          "legendFormat": "{{server}}",
+          "instant": false,
+          "range": true,
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "noValue": "수집 없음",
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "—",
+                  "color": "gray"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
       "datasource": {
         "type": "prometheus",
         "uid": "podobank-prometheus"
@@ -140,11 +347,11 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 0,
+        "y": 14,
         "w": 6,
         "h": 4
       },
-      "id": 1,
+      "id": 4,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -226,11 +433,11 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 0,
+        "y": 14,
         "w": 6,
         "h": 4
       },
-      "id": 2,
+      "id": 5,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -297,11 +504,11 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 14,
         "w": 6,
         "h": 4
       },
-      "id": 3,
+      "id": 6,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -368,11 +575,11 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 0,
+        "y": 14,
         "w": 6,
         "h": 4
       },
-      "id": 4,
+      "id": 7,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -447,11 +654,11 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 4,
+        "y": 18,
         "w": 12,
         "h": 7
       },
-      "id": 5,
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [],
@@ -511,11 +718,11 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 4,
+        "y": 18,
         "w": 12,
         "h": 4
       },
-      "id": 6,
+      "id": 9,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -594,11 +801,11 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 11,
+        "y": 25,
         "w": 24,
         "h": 12
       },
-      "id": 7,
+      "id": 10,
       "options": {
         "mergeValues": true,
         "rowHeight": 0.8,
@@ -664,11 +871,11 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 37,
         "w": 12,
         "h": 7
       },
-      "id": 8,
+      "id": 11,
       "options": {
         "legend": {
           "calcs": [],
@@ -737,11 +944,11 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 23,
+        "y": 37,
         "w": 12,
         "h": 7
       },
-      "id": 9,
+      "id": 12,
       "options": {
         "legend": {
           "calcs": [],
@@ -801,11 +1008,11 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 30,
+        "y": 44,
         "w": 24,
         "h": 9
       },
-      "id": 10,
+      "id": 13,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,

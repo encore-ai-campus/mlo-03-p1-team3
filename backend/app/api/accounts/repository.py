@@ -66,3 +66,31 @@ def list_ledger(conn: Connection, account_id: int, limit: int, offset: int):
              " WHERE account_id = :a ORDER BY id DESC LIMIT :l OFFSET :o"),
         {"a": account_id, "l": limit, "o": offset},
     ).mappings().all()
+
+
+def lock_pair(conn: Connection, a: int, b: int):
+    return conn.execute(
+        text("SELECT id, user_id, balance FROM accounts WHERE id IN (:a, :b) ORDER BY id"
+             f" FOR UPDATE WAIT {LOCK_WAIT_SECONDS}"),
+        {"a": a, "b": b},
+    ).mappings().all()
+
+
+def apply_transfer(conn: Connection, sender_id: int, receiver_id: int, amount: int) -> bool:
+    result = conn.execute(
+        text("UPDATE accounts SET balance = balance + CASE WHEN id = :s THEN :neg ELSE :pos END"
+             " WHERE id IN (:s, :r)"
+             " AND balance + CASE WHEN id = :s THEN :neg ELSE :pos END >= 0"),
+        {"s": sender_id, "r": receiver_id, "neg": -amount, "pos": amount},
+    )
+    return result.rowcount == 2
+
+
+def insert_transfer_ledger(conn: Connection, transaction_id: str, sender_id: int, receiver_id: int,
+                           amount: int, sender_balance: int, receiver_balance: int) -> None:
+    conn.execute(
+        text("INSERT INTO ledger_entries (transaction_id, account_id, entry_type, amount, balance_after)"
+             " VALUES (:t, :s, 'transfer_out', :neg, :sb), (:t, :r, 'transfer_in', :pos, :rb)"),
+        {"t": transaction_id, "s": sender_id, "r": receiver_id, "neg": -amount, "pos": amount,
+         "sb": sender_balance, "rb": receiver_balance},
+    )

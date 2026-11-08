@@ -1,0 +1,192 @@
+---
+# Deliberately separate from site.yml: this never recreates application databases.
+- name: Install pinned single-binary Tempo alongside Loki
+  hosts: loki
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install Tempo without starting its unconfigured package service
+      ansible.builtin.apt:
+        name: tempo=2.10.10
+        state: present
+        policy_rc_d: 101
+    - name: Pin Tempo to the Kafka-free 2.x diagnostic deployment
+      ansible.builtin.copy:
+        dest: /etc/apt/preferences.d/podobank-tempo
+        mode: '0644'
+        content: |
+          Package: tempo
+          Pin: version 2.10.10
+          Pin-Priority: 1001
+    - ansible.builtin.group:
+        name: tempo
+        system: true
+    - ansible.builtin.user:
+        name: tempo
+        group: tempo
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+    - ansible.builtin.file:
+        path: '{{ item }}'
+        state: directory
+        owner: tempo
+        group: tempo
+        mode: '0750'
+      loop: [/etc/tempo, /var/lib/tempo]
+    - name: Configure bounded local trace storage
+      ansible.builtin.template:
+        src: tempo.yml.j2
+        dest: /etc/tempo/podobank.yml
+        owner: tempo
+        group: tempo
+        mode: '0640'
+        validate: /usr/bin/tempo -config.file=%s -config.verify=true
+      notify: Restart Tempo
+    - ansible.builtin.copy:
+        dest: /etc/systemd/system/tempo.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=PodoBank Tempo 2.10.10
+          After=network-online.target
+          [Service]
+          User=tempo
+          Group=tempo
+          ExecStart=/usr/bin/tempo -config.file=/etc/tempo/podobank.yml
+          Restart=on-failure
+          RestartSec=3
+          NoNewPrivileges=true
+          [Install]
+          WantedBy=multi-user.target
+      notify: Restart Tempo
+    - name: Allow API trace senders through the existing firewall
+      ansible.builtin.command: 'ufw allow from {{ hostvars[item].ansible_host }} to any port 4318 proto tcp'
+      loop: "{{ groups['api'] }}"
+      register: rule
+      changed_when: "'Skipping adding existing rule' not in rule.stdout"
+    - name: Allow Grafana and the management host to query Tempo
+      ansible.builtin.command: 'ufw allow from {{ item }} to any port 3200 proto tcp'
+      loop:
+        - "{{ hostvars[groups['grafana'][0]].ansible_host }}"
+        - "{{ tracing_management_ip | default(hostvars[groups['grafana'][0]].ansible_host) }}"
+      register: rule
+      changed_when: "'Skipping adding existing rule' not in rule.stdout"
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.systemd:
+        name: tempo
+        daemon_reload: true
+        enabled: true
+        state: started
+    - ansible.builtin.uri:
+        url: http://127.0.0.1:3200/ready
+        status_code: 200
+      register: ready
+      until: ready.status | default(0) == 200
+      retries: 30
+      delay: 2
+  handlers:
+    - name: Restart Tempo
+      ansible.builtin.systemd:
+        name: tempo
+        state: restarted
+        daemon_reload: true
+
+- name: Add Tempo to the existing Grafana
+  hosts: grafana
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Provision a separate trace data source without replacing existing sources
+      ansible.builtin.copy:
+        dest: /etc/grafana/provisioning/datasources/podobank-tempo.yml
+        owner: root
+        group: grafana
+        mode: '0640'
+        content: |
+          apiVersion: 1
+          datasources:
+            - name: Tempo
+              uid: podobank-tempo
+              type: tempo
+              access: proxy
+              url: http://{{ hostvars[groups['loki'][0]].ansible_host }}:3200
+              editable: false
+              version: 1
+      notify: Restart Grafana
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/health
+        status_code: 200
+      register: ready
+      until: ready.status | default(0) == 200
+      retries: 30
+      delay: 2
+  handlers:
+    - name: Restart Grafana
+      ansible.builtin.systemd:
+        name: grafana-server
+        state: restarted
+
+- name: Instrument APIs one at a time without migrating or resetting data
+  hosts: api
+  serial: 1
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Package reviewed backend without secrets or caches
+      ansible.builtin.command:
+        argv: [tar, -czf, /tmp/podobank-reviewed-backend.tgz, --exclude=.env, '--exclude=.env.*', --exclude=.venv, --exclude=__pycache__, --exclude=.pytest_cache, --exclude=.ruff_cache, --exclude=var, -C, '{{ playbook_dir }}/../../backend', .]
+      delegate_to: localhost
+      become: false
+      run_once: true
+      changed_when: false
+    - name: Deploy the complete reviewed source without touching DB data or local envs
+      ansible.builtin.unarchive:
+        src: /tmp/podobank-reviewed-backend.tgz
+        dest: /opt/podobank/backend
+        owner: podobank
+        group: podobank
+      notify: Restart API
+    - name: Install pinned Python tracing dependencies
+      ansible.builtin.pip:
+        requirements: /opt/podobank/backend/requirements.txt
+        virtualenv: /opt/podobank/backend/.venv
+      notify: Restart API
+    - name: Remove the SQL auto-instrumentor incompatible with SQLAlchemy 2.1
+      ansible.builtin.pip:
+        name: opentelemetry-instrumentation-sqlalchemy
+        state: absent
+        virtualenv: /opt/podobank/backend/.venv
+    - name: Configure OTLP endpoint in the existing private environment
+      ansible.builtin.lineinfile:
+        path: /etc/podobank/api.env
+        regexp: '^OTEL_EXPORTER_OTLP_TRACES_ENDPOINT='
+        line: 'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://{{ hostvars[groups["loki"][0]].ansible_host }}:4318/v1/traces'
+        mode: '0640'
+      no_log: true
+      notify: Restart API
+    - name: Configure ten percent sampling for the diagnostic run
+      ansible.builtin.lineinfile:
+        path: /etc/podobank/api.env
+        regexp: '^OTEL_SAMPLE_RATIO='
+        line: 'OTEL_SAMPLE_RATIO=0.1'
+        mode: '0640'
+      no_log: true
+      notify: Restart API
+    - ansible.builtin.meta: flush_handlers
+    - ansible.builtin.uri:
+        url: http://127.0.0.1:8000/api/v1/health
+        status_code: 200
+      register: ready
+      until: ready.status | default(0) == 200
+      retries: 30
+      delay: 2
+    - name: Check Python dependency compatibility
+      ansible.builtin.command: /opt/podobank/backend/.venv/bin/python -m pip check
+      changed_when: false
+  handlers:
+    - name: Restart API
+      ansible.builtin.systemd:
+        name: podobank-api
+        state: restarted

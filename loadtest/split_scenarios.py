@@ -1,8 +1,10 @@
 """Isolate login RPS from transfer-flow TPS using Locust's HTTP statistics.
 
-Credentials stay in memory or a private .env file. No resets, financial retries,
-user respawning, or login requests during a measured transfer phase.
+Ephemeral credentials stay in memory; reusable pool credentials stay in a
+private .env. No financial retries or logins during transfer measurement.
 """
+
+# gevent must patch before importing networking modules.
 
 from gevent import monkey
 
@@ -16,15 +18,18 @@ import re
 import secrets
 import time
 from collections import Counter, defaultdict
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import gevent
+from gevent.event import Event
 from gevent.pool import Group, Pool
 from locust.clients import HttpSession
 from locust.env import Environment
+from reusable_pool_store import PoolError, PoolStore
 
 API = "/api/v1"
 
@@ -70,24 +75,26 @@ class Account:
 
 
 class Experiment:
-    def __init__(self, host, count=1000, seed=20261107, accounts=None):
+    def __init__(self, host, count=1000, seed=20261107, records=None, accounts=None):
+        if accounts is not None:
+            if records is not None:
+                raise PoolError("Specify only one account source")
+            records = accounts
+        if records is not None and len(records) != count:
+            raise PoolError("Selected pool size differs from requested count")
         self.env = Environment(host=host)
         self.runner = self.env.create_local_runner()
-        prefix = secrets.randbelow(100_000)
+        prefix = secrets.randbelow(10_000)
         self.accounts = [
             Account(
                 i,
-                f"019{prefix:05d}{i:03d}",
-                secrets.token_urlsafe(18),
+                records[i]["phone_number"] if records is not None else f"019{prefix:04d}{i:04d}",
+                records[i]["password"] if records is not None else secrets.token_urlsafe(18),
                 HttpSession(host, self.env.events.request, None),
-                i % 10 == 9,
+                records[i].get("poor", i % 10 == 9) if records is not None else i % 10 == 9,
             )
             for i in range(count)
         ]
-        if accounts is not None:
-            for a, record in zip(self.accounts, accounts, strict=True):
-                a.phone, a.password = record["phone_number"], record["password"]
-        self.reusing_accounts = accounts is not None
         for a in self.accounts:
             a.client.trust_env = False
         self.rng = random.Random(seed)
@@ -198,26 +205,70 @@ class Experiment:
         for _ in Pool(8).imap_unordered(signup, self.accounts):
             pass
 
-    def prelogin(self, rate, concurrency=8):
+    def prelogin(self, rate, keepalive_interval=120, concurrency=8):
         self.phase = "prelogin"
-        successes = []
+        successes, authenticated = [], []
+        keepalive_requests = keepalive_failures = 0
         pending = Pool(concurrency)
-        started = time.monotonic()
-        for i, a in enumerate(self.accounts):
-            gevent.sleep(max(0, started + i / rate - time.monotonic()))
-            pending.spawn(lambda account=a: successes.append(self.login(account)))
-        pending.join(timeout=20)
-        self.ready = (
-            len(successes) == len(self.accounts) and all(successes) and not pending
+        stop = Event()
+
+        def login_one(a):
+            ok = self.login(a)
+            successes.append(ok)
+            if ok:
+                authenticated.append(a)
+
+        def keep_sessions():
+            nonlocal keepalive_requests, keepalive_failures
+            try:
+                while not stop.wait(timeout=keepalive_interval):
+                    for a in tuple(authenticated):
+                        if stop.is_set():
+                            return
+                        keepalive_requests += 1
+                        if not self.request(a, "GET", "/accounts/me", "사전-세션유지")[2]:
+                            keepalive_failures += 1
+                            return
+            except Exception:  # noqa: BLE001 - retain only a failure count
+                keepalive_failures += 1
+
+        keeper = (
+            gevent.spawn(keep_sessions)
+            if (len(self.accounts) - 1) / rate > 2 * keepalive_interval
+            else None
         )
+        started = time.monotonic()
+        try:
+            for i, a in enumerate(self.accounts):
+                if keepalive_failures:
+                    break
+                gevent.sleep(max(0, started + i / rate - time.monotonic()))
+                pending.spawn(login_one, a)
+            pending.join(timeout=20)
+        finally:
+            stop.set()
+            if keeper is not None:
+                keeper.join(timeout=15)
+                if not keeper.dead:
+                    keeper.kill(block=True)
+                    keepalive_failures += 1
+        unfinished = bool(pending)
         if pending:
             pending.kill(block=True)
+        self.ready = (
+            len(successes) == len(self.accounts)
+            and all(successes)
+            and not unfinished
+            and not keepalive_failures
+        )
         return {
             "accounts": len(self.accounts),
-            "max_inflight_logins": concurrency,
             "successful": sum(successes),
+            "max_inflight_logins": concurrency,
             "ready": self.ready,
             "seconds": round(time.monotonic() - started, 2),
+            "keepalive_requests": keepalive_requests,
+            "keepalive_failures": keepalive_failures,
             "errors": dict(self.codes),
         }
 
@@ -305,10 +356,8 @@ class Experiment:
             late = delay > max(0.1, 2 / rate)
             if late or a.busy:
                 missed += 1
-                # Disjoint categories; retain overlap separately without double counting.
-                missed_reasons["scheduler_late" if late else "account_busy"] += 1
-                if late and a.busy:
-                    missed_reasons["both"] += 1
+                reason = "both" if late and a.busy else "scheduler_late" if late else "account_busy"
+                missed_reasons[reason] += 1
                 continue
             a.busy = True
             scheduled += 1
@@ -373,17 +422,6 @@ class Experiment:
             "loadgen_cpu_warning": bool(self.runner.cpu_warning_emitted),
         }
 
-    def capture_balances(self):
-        """Read the baseline of reused accounts; never fund or reset them."""
-        self.phase = "baseline"
-        def one(a):
-            _status, data, ok = self.request(a, "GET", "/accounts/me", "준비-잔액")
-            if not ok or not isinstance(data.get("balance"), int):
-                raise RuntimeError("Account baseline unavailable")
-            a.initial = data["balance"]
-        for _ in Pool(8).imap_unordered(one, self.accounts):
-            pass
-
     def verify_balances(self):
         self.phase = "verification"
         result = Counter()
@@ -408,10 +446,110 @@ class Experiment:
             k: result[k] for k in ["checked", "uncertain", "mismatched", "errors"]
         } | {"total_diff": sum(differences)}
 
+    def capture_balances(self):
+        """Rebase a reused pool without issuing any financial requests."""
+        if not self.ready:
+            raise PoolError("Balance baseline requires all selected sessions")
+        self.phase = "baseline"
+
+        def one(a):
+            _status, data, ok = self.request(a, "GET", "/accounts/me", "사전-잔액")
+            balance = data.get("balance")
+            if not ok or type(balance) is not int or balance < 0:
+                raise PoolError("Cannot establish balance baseline")
+            a.initial = balance
+
+        for _ in Pool(8).imap_unordered(one, self.accounts):
+            pass
+
     def close(self):
         for a in self.accounts:
             a.client.close()
         self.runner.quit()
+
+
+def prepare_pool(experiment, pool):
+    """Prepare only unfinished accounts; ambiguous money never auto-retries."""
+    if any(a["state"] == "funding" for a in pool.accounts):
+        raise PoolError("Uncertain funding requires reconciliation before resuming")
+    experiment.phase = "pool_preparation"
+    completed = 0
+
+    def signup(a):
+        body = {
+                "name": f"LOAD-POOL-{pool.metadata['id'][:8]}-{a.index:05d}",
+                "phone_number": a.phone,
+                "password": a.password,
+                "birth_year": 1995,
+                "gender": "male",
+                "marital_status": "single",
+                "is_employed": True,
+        }
+        if not experiment.request(a, "POST", "/auth/signup", "풀-가입", body)[2]:
+            raise PoolError("Pool signup not confirmed; saved credentials preserved")
+
+    def one(a):
+        nonlocal completed
+        record = pool.accounts[a.index]
+        if record["state"] == "ready":
+            completed += 1
+            return
+        if record["state"] == "new":
+            pool.update(a.index, state="signup")
+            signup(a)
+        else:
+            status, data, ok = experiment.request(
+                a, "POST", "/auth/login", "로그인",
+                {"phone_number": a.phone, "password": a.password},
+            )
+            if not ok:
+                if record["state"] == "signup" and status == 401 and data.get("code") == "invalid_credentials":
+                    # Signup can be repeated with the same identity; a conflicting
+                    # existing account returns 409 and is never funded.
+                    signup(a)
+                else:
+                    raise PoolError("Cannot resume account with saved credentials")
+        pool.update(a.index, state="signed_up")
+        _status, data, ok = experiment.request(a, "GET", "/accounts/me", "풀-잔액")
+        funded = pool.accounts[a.index]["funded"]
+        if not ok or type(data.get("balance")) is not int or data["balance"] != funded:
+            raise PoolError("Preparation balance differs; manual reconciliation required")
+        target = 30_000 if a.poor else 30_000_000
+        while funded < target:
+            amount = min(10_000_000, target - funded)
+            # This fsync completes BEFORE the request. A crash at any later point
+            # blocks automatic resumption rather than risking a duplicate deposit.
+            pool.update(a.index, state="funding")
+            _status, data, ok = experiment.request(
+                a, "POST", "/transactions/deposit", "풀-입금", {"amount": amount}
+            )
+            if not ok or type(data.get("balance")) is not int or data["balance"] != funded + amount:
+                raise PoolError("Funding is uncertain; automatic retry forbidden")
+            funded += amount
+            pool.update(a.index, state="signed_up", funded=funded)
+        if not experiment.request(a, "POST", "/auth/logout", "풀-로그아웃")[2]:
+            raise PoolError("Pool logout not confirmed; resume with saved credentials")
+        pool.update(a.index, state="ready")
+        a.client.close()
+        completed += 1
+        if completed % 100 == 0:
+            print(f"Pool ready {completed}/{len(pool.accounts)}", flush=True)
+
+    def guarded(a):
+        try:
+            one(a)
+        except Exception as exc:  # noqa: BLE001 - never print an HTTP body or credential
+            return exc if isinstance(exc, PoolError) else PoolError("Pool preparation stopped safely")
+        return None
+
+    workers = Pool(8)
+    try:
+        for error in workers.imap_unordered(guarded, experiment.accounts):
+            if error is not None:
+                raise error
+    finally:
+        workers.kill(block=True)
+    return {"total": len(pool.accounts), "ready": sum(a["state"] == "ready" for a in pool.accounts)}
 
 
 def evaluate(row, max_fail=0.01, max_p95=500):
@@ -437,12 +575,12 @@ def evaluate(row, max_fail=0.01, max_p95=500):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("mode", choices=["login", "transfer"])
+    p.add_argument("mode", choices=["login", "transfer", "prepare-pool"])
     p.add_argument("--host", required=True)
     p.add_argument("--allow-remote", action="store_true")
     p.add_argument("--accounts", type=int, default=1000)
+    p.add_argument("--pool-env", type=Path, help="Dedicated private .env for reusable accounts")
     p.add_argument("--rates", default=None)
-    p.add_argument("--pool-env", type=Path, help="Reuse private PODOBANK_ACCOUNTS_JSON; never signup or fund")
     p.add_argument("--seconds", type=float, default=60)
     p.add_argument("--warmup", type=float, default=10)
     p.add_argument("--cooldown", type=float, default=10)
@@ -478,10 +616,33 @@ def main():
         or min(rates) <= 0
         or args.seconds <= 0
         or min(args.warmup, args.cooldown) < 0
-        or args.prelogin_rate <= 0
         or not 1 <= args.prelogin_concurrency <= 32
+        or args.prelogin_rate <= 0
     ):
         p.error("invalid account count, rates or durations")
+    if args.mode == "prepare-pool" and args.pool_env is None:
+        p.error("prepare-pool requires --pool-env pointing to a dedicated .env")
+    with ExitStack() as stack:
+        pool = records = None
+        if args.pool_env:
+            try:
+                from handoff_common import parse_accounts, read_env
+                legacy = read_env(args.pool_env).get("PODOBANK_ACCOUNTS_JSON")
+                if legacy and args.mode != "prepare-pool":
+                    records = parse_accounts(legacy, args.accounts)[:args.accounts]
+                    return execute(args, rates, records=records)
+                pool = stack.enter_context(PoolStore(args.pool_env, args.host))
+                if args.mode == "prepare-pool":
+                    pool.create(args.accounts)
+                    records = pool.accounts
+                else:
+                    records = pool.select(args.accounts)
+            except PoolError as exc:
+                p.error(str(exc))
+        return execute(args, rates, pool, records)
+
+
+def execute(args, rates, pool=None, records=None):
     folder = args.output / (
         datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + args.mode
     )
@@ -497,23 +658,26 @@ def main():
             "warmup": args.warmup,
             "cooldown": args.cooldown,
             "prelogin_rate": args.prelogin_rate,
-            "prelogin_concurrency": args.prelogin_concurrency,
             "financial_retries": 0,
             "database_reset": False,
+            "reused_accounts": records is not None and args.mode != "prepare-pool",
+            "prelogin_concurrency": getattr(args, "prelogin_concurrency", 8),
             "transfer_flow": ["balance", "recipient_lookup", "transfer", "balance"],
         },
         "stages": [],
     }
-    records = None
-    if args.pool_env:
-        from handoff_common import parse_accounts, read_env
-        records = parse_accounts(read_env(args.pool_env).get("PODOBANK_ACCOUNTS_JSON"), args.accounts)[:args.accounts]
-    manifest["conditions"]["reused_account_pool"] = records is not None
-    experiment = Experiment(args.host, args.accounts, accounts=records)
+    if pool is not None:
+        manifest["pool"] = {"id": pool.metadata["id"], "total": len(pool.accounts), "selected": args.accounts}
+    experiment = Experiment(args.host, args.accounts, records=records)
     try:
-        print("Preparing", args.accounts, "accounts for", args.mode, flush=True)
-        if records is None:
+        if args.mode == "prepare-pool":
+            print("Preparing reusable pool", args.accounts, flush=True)
+            manifest["pool_preparation"] = prepare_pool(experiment, pool)
+        elif records is None:
+            print("Preparing", args.accounts, "accounts for", args.mode, flush=True)
             experiment.prepare(funded=args.mode == "transfer")
+        else:
+            print("Reusing", args.accounts, "prepared accounts; signup and funding skipped", flush=True)
         manifest["prepared"] = now()
         write(folder / "manifest.json", manifest)
         if args.mode == "transfer":
@@ -522,7 +686,7 @@ def main():
                 flush=True,
             )
             experiment.codes.clear()
-            manifest["prelogin"] = experiment.prelogin(args.prelogin_rate, args.prelogin_concurrency)
+            manifest["prelogin"] = experiment.prelogin(args.prelogin_rate, concurrency=getattr(args, "prelogin_concurrency", 8))
             write(folder / "manifest.json", manifest)
             if not experiment.ready:
                 raise RuntimeError(
@@ -530,9 +694,10 @@ def main():
                 )
             if records is not None:
                 experiment.capture_balances()
+                manifest["balance_baseline"] = now()
             print("All sessions ready", flush=True)
             gevent.sleep(10)
-        for rate in rates:
+        for rate in ([] if args.mode == "prepare-pool" else rates):
             print("Warmup", args.mode, rate, flush=True)
             warmup = (
                 experiment.stage(args.mode, rate, args.warmup) if args.warmup else None
@@ -570,6 +735,8 @@ def main():
             manifest["balances"] = experiment.verify_balances()
     except Exception as exc:  # noqa: BLE001 - record worker failure without leaking request data
         manifest["execution_error"] = type(exc).__name__
+        if isinstance(exc, PoolError):
+            manifest["execution_detail"] = str(exc)
         manifest["preparation_errors"] = dict(experiment.codes)
         print(
             "Stopped:",
@@ -586,6 +753,11 @@ def main():
         and all(r["passed"] for r in manifest["stages"])
         and not manifest.get("execution_error")
     )
+    if args.mode == "prepare-pool":
+        passed = (
+            manifest.get("pool_preparation", {}).get("ready") == args.accounts
+            and not manifest.get("execution_error")
+        )
     if args.mode == "transfer" and manifest.get("balances"):
         passed = (
             passed

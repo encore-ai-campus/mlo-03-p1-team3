@@ -4,12 +4,13 @@ import time
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from threading import Lock
 
 from fastapi import FastAPI
 
 from app.core.time import kst_iso
+from app.observability.append_file import AppendFile
 from app.observability.request_id import get_request_id
+from app.observability.tracing import span, trace_id
 
 logger = logging.getLogger("app.application")
 
@@ -32,7 +33,7 @@ class ApplicationLog:
 
     def __post_init__(self):
         self.path = Path(self.path)
-        self._lock = Lock()
+        self._file = AppendFile(self.path)
 
     def write(self, level: str, message: str, **fields) -> None:
         entry = {
@@ -40,11 +41,9 @@ class ApplicationLog:
             "level": level, "message": message, "instance": self.instance, **fields,
         }
         try:
-            line = json.dumps(entry, ensure_ascii=False) + "\n"
-            with self._lock:
-                self.path.parent.mkdir(parents=True, exist_ok=True)
-                with self.path.open("a", encoding="utf-8") as stream:
-                    stream.write(line)
+            line = (json.dumps(entry, ensure_ascii=False) + "\n").encode("utf-8")
+            with span("logs.application_write"):
+                self._file.write(line)
         except Exception as exc:  # noqa: BLE001
             # 로그 저장 실패가 요청 결과를 바꾸지 않게 하고 비밀값도 출력하지 않는다.
             logger.warning("application log write failed: %s", type(exc).__name__)
@@ -87,6 +86,8 @@ class ApplicationLogMiddleware:
                 "request_id": get_request_id(request),
                 "error_code": "internal_error" if error else getattr(request.state, "error_code", None),
             }
+            if current_trace := trace_id():
+                fields["trace_id"] = current_trace
             if error:
                 fields.update(exception_details(error))
             else:

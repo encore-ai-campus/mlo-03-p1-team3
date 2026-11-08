@@ -15,9 +15,10 @@ CASH_MAX_AMOUNT = 10_000_000
 TRANSFER_MAX_AMOUNT = 10_000_000
 TRANSFER_DAILY_LIMIT = 100_000_000
 LOCK_WAIT_SECONDS = 3
-DB_POOL_SIZE = 10
-DB_MAX_OVERFLOW = 10
+DB_POOL_SIZE = 20
+DB_MAX_OVERFLOW = 0
 DB_POOL_TIMEOUT_SECONDS = 5
+DB_POOL_RECYCLE_SECONDS = 1800
 
 
 @dataclass(frozen=True)
@@ -32,8 +33,12 @@ class Settings:
     kakao_client_id: str = ""
     kakao_client_secret: str = ""
     kakao_redirect_uri: str = ""
+    otel_traces_endpoint: str = ""
+    otel_sample_ratio: float = 0.1
 
     def __post_init__(self):
+        if not 0 <= self.otel_sample_ratio <= 1:
+            raise ValueError("OTEL_SAMPLE_RATIO must be between 0 and 1")
         if Path(self.app_log_path).resolve() == Path(self.event_log_path).resolve():
             raise ValueError("APP_LOG_PATH and EVENT_LOG_PATH must be different")
 
@@ -50,4 +55,6 @@ class Settings:
             kakao_client_id=os.environ.get("KAKAO_CLIENT_ID", ""),
             kakao_client_secret=os.environ.get("KAKAO_CLIENT_SECRET", ""),
             kakao_redirect_uri=os.environ.get("KAKAO_REDIRECT_URI", ""),
+            otel_traces_endpoint=os.environ.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", ""),
+            otel_sample_ratio=float(os.environ.get("OTEL_SAMPLE_RATIO", "0.1")),
         )

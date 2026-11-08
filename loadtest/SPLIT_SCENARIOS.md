@@ -95,9 +95,9 @@ Nginx worker 연결 4096·파일 한도 8192·upstream keepalive 128이다.
 사전 로그인 자체가 실패하면 송금 측정은 시작하지 않는다. 서버 메모리 부족이 발생하면 그 실행을
 송금 처리량 결과로 간주하지 않는다.
 
-`missed_schedule_reasons.account_busy`와 `scheduler_late`는 서로 배타적이다.
-두 조건이 겹치면 scheduler_late에 포함하고 `both`에도 별도로 기록한다.
-따라서 앞 두 값의 합은 missed_schedule이며, both를 다시 합산하지 않는다.
+`missed_schedule_reasons.account_busy`, `scheduler_late`, `both`는 서로 배타적이다.
+두 조건이 겹치면 `both`에만 기록한다. 세 값의 합이 missed_schedule이다.
+이전 버전 결과 JSON은 both를 중복 집계했으므로 과거 기록과 구분한다.
 `flow_duration_ms`는 잔액 조회부터 마지막 잔액 조회까지 실행된 흐름(조기 중단 포함)의 백분위,
 `peak_inflight_flows`는 최대 동시 진행 흐름 수다. 일정 지연 백분위와 발생기 프로세스 CPU도 기록한다.
 프로세스 CPU 100%는 한 코어를 뜻하며, 측정 시작부터 응답 대기 종료까지의 구간이다.
