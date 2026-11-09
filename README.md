@@ -210,19 +210,59 @@ erDiagram
 
 ### 5.2 데이터 품질 검증
 
-수집한 데이터가 믿을 수 있는지 **정합성, 중복, 동시성, 누락, 스키마 일관성, 수집 경로**의 여섯 가지로 나누어 DB 제약, 대사 배치, 테스트, 배포 검증 스크립트로 확인합니다.
+데이터 품질을 **정확성, 정합성, 유일성, 완전성, 일관성**의 다섯 기준으로 나누어, 저장 단계의 DB 제약과 트랜잭션·잠금, 대사 배치, 테스트, 배포 검증 스크립트로 확인합니다.
 
-| 기준 | 검증 방법 | 근거 |
+#### 정확성 — 돈 계산이 틀리지 않게
+
+| 방법 | 내용 | 근거 |
 |---|---|---|
-| 정합성 (MariaDB) | DB 제약으로 잘못된 값을 저장 단계에서 거부합니다. 잔액 0 이상, 원장 금액 0 불가, 카드 결제 금액 0 초과, 계좌·카드·세션 등의 외래키, 전화번호·계좌번호·카드번호 고유값 등입니다. | `backend/migrations/0001_init.sql`, `backend/tests/api/test_schema.py` |
-| 정합성 (잔액 ↔ 원장) | 일 마감 대사 배치(`python -m app.jobs.reconcile`)가 계좌마다 원장 `amount` 합계와 잔액이 같은지 한 번의 SELECT로 비교합니다. 불일치가 있으면 `reconciliation` 이벤트를 실패로 남기고 종료 코드 1로 끝납니다. | `backend/app/jobs/reconcile.py`, `backend/tests/api/test_jobs.py` |
-| 중복 | MongoDB 이벤트 컬렉션(`events_bronze`, `card_payment_locations`)의 `event_id`에 고유 인덱스를 두어 같은 이벤트가 두 번 들어와도 하나만 남깁니다. 송금 이벤트가 로그와 MongoDB에 각각 한 번만 기록되는지 테스트합니다. | `backend/app/db/mongodb.py`, `backend/tests/api/test_events.py` |
-| 동시성 (중복 거래 방지) | 동시 송금(양방향 교착 없음, 일일 한도 경쟁), 동시 출금·입금, 동시 가입·승인·대출 신청·로그인 잠금, 연결 풀 고갈 상황을 실제 MariaDB에서 테스트합니다. | `backend/tests/concurrency/` |
-| 누락 | 이벤트는 DB 트랜잭션이 **커밋된 뒤에만** 기록하고, 롤백되면 쓰지 않습니다. 실패한 송금은 실패 이벤트만 남기는지 테스트합니다. | `backend/app/api/events/service.py`, `backend/tests/api/test_events.py` |
-| 스키마 일관성 | 모든 이벤트가 `event_id`, `event_type`, `occurred_at`, `source`, `outcome`, `reason`, `request_id`, `properties` 필드를 같은 형태로 갖게 만듭니다. 이름·전화번호·계좌번호·카드번호·금액 같은 개인정보 키는 이벤트에 들어가지 못하게 막고(중첩 포함), 금액은 구간으로만 남깁니다. | `backend/app/api/events/service.py`, `backend/tests/unit/test_events.py` |
-| 수집 경로 | 배포 후 실제 요청을 보내 Nginx·HAProxy·FastAPI 로그가 Alloy를 거쳐 Loki에서 조회되는지, 두 API 서버가 모두 요청을 받았는지, 요청 ID가 남는지 확인합니다. exporter 대상이 모두 정상(UP)인지, Prometheus·Grafana·Tempo가 응답하고 실제 추적이 조회되는지도 확인합니다. | `deploy/ansible/verify-proxy-logs.py`, `verify-exporters.py`, `verify-monitoring.py`, `verify-tracing.py` |
+| 한 트랜잭션 처리 | 입금·출금·송금·카드 결제·대출처럼 돈이 움직이는 요청은 잔액 변경과 원장 기록을 한 트랜잭션으로 묶어 함께 커밋하거나 함께 롤백합니다. | `backend/app/core/money.py` |
+| 행 잠금 | 계좌 행을 `SELECT … FOR UPDATE`로 잠근 뒤 잔액을 읽고 계산합니다. 동시에 들어온 요청이 같은 잔액을 두 번 쓰지 못합니다. | `backend/app/api/accounts/repository.py` |
+| 교착 방지 | 송금은 보내는 계좌와 받는 계좌를 계좌 ID가 작은 쪽부터 한 번에 잠가서, 서로 반대 방향 송금이 교착되지 않습니다. | `backend/app/api/transfers/service.py` |
+| 잔액 이중 방어 | `UPDATE` 조건에 변경 후 잔액 ≥ 0을 넣고 두 계좌가 모두 갱신됐는지 확인합니다. DB의 `CHECK (balance >= 0)`가 마지막 방어선입니다. | `backend/app/api/accounts/repository.py`, `0001_init.sql` |
+| 일일 한도 | 잠금을 얻은 뒤 오늘 송금 합계를 읽어 한도를 검사합니다. 격리 수준은 `READ COMMITTED`라서 잠금을 기다린 뒤 다른 거래가 커밋한 원장을 읽습니다. | `backend/app/api/transfers/service.py`, `backend/app/db/mariadb.py` |
+| 잠금 대기·교착 처리 | 잠금 대기는 3초로 제한하고, 교착이 나면 한 번 다시 시도합니다. 그래도 실패하면 오류 대신 409(다른 거래 처리 중)로 응답합니다. | `backend/app/db/mariadb.py` |
+| 로그인 잠금 | 로그인에 5회 실패하면 5분간 잠그고, 같은 기기의 동시 로그인은 사용자 행 잠금으로 세션이 하나만 남게 합니다. | `backend/app/api/auth/` |
+| 검증 테스트 | 동시 송금(양방향 교착 없음, 일일 한도 경쟁), 동시 출금·입금, 동시 가입·승인·대출 신청·로그인 잠금, 연결 풀 고갈을 실제 MariaDB에서 테스트합니다. | `backend/tests/concurrency/` |
 
-**장애 상황에서의 동작**
+#### 정합성 — 데이터끼리 서로 맞게
+
+| 방법 | 내용 | 근거 |
+|---|---|---|
+| 잔액 ↔ 원장 | 거래마다 `transaction_id`(UUID)를 만들어 송금의 출금·입금 원장 두 줄을 같이 기록하고, 거래 후 잔액(`balance_after`)을 함께 저장합니다. | `backend/app/api/transfers/service.py` |
+| 일 마감 대사 | 대사 배치(`python -m app.jobs.reconcile`)가 계좌마다 원장 `amount` 합계와 잔액이 같은지 한 번의 SELECT로 비교합니다. 불일치가 있으면 `reconciliation` 이벤트를 실패로 남기고 종료 코드 1로 끝납니다. | `backend/app/jobs/reconcile.py`, `backend/tests/api/test_jobs.py` |
+| 참조 무결성 | 세션·계좌·카드·원장·카드 결제·대출 신청·상환에 외래키를 두고, 거래 유형·대출 상태·성별·역할 등은 `CHECK`로 허용값만 받습니다. | `backend/migrations/0001_init.sql`, `backend/tests/api/test_schema.py` |
+| 업무 DB ↔ 이벤트 | 이벤트는 DB 트랜잭션이 커밋된 뒤에만 기록하고, 롤백되면 쓰지 않습니다. | `backend/app/api/events/service.py`, `backend/tests/api/test_events.py` |
+
+#### 유일성 — 같은 데이터가 두 번 들어가지 않게
+
+| 대상 | 방법 | 근거 |
+|---|---|---|
+| 회원·계좌·카드 | 전화번호, 카카오 식별자, 계좌번호, 카드번호에 `UNIQUE`를 두고, 회원당 계좌 1개·계좌당 카드 1개로 제한합니다. | `backend/migrations/0001_init.sql` |
+| 세션 | 세션 토큰 해시에 `UNIQUE`를 둡니다. | `backend/migrations/0001_init.sql`, `backend/tests/api/test_schema.py` |
+| 대출 | 상품 코드와 `(대출 신청, 상환 회차)` 조합에 `UNIQUE`를 두어 같은 회차가 두 번 만들어지지 않게 합니다. | `backend/migrations/0001_init.sql` |
+| 이벤트 | MongoDB 이벤트 컬렉션(`events_bronze`, `card_payment_locations`)의 `event_id`에 고유 인덱스를 두어 같은 이벤트가 두 번 들어와도 하나만 남깁니다. 송금 이벤트가 로그와 MongoDB에 각각 한 번만 기록되는지 테스트합니다. | `backend/app/db/mongodb.py`, `backend/tests/api/test_events.py` |
+
+#### 완전성 — 빠지는 데이터가 없게
+
+| 방법 | 내용 | 근거 |
+|---|---|---|
+| 실패도 기록 | 업무 오류로 롤백된 요청도 실패 이벤트를 따로 남깁니다. 실패한 송금은 실패 이벤트만 남는지 테스트합니다. | `backend/app/core/money.py`, `backend/tests/api/test_events.py` |
+| 필수값 | 원장·세션·거래 등 주요 컬럼에 `NOT NULL`을 두고, 이벤트는 정해진 필드를 항상 채웁니다. | `backend/migrations/0001_init.sql`, `backend/app/api/events/service.py` |
+
+#### 일관성 — 같은 형식으로 쌓이게
+
+| 방법 | 내용 | 근거 |
+|---|---|---|
+| 이벤트 스키마 | 모든 이벤트가 `event_id`, `event_type`, `occurred_at`, `source`, `outcome`, `reason`, `request_id`, `properties` 필드를 같은 형태로 갖게 만듭니다. | `backend/app/api/events/service.py`, `backend/tests/unit/test_events.py` |
+| 개인정보 차단 | 이름·전화번호·계좌번호·카드번호·금액 같은 키는 이벤트에 들어가지 못하게 막고(중첩 포함), 금액은 구간으로만 남깁니다. | `backend/app/api/events/service.py` |
+| 시간대 | DB 연결을 한국 시간(+09:00)으로 맞추고 이벤트 시각도 KST로 기록합니다. | `backend/app/db/mariadb.py`, `backend/app/core/time.py` |
+
+#### 수집 경로 검증
+
+배포 후 실제 요청을 보내 Nginx·HAProxy·FastAPI 로그가 Alloy를 거쳐 Loki에서 조회되는지, 두 API 서버가 모두 요청을 받았는지, 요청 ID가 남는지 확인합니다. exporter 대상이 모두 정상(UP)인지, Prometheus·Grafana·Tempo가 응답하고 실제 추적이 조회되는지도 확인합니다. (`deploy/ansible/verify-proxy-logs.py`, `verify-exporters.py`, `verify-monitoring.py`, `verify-tracing.py`)
+
+#### 장애 상황에서의 동작
 
 - MongoDB가 죽어 있어도 송금은 성공하고 앱은 시작됩니다. 이미 커밋된 돈 처리를 이벤트 저장 실패 때문에 오류로 바꾸지 않기 위해서입니다. 이벤트 저장에 실패하면 경고 로그만 남기고 거래는 그대로 성공 처리합니다. (`backend/tests/failure/test_mongo_down.py`)
 - MariaDB가 내려가면 조회·로그인이, 연결 풀이 고갈되면 인증이 500이 아닌 503으로 응답합니다. (`backend/tests/failure/test_db_errors.py`)
