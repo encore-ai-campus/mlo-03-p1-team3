@@ -5,10 +5,17 @@ $ProgressPreference='SilentlyContinue'
 $ErrorActionPreference='Stop'
 $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if($Vnet -lt 2 -or $Vnet -gt 19 -or $Vnet -eq 8){throw 'Use a dedicated VMnet2..19 excluding VMnet8'}
-$route=Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Where-Object NextHop -eq $Gateway | Sort-Object RouteMetric | Select-Object -First 1
-if(-not $route){throw 'No Windows default route matches the selected LAN gateway'}
-$adapter=Get-NetAdapter -InterfaceIndex $route.InterfaceIndex
-if($adapter.Status -ne 'Up'){throw 'Selected bridge adapter is not active'}
+# Disconnected Wi-Fi may retain a default route with the same gateway/metric.
+# Select only an active physical adapter before comparing route priorities.
+$routes=@(Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Where-Object NextHop -eq $Gateway)
+$activeAdapters=@(Get-NetAdapter -Physical | Where-Object Status -eq 'Up')
+$choices=@(foreach($candidate in $routes){
+ $active=$activeAdapters | Where-Object InterfaceIndex -eq $candidate.InterfaceIndex | Select-Object -First 1
+ if($active){[pscustomobject]@{Adapter=$active;Metric=$candidate.RouteMetric;Index=$candidate.InterfaceIndex}}
+})
+$selected=$choices | Sort-Object Metric,Index | Select-Object -First 1
+if(-not $selected){throw 'No active physical adapter has a default route for the selected LAN gateway'}
+$adapter=$selected.Adapter
 $vmrun='C:\Program Files\VMware\VMware Workstation\vmrun.exe'
 $name="vmnet$Vnet"
 $cfg="HKLM:\SOFTWARE\VMware, Inc.\VMnetLib\VMnetConfig\$name"
