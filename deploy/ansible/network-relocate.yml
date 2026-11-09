@@ -1,0 +1,185 @@
+---
+# Existing guests only: update addresses without installers, migrations, or data deletion.
+# First update the powered-off guests' network seeds and boot them on the selected LAN.
+# Required extra var: previous_lan_prefix (for example 172.30.1.).
+- name: Update existing service endpoints and firewall access without touching storage
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    next_lan_prefix: "{{ lan_cidr.split('/')[0].rsplit('.', 1)[0] }}."
+    endpoint_files:
+      - /etc/podobank/api.env
+      - /opt/podobank-installer/deploy/vm/vm.env
+      - /etc/nginx/conf.d/podobank.conf
+      - /etc/nginx/conf.d/podobank-upstream.conf
+      - /etc/haproxy/haproxy.cfg
+      - /etc/alloy/config.alloy
+      - /etc/prometheus/prometheus.yml
+      - /etc/grafana/provisioning/datasources/podobank.yml
+      - /etc/grafana/provisioning/datasources/podobank-tempo.yml
+      - /etc/loki/podobank.yml
+      - /etc/tempo/podobank.yml
+    role_ports:
+      nginx: [80, 443]
+      haproxy: [8000]
+      api: [8000]
+      mariadb_master: [3306]
+      mariadb_replica: [3306]
+      mongodb: [27017]
+      prometheus: [9090]
+      loki: [3100, 4318]
+      grafana: [3000]
+    metric_ports:
+      nginx: [9113, 12345]
+      haproxy: [8404, 12345]
+      api: [12345]
+      mariadb_master: [9104]
+      mariadb_replica: [9104]
+      mongodb: [9216]
+  pre_tasks:
+    - name: Require an explicit previous prefix and forbid reset mode
+      ansible.builtin.assert:
+        that:
+          - previous_lan_prefix is defined
+          - previous_lan_prefix is match('^(?:[0-9]{1,3}\.){3}$')
+          - previous_lan_prefix != next_lan_prefix
+          - not (reset_databases | default(false) | bool)
+          - ansible_host.startswith(next_lan_prefix)
+      run_once: true
+    - name: Wait for the retained guest on its new address
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+  tasks:
+    - name: Locate only known service configuration files
+      ansible.builtin.stat:
+        path: '{{ item }}'
+      loop: '{{ endpoint_files }}'
+      register: endpoint_stats
+    - name: Replace only the previous address prefix in existing configuration
+      ansible.builtin.replace:
+        path: '{{ item.item }}'
+        regexp: '{{ previous_lan_prefix | regex_escape }}'
+        replace: '{{ next_lan_prefix }}'
+      loop: '{{ endpoint_stats.results }}'
+      when: item.stat.exists
+      no_log: true
+    - name: Allow SSH from the current management LAN
+      ansible.builtin.command: 'ufw allow from {{ lan_cidr }} to any port 22 proto tcp'
+      register: ssh_rule
+      changed_when: "'Skipping adding existing rule' not in ssh_rule.stdout"
+    - name: Allow the new Prometheus address to collect node metrics
+      ansible.builtin.command: 'ufw allow from {{ hostvars[groups["prometheus"][0]].ansible_host }} to any port 9100 proto tcp'
+      register: node_rule
+      changed_when: "'Skipping adding existing rule' not in node_rule.stdout"
+    - name: Allow existing role interfaces from the current LAN
+      ansible.builtin.command: 'ufw allow from {{ lan_cidr }} to any port {{ item }} proto tcp'
+      loop: "{{ group_names | intersect(role_ports.keys() | list) | map('extract', role_ports) | flatten | unique }}"
+      register: interface_rule
+      changed_when: "'Skipping adding existing rule' not in interface_rule.stdout"
+    - name: Allow only the new Prometheus address to reach service exporters
+      ansible.builtin.command: 'ufw allow from {{ hostvars[groups["prometheus"][0]].ansible_host }} to any port {{ item }} proto tcp'
+      loop: "{{ group_names | intersect(metric_ports.keys() | list) | map('extract', metric_ports) | flatten | unique }}"
+      register: metric_rule
+      changed_when: "'Skipping adding existing rule' not in metric_rule.stdout"
+    - name: Retain Grafana access to the existing Tempo service
+      ansible.builtin.command: 'ufw allow from {{ hostvars[groups["grafana"][0]].ansible_host }} to any port 3200 proto tcp'
+      when: inventory_hostname in groups['loki']
+      register: tempo_rule
+      changed_when: "'Skipping adding existing rule' not in tempo_rule.stdout"
+
+- name: Add application and replication access for the new addresses
+  hosts: mariadb_master
+  become: true
+  gather_facts: false
+  vars:
+    app_password: "{{ lookup('ansible.builtin.ini', 'MARIADB_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/vm.env') }}"
+    repl_password: "{{ lookup('ansible.builtin.ini', 'MARIADB_REPL_PASSWORD', type='properties', file=playbook_dir ~ '/../vm/vm.env') }}"
+  tasks:
+    - name: Validate the same installer password character restrictions
+      ansible.builtin.assert:
+        that:
+          - app_password is match('^[A-Za-z0-9_-]+$')
+          - repl_password is match('^[A-Za-z0-9_-]+$')
+      no_log: true
+    - name: Grant access without deleting users, schemas, tables, or rows
+      ansible.builtin.shell: |
+        mariadb <<'SQL'
+        {% for ip in [hostvars['api-1'].ansible_host, hostvars['api-2'].ansible_host, mariadb_client_subnet] %}
+        CREATE USER IF NOT EXISTS 'podobank'@'{{ ip }}' IDENTIFIED BY '{{ app_password }}';
+        ALTER USER 'podobank'@'{{ ip }}' IDENTIFIED BY '{{ app_password }}';
+        GRANT ALL PRIVILEGES ON podobank.* TO 'podobank'@'{{ ip }}';
+        {% endfor %}
+        CREATE USER IF NOT EXISTS 'repl'@'{{ hostvars[groups["mariadb_replica"][0]].ansible_host }}' IDENTIFIED BY '{{ repl_password }}';
+        ALTER USER 'repl'@'{{ hostvars[groups["mariadb_replica"][0]].ansible_host }}' IDENTIFIED BY '{{ repl_password }}';
+        GRANT REPLICATION SLAVE ON *.* TO 'repl'@'{{ hostvars[groups["mariadb_replica"][0]].ansible_host }}';
+        SQL
+      no_log: true
+
+- name: Reconnect the existing replica while retaining its replication position
+  hosts: mariadb_replica
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Change only the source host and resume existing replication
+      ansible.builtin.shell: |
+        mariadb <<'SQL'
+        STOP SLAVE;
+        CHANGE MASTER TO MASTER_HOST='{{ hostvars[groups["mariadb_master"][0]].ansible_host }}';
+        START SLAVE;
+        SQL
+      no_log: true
+
+- name: Validate and restart existing services on the new network
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read the version of retained Grafana sources still pointing at the previous LAN
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - >-
+            import sqlite3;
+            c=sqlite3.connect('file:/var/lib/grafana/grafana.db?mode=ro',uri=True);
+            print(c.execute("SELECT COALESCE(MAX(version),0) FROM data_source WHERE url LIKE ?", ('http://{{ previous_lan_prefix }}%',)).fetchone()[0])
+      when: inventory_hostname in groups['grafana']
+      register: previous_source_version
+      changed_when: false
+    - name: Advance provisioning versions so Grafana accepts the new source addresses
+      ansible.builtin.replace:
+        path: '{{ item }}'
+        regexp: '(?m)^(\s*version:)\s*\d+\s*$'
+        replace: '\g<1> {{ previous_source_version.stdout | int + 1 }}'
+      loop:
+        - /etc/grafana/provisioning/datasources/podobank.yml
+        - /etc/grafana/provisioning/datasources/podobank-tempo.yml
+      when:
+        - inventory_hostname in groups['grafana']
+        - previous_source_version.stdout | default('0') | int > 0
+    - name: Validate existing Nginx configuration
+      ansible.builtin.command: nginx -t
+      when: inventory_hostname in groups['nginx']
+      changed_when: false
+    - name: Validate existing HAProxy configuration
+      ansible.builtin.command: haproxy -c -f /etc/haproxy/haproxy.cfg
+      when: inventory_hostname in groups['haproxy']
+      changed_when: false
+    - name: Validate Prometheus configuration before reopening its retained database
+      ansible.builtin.command: promtool check config /etc/prometheus/prometheus.yml
+      when: inventory_hostname in groups['prometheus']
+      changed_when: false
+    - name: Restart only deployed role services with retained data directories
+      ansible.builtin.systemd:
+        name: '{{ item }}'
+        state: restarted
+      vars:
+        services:
+          nginx: [nginx, alloy]
+          haproxy: [haproxy, alloy]
+          api: [podobank-api, alloy]
+          prometheus: [prometheus]
+          loki: [loki, tempo]
+          grafana: [grafana-server]
+      loop: "{{ group_names | intersect(services.keys() | list) | map('extract', services) | flatten | unique }}"

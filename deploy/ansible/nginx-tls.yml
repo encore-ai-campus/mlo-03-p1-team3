@@ -1,0 +1,109 @@
+---
+# Add domain HTTPS to the current proxy configuration; retain HTTP LAN access and all data.
+- name: Enable HTTPS with the owner's existing certificate
+  hosts: nginx
+  become: true
+  gather_facts: false
+  vars:
+    nginx_tls_domain: www.podobank.kro.kr
+    nginx_tls_directory: /etc/nginx/ssl/podobank
+    nginx_tls_directives: |
+      server_name {{ nginx_tls_domain }};
+      ssl_certificate {{ nginx_tls_directory }}/fullchain.pem;
+      ssl_certificate_key {{ nginx_tls_directory }}/private.key;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      proxy_cookie_flags ~ secure;
+  tasks:
+    - name: Require a private certificate source directory on the controller
+      ansible.builtin.assert:
+        that:
+          - nginx_tls_source_dir is defined
+          - nginx_tls_domain is match('^[A-Za-z0-9][A-Za-z0-9.-]+$')
+          - nginx_tls_directory == '/etc/nginx/ssl/podobank'
+    - name: Restrict access to the TLS directory
+      ansible.builtin.file:
+        path: '{{ nginx_tls_directory }}'
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+    - name: Send the existing certificate chain and key without logging their contents
+      ansible.builtin.copy:
+        src: '{{ nginx_tls_source_dir }}/{{ item }}'
+        dest: '{{ nginx_tls_directory }}/{{ item }}'
+        owner: root
+        group: root
+        mode: '0600'
+      loop: [certificate.crt, ca_bundle.crt, private.key]
+      no_log: true
+    - name: Verify certificate validity, hostname, chain and matching key before changing nginx
+      ansible.builtin.shell: |
+        set -e
+        openssl verify -CApath /etc/ssl/certs -untrusted '{{ nginx_tls_directory }}/ca_bundle.crt' -verify_hostname '{{ nginx_tls_domain }}' '{{ nginx_tls_directory }}/certificate.crt'
+        cert_public=$(openssl x509 -in '{{ nginx_tls_directory }}/certificate.crt' -pubkey -noout)
+        key_public=$(openssl pkey -in '{{ nginx_tls_directory }}/private.key' -passin pass: -pubout 2>/dev/null)
+        [ "$cert_public" = "$key_public" ]
+      changed_when: false
+      no_log: true
+    - name: Build the public full certificate chain
+      ansible.builtin.copy:
+        content: "{{ lookup('ansible.builtin.file', nginx_tls_source_dir ~ '/certificate.crt') ~ '\n' ~ lookup('ansible.builtin.file', nginx_tls_source_dir ~ '/ca_bundle.crt') ~ '\n' }}"
+        dest: '{{ nginx_tls_directory }}/fullchain.pem'
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Read the current tuned nginx routes without changing the frontend build
+      ansible.builtin.slurp:
+        src: /etc/nginx/conf.d/podobank.conf
+      register: existing_nginx
+    - name: Retain only the original HTTP block when updating our managed TLS block
+      ansible.builtin.set_fact:
+        nginx_http_base: "{{ (existing_nginx.content | b64decode).split('# BEGIN PODOBANK HTTPS')[0] | trim }}"
+    - name: Require the expected HTTP routes before deriving HTTPS routes
+      ansible.builtin.assert:
+        that:
+          - "'listen 80;' in nginx_http_base"
+          - "'server_name _;' in nginx_http_base"
+          - "'listen 443' not in nginx_http_base"
+          - "'proxy_pass http://podobank_haproxy;' in nginx_http_base"
+    - name: Add and validate domain HTTPS while preserving the existing HTTP route
+      block:
+        - name: Add redirect and matching TLS proxy routes
+          ansible.builtin.blockinfile:
+            path: /etc/nginx/conf.d/podobank.conf
+            marker: '# {mark} PODOBANK HTTPS'
+            block: |
+              server {
+                  listen 80;
+                  server_name {{ nginx_tls_domain }};
+                  return 308 https://{{ nginx_tls_domain }}$request_uri;
+              }
+              {{ nginx_http_base | replace('listen 80;', 'listen 443 ssl;') | replace('server_name _;', nginx_tls_directives | trim) }}
+        - name: Validate nginx before activating the new server block
+          ansible.builtin.command: nginx -t
+          changed_when: false
+      rescue:
+        - name: Restore the in-memory configuration if validation failed
+          ansible.builtin.copy:
+            content: '{{ existing_nginx.content | b64decode }}'
+            dest: /etc/nginx/conf.d/podobank.conf
+            mode: '0644'
+        - ansible.builtin.fail:
+            msg: HTTPS configuration failed validation; previous nginx configuration retained.
+    - name: Allow HTTPS from the existing LAN
+      ansible.builtin.command: 'ufw allow from {{ lan_cidr }} to any port 443 proto tcp'
+      register: https_rule
+      changed_when: "'Skipping adding existing rule' not in https_rule.stdout"
+    - name: Reload nginx without restarting the database or clearing logs
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded
+    - name: Verify the real domain certificate and both database connections through HTTPS
+      ansible.builtin.uri:
+        url: 'https://{{ nginx_tls_domain }}/api/v1/health'
+        validate_certs: true
+        return_content: true
+      register: tls_health
+      failed_when: >-
+        tls_health.status != 200 or
+        tls_health.json.get('mariadb') != 'ok' or tls_health.json.get('mongodb') != 'ok'
