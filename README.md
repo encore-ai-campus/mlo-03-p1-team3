@@ -210,6 +210,23 @@ erDiagram
 
 ### 5.2 데이터 품질 검증
 
+수집한 데이터가 믿을 수 있는지 **정합성, 중복, 동시성, 누락, 스키마 일관성, 수집 경로**의 여섯 가지로 나누어 DB 제약, 대사 배치, 테스트, 배포 검증 스크립트로 확인합니다.
+
+| 기준 | 검증 방법 | 근거 |
+|---|---|---|
+| 정합성 (MariaDB) | DB 제약으로 잘못된 값을 저장 단계에서 거부합니다. 잔액 0 이상, 원장 금액 0 불가, 카드 결제 금액 0 초과, 계좌·카드·세션 등의 외래키, 전화번호·계좌번호·카드번호 고유값 등입니다. | `backend/migrations/0001_init.sql`, `backend/tests/api/test_schema.py` |
+| 정합성 (잔액 ↔ 원장) | 일 마감 대사 배치(`python -m app.jobs.reconcile`)가 계좌마다 원장 `amount` 합계와 잔액이 같은지 한 번의 SELECT로 비교합니다. 불일치가 있으면 `reconciliation` 이벤트를 실패로 남기고 종료 코드 1로 끝납니다. | `backend/app/jobs/reconcile.py`, `backend/tests/api/test_jobs.py` |
+| 중복 | MongoDB 이벤트 컬렉션(`events_bronze`, `card_payment_locations`)의 `event_id`에 고유 인덱스를 두어 같은 이벤트가 두 번 들어와도 하나만 남깁니다. 송금 이벤트가 로그와 MongoDB에 각각 한 번만 기록되는지 테스트합니다. | `backend/app/db/mongodb.py`, `backend/tests/api/test_events.py` |
+| 동시성 (중복 거래 방지) | 동시 송금(양방향 교착 없음, 일일 한도 경쟁), 동시 출금·입금, 동시 가입·승인·대출 신청·로그인 잠금, 연결 풀 고갈 상황을 실제 MariaDB에서 테스트합니다. | `backend/tests/concurrency/` |
+| 누락 | 이벤트는 DB 트랜잭션이 **커밋된 뒤에만** 기록하고, 롤백되면 쓰지 않습니다. 실패한 송금은 실패 이벤트만 남기는지 테스트합니다. | `backend/app/api/events/service.py`, `backend/tests/api/test_events.py` |
+| 스키마 일관성 | 모든 이벤트가 `event_id`, `event_type`, `occurred_at`, `source`, `outcome`, `reason`, `request_id`, `properties` 필드를 같은 형태로 갖게 만듭니다. 이름·전화번호·계좌번호·카드번호·금액 같은 개인정보 키는 이벤트에 들어가지 못하게 막고(중첩 포함), 금액은 구간으로만 남깁니다. | `backend/app/api/events/service.py`, `backend/tests/unit/test_events.py` |
+| 수집 경로 | 배포 후 실제 요청을 보내 Nginx·HAProxy·FastAPI 로그가 Alloy를 거쳐 Loki에서 조회되는지, 두 API 서버가 모두 요청을 받았는지, 요청 ID가 남는지 확인합니다. exporter 대상이 모두 정상(UP)인지, Prometheus·Grafana·Tempo가 응답하고 실제 추적이 조회되는지도 확인합니다. | `deploy/ansible/verify-proxy-logs.py`, `verify-exporters.py`, `verify-monitoring.py`, `verify-tracing.py` |
+
+**장애 상황에서의 동작**
+
+- MongoDB가 죽어 있어도 송금은 성공하고 앱은 시작됩니다. 이미 커밋된 돈 처리를 이벤트 저장 실패 때문에 오류로 바꾸지 않기 위해서입니다. 이벤트 저장에 실패하면 경고 로그만 남기고 거래는 그대로 성공 처리합니다. (`backend/tests/failure/test_mongo_down.py`)
+- MariaDB가 내려가면 조회·로그인이, 연결 풀이 고갈되면 인증이 500이 아닌 503으로 응답합니다. (`backend/tests/failure/test_db_errors.py`)
+
 ### 5.3 수집 데이터 활용
 
 ## 6. 데이터 검증 및 시각화
