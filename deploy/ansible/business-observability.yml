@@ -104,17 +104,17 @@
           Environment=HOME=/tmp
           StandardOutput=null
           StandardError=null
-    - name: Install the two-minute snapshot timer
+    - name: Install the fifteen-second snapshot timer
       ansible.builtin.copy:
         dest: /etc/systemd/system/podobank-business-metrics.timer
         mode: '0644'
         content: |
           [Unit]
-          Description=Refresh PodoBank read-only aggregates every two minutes
+          Description=Refresh PodoBank read-only aggregates every fifteen seconds
           [Timer]
           OnBootSec=30s
-          OnUnitActiveSec=120s
-          AccuracySec=5s
+          OnUnitActiveSec=15s
+          AccuracySec=1s
           [Install]
           WantedBy=timers.target
     - name: Start one real snapshot and fail deployment if collection fails

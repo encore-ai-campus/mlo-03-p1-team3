@@ -47,9 +47,9 @@ PodoBank (포도뱅크)
 
 # 3. 기술 스택
 
-| 프론트엔드 | 백엔드 | DB | 인프라 | 모니터링 | 테스트 |
-| --- | --- | --- | --- | --- | --- |
-| ![Vue.js](https://img.shields.io/badge/Vue.js-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) ![Pinia](https://img.shields.io/badge/Pinia-FFD859?style=flat-square&logo=pinia&logoColor=black) | ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-4051B5?style=flat-square&logoColor=white) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white) ![Kakao](https://img.shields.io/badge/Kakao_Login-FFCD00?style=flat-square&logo=kakaotalk&logoColor=black) | ![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=flat-square&logo=mariadb&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) | ![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white) ![HAProxy](https://img.shields.io/badge/HAProxy-106DA9?style=flat-square&logo=haproxy&logoColor=white) ![VMware](https://img.shields.io/badge/VMware-607078?style=flat-square&logo=vmware&logoColor=white) ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=flat-square&logo=terraform&logoColor=white) ![Ansible](https://img.shields.io/badge/Ansible-EE0000?style=flat-square&logo=ansible&logoColor=white) | ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white) ![Loki](https://img.shields.io/badge/Loki-F46800?style=flat-square&logo=grafana&logoColor=white) ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-425CC7?style=flat-square&logo=opentelemetry&logoColor=white) | ![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white) ![Locust](https://img.shields.io/badge/Locust-5ABE40?style=flat-square&logoColor=white) ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white) |
+| 프론트엔드 | 백엔드 | DB | 테스트 | 데이터 수집 |
+| --- | --- | --- | --- | --- |
+| ![Vue.js](https://img.shields.io/badge/Vue.js-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) ![Pinia](https://img.shields.io/badge/Pinia-FFD859?style=flat-square&logo=pinia&logoColor=black) | ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-4051B5?style=flat-square&logoColor=white) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white) ![Kakao Login](https://img.shields.io/badge/Kakao_Login-FFCD00?style=flat-square&logo=kakaotalk&logoColor=black) | ![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=flat-square&logo=mariadb&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) | ![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white) ![Locust](https://img.shields.io/badge/Locust-5ABE40?style=flat-square&logoColor=white) | ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white) ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white) ![Loki](https://img.shields.io/badge/Loki-F46800?style=flat-square&logo=grafana&logoColor=white) ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-425CC7?style=flat-square&logo=opentelemetry&logoColor=white) |
 
 # 4. 요구사항 명세서
 
@@ -63,7 +63,7 @@ PodoBank (포도뱅크)
 
 # 5. ERD
 
-![ERD](docs/images/erd.png)
+![포도뱅크 ERD](docs/images/erd.svg)
 
 테이블별 속성은 [Wiki · ERD](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/ERD)에 있습니다.
 
@@ -86,9 +86,9 @@ Nginx·HAProxy·FastAPI 로그 → Alloy → Loki → Grafana
 # 7. 수행결과(테스트/시연 페이지)
 
 - ### 서비스 이용 자동화
-<img src="docs/images/playwright.gif" width="600">
+<img src="docs/images/playwright.gif" width="800">
 
-Playwright로 가상 사용자(페르소나)가 실제 브라우저에서 서비스를 이용하도록 자동화. 가입·로그인·입금·송금·카드 결제·대출 신청이 화면에서 실행되어 MariaDB와 MongoDB에 데이터가 쌓입니다. 전체 화면은 [사용자 매뉴얼](docs/user-manual.md)을 참고하세요.
+Playwright로 가상 고객(페르소나)이 실제 브라우저에서 서비스를 이용하도록 자동화. 가입·로그인·입금·송금·카드 결제·대출 신청이 화면에서 실행되어 MariaDB와 MongoDB에 데이터가 쌓입니다. 전체 화면은 [사용자 매뉴얼](docs/user-manual.md)을 참고하세요.
 
 - ### 초당 RPS
 <img src="docs/images/nginx-rps.gif">
@@ -96,9 +96,9 @@ Playwright로 가상 사용자(페르소나)가 실제 브라우저에서 서비
 Nginx 서버 모니터링 화면. 동시 접속자 200명이 요청을 보내 HTTP 요청률이 약 78 RPS에서 약 200 RPS까지 올라 유지되는 모습. 부하 전체 구간(약 2분 30초) 동안 총 29,103건을 처리했고 실패는 0건, p95 응답 시간은 150ms.
 
 - ### 이벤트 로그 데이터 적재
-<img src="docs/images/mongodb.gif" width="600">
+<img src="docs/images/mongodb.gif" width="800">
 
-MongoDB 화면. 사용자 행동·금융 이벤트가 문서(JSON)로 저장되는 모습. 이벤트는 MariaDB 커밋이 성공한 뒤에만 기록하고, `event_id` 고유 인덱스로 중복을 막습니다.
+MongoDB Compass 화면. `events_bronze` 컬렉션에 사용자 행동·금융 이벤트가 문서(JSON)로 저장되는 모습. 이벤트는 MariaDB 커밋이 성공한 뒤에만 기록하고, `event_id` 고유 인덱스로 중복을 막습니다.
 
 - ### 데이터 품질 검증
   - **정확성**: 돈이 움직이는 요청은 한 트랜잭션으로 처리하고, 계좌 행을 `FOR UPDATE`로 잠근 뒤 계산합니다. 송금은 계좌 ID가 작은 쪽부터 잠가 교착을 막습니다.
