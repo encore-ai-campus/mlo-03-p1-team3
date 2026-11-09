@@ -6,7 +6,7 @@
 >
 > 뱅킹 서비스를 직접 설계하면서 **데이터 발생 → 수집 → 저장 → 검증 → 관측**을 구현하는 프로젝트입니다.
 
-📖 상세 문서는 [Wiki](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki)에 있습니다. (ERD 상세 · 아키텍처 · 저장 과정 · 사용자 흐름 · 보안 · 데이터 품질)
+📖 상세 문서: [Wiki](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki)
 
 # 1. 팀 소개
 
@@ -193,18 +193,6 @@ erDiagram
 # 6. 주요 프로시저
 
 ![시스템 아키텍처](docs/images/banking_system_architecture.drawio.svg)
-
-```text
-브라우저 → Nginx → HAProxy → FastAPI 1 / FastAPI 2 → MariaDB master → replica
-                                                  └→ MongoDB (이벤트)
-Nginx·HAProxy·FastAPI 로그 → Alloy → Loki → Grafana
-서버·서비스 지표 → Prometheus → Grafana
-```
-
-- 구성요소 설명: [Wiki · 아키텍처](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/Architecture)
-- 데이터가 저장되는 과정: [MariaDB](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/MariaDB-Storage-Flow) · [MongoDB](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/MongoDB-Storage-Flow)
-- 실제 사용자 흐름: [Wiki · 사용자 흐름](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/User-Flow)
-- 구성요소별 보안: [Wiki · 보안](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/Security)
 
 # 7. 수행결과(테스트/시연 페이지)
 
