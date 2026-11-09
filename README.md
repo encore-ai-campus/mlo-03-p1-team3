@@ -49,7 +49,7 @@ PodoBank (포도뱅크)
 
 | 프론트엔드 | 백엔드 | DB | 테스트 | 데이터 수집 |
 | --- | --- | --- | --- | --- |
-| ![Vue.js](https://img.shields.io/badge/Vue.js-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) ![Pinia](https://img.shields.io/badge/Pinia-FFD859?style=flat-square&logo=pinia&logoColor=black) | ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-4051B5?style=flat-square&logoColor=white) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white) ![Kakao Login](https://img.shields.io/badge/Kakao_Login-FFCD00?style=flat-square&logo=kakaotalk&logoColor=black) | ![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=flat-square&logo=mariadb&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) | ![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white) ![Locust](https://img.shields.io/badge/Locust-5ABE40?style=flat-square&logoColor=white) | ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white) ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white) ![Loki](https://img.shields.io/badge/Loki-F46800?style=flat-square&logo=grafana&logoColor=white) ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-425CC7?style=flat-square&logo=opentelemetry&logoColor=white) |
+| ![Vue.js](https://img.shields.io/badge/Vue.js-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) | ![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white) ![Uvicorn](https://img.shields.io/badge/Uvicorn-4051B5?style=flat-square&logoColor=white) ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white) ![Kakao Login](https://img.shields.io/badge/Kakao_Login-FFCD00?style=flat-square&logo=kakaotalk&logoColor=black) | ![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=flat-square&logo=mariadb&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) | ![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white) ![Locust](https://img.shields.io/badge/Locust-5ABE40?style=flat-square&logoColor=white) | ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white) ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white) ![Loki](https://img.shields.io/badge/Loki-F46800?style=flat-square&logo=grafana&logoColor=white) ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-425CC7?style=flat-square&logo=opentelemetry&logoColor=white) |
 
 # 4. 요구사항 명세서
 
@@ -63,7 +63,130 @@ PodoBank (포도뱅크)
 
 # 5. ERD
 
-![포도뱅크 ERD](docs/images/erd.svg)
+```mermaid
+erDiagram
+    accounts {
+        bigint id PK
+        bigint user_id FK,UK
+        varchar account_number UK
+        bigint balance
+        datetime created_at
+    }
+    cards {
+        bigint id PK
+        bigint account_id FK,UK
+        char card_number UK
+        datetime created_at
+    }
+    card_payments {
+        bigint id PK
+        bigint card_id FK
+        bigint merchant_id FK
+        char transaction_id
+        bigint amount
+        datetime created_at
+    }
+    kakao_signups {
+        bigint id PK
+        char token_hash UK
+        varchar kakao_subject
+        varchar name
+        datetime created_at
+        datetime expires_at
+    }
+    ledger_entries {
+        bigint id PK
+        char transaction_id
+        bigint account_id FK
+        varchar entry_type
+        bigint amount
+        bigint balance_after
+        datetime created_at
+    }
+    loan_applications {
+        bigint id PK
+        bigint user_id FK
+        bigint product_id FK
+        varchar product_code
+        bigint principal_amount
+        smallint term_months
+        bigint monthly_installment
+        varchar status
+        bigint reviewed_by FK
+        datetime reviewed_at
+        datetime approved_at
+        datetime created_at
+    }
+    loan_products {
+        bigint id PK
+        varchar code UK
+        varchar name
+        bigint min_amount
+        bigint max_amount
+        bigint amount_step
+        longtext term_options
+    }
+    loan_repayments {
+        bigint id PK
+        bigint loan_application_id FK
+        smallint installment_number
+        date due_date
+        bigint amount
+        varchar status
+        datetime processed_at
+        datetime paid_at
+    }
+    merchants {
+        bigint id PK
+        varchar name
+        varchar category
+        varchar region
+        decimal lat
+        decimal lng
+    }
+    schema_migrations {
+        varchar version PK
+        datetime applied_at
+    }
+    sessions {
+        bigint id PK
+        char token_hash UK
+        bigint user_id FK
+        char device_id
+        varchar client
+        varchar user_agent
+        varchar login_method
+        datetime created_at
+        datetime last_seen_at
+        datetime ended_at
+        varchar end_reason
+    }
+    users {
+        bigint id PK
+        varchar kakao_subject UK
+        varchar phone_number UK
+        varchar password_hash
+        varchar name
+        smallint birth_year
+        varchar gender
+        varchar marital_status
+        tinyint is_employed
+        varchar role
+        smallint failed_login_count
+        datetime locked_until
+        datetime created_at
+    }
+    users ||--o| accounts : "user_id"
+    loan_products ||--o{ loan_applications : "product_id"
+    users |o--o{ loan_applications : "reviewed_by"
+    users ||--o{ loan_applications : "user_id"
+    loan_applications ||--o{ loan_repayments : "loan_application_id"
+    accounts ||--o{ ledger_entries : "account_id"
+    accounts ||--o| cards : "account_id"
+    users ||--o{ sessions : "user_id"
+    cards ||--o{ card_payments : "card_id"
+    merchants ||--o{ card_payments : "merchant_id"
+```
 
 테이블별 속성은 [Wiki · ERD](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/ERD)에 있습니다.
 
