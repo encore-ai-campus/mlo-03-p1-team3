@@ -97,7 +97,7 @@ def operational_summary(d):
         panel(d, '오류 API · 선택 기간', 'sum by(route,status_code)(increase(podobank_http_requests_total{job="fastapi",route!~"/health|unmatched",status_code=~"4..|5.."}[$__range])) > 0', 'table', h=7)
         for store, dataset, title in [('mariadb','ledger_entries','MariaDB 거래 원장'),('mariadb','card_payments','MariaDB 카드 결제'),('mongodb','events_bronze','MongoDB 이벤트'),('mongodb','card_payment_locations','MongoDB 카드 위치')]:
             selector = 'podobank_db_records{store="' + store + '",dataset="' + dataset + '"' + (',server!~".*replica"' if store=='mariadb' else '') + '}'
-            panel(d, title, 'sum(' + selector + ' and on(instance) (' + FRESH + '))', 'stat', w=6, h=4, description='現在 저장된 누적 건수입니다. 2분 주기 읽기 전용 집계이며 집계 장애 시 수집 없음으로 표시합니다.'.replace('現在','현재'))
+            panel(d, title, 'sum(' + selector + ' and on(instance) (' + FRESH + '))', 'stat', w=6, h=4, description='現在 저장된 누적 건수입니다. 15초 주기 읽기 전용 집계이며 집계 장애 시 수집 없음으로 표시합니다.'.replace('現在','현재'))
         panel(d, 'DB 적재 현황 · 현재 건수', 'sum by(dataset)(podobank_db_table_rows{store="mariadb",server!~".*replica"} and on(instance) (' + FRESH + '))', 'table', w=12, h=9)
         panel(d, 'DB 저장 건수 추이', 'sum by(dataset)(podobank_db_table_rows{store="mariadb",server!~".*replica"} and on(instance) (' + FRESH + '))', w=12, h=9, legend='{{store}} · {{dataset}}')
         panel(d, 'DB 집계 경과', 'max by(store)(time()-podobank_business_collect_success_timestamp_seconds)', 'stat', unit='s', w=12, h=4, legend='{{store}}', description='180초 이상이면 집계 상태를 확인하세요.')
@@ -234,7 +234,7 @@ def operations_layout(d):
 
 def main():
     b=board('business','금융 업무 · 성공·실패·실제 저장')
-    note(b,'**① 업무 로그 → ② 실제 DB 저장 → ③ 요청 ID 추적 순서로 확인하세요.**\n\n업무 성공 이벤트는 MariaDB 커밋 후 생성됩니다. Loki 도착이 MongoDB 저장 성공까지 보장하지는 않습니다. 아래 DB 값은 **현재 저장 건수(2분 주기)**이며 선택 기간의 요청 건수가 아닙니다. 빈 값은 0건과 다릅니다. API/업무 필터는 로그에 적용되며 DB 합계는 전체 서버·전체 업무 기준입니다. 요청 ID 검색은 하단 상세 로그에만 적용됩니다. 승인 완료와 대출 신청 성공도 구분합니다.')
+    note(b,'**① 업무 로그 → ② 실제 DB 저장 → ③ 요청 ID 추적 순서로 확인하세요.**\n\n업무 성공 이벤트는 MariaDB 커밋 후 생성됩니다. Loki 도착이 MongoDB 저장 성공까지 보장하지는 않습니다. 아래 DB 값은 **현재 저장 건수(15초 주기)**이며 선택 기간의 요청 건수가 아닙니다. 빈 값은 0건과 다릅니다. API/업무 필터는 로그에 적용되며 DB 합계는 전체 서버·전체 업무 기준입니다. 요청 ID 검색은 하단 상세 로그에만 적용됩니다. 승인 완료와 대출 신청 성공도 구분합니다.')
     for event,label in [('deposit','입금'),('withdrawal','출금'),('transfer','송금'),('loan_application','대출 신청'),('loan_review','대출 심사'),('card_payment','카드 결제')]:
         panel(b,label+' · 성공/실패','sum by(outcome)(count_over_time('+E+' | event_type="'+event+'" [$__range]))','stat',L,w=4,h=5,legend='{{outcome}}',description='선택 기간에 Loki에 도착한 업무 이벤트 기록 수입니다. 기록 없음은 업무 미실행 또는 수집 상태를 확인하세요.')
     panel(b,'업무·결과별 이벤트 건수 · 선택 기간','sum by(event_type,outcome)(count_over_time('+E+' [$__range]))','table',L,w=12,h=8)

@@ -45,8 +45,8 @@ payment locations are Mongo-only and are not a second event in `events.log`.
 
 ## Counts and freshness
 
-Collectors execute on the DB VMs every 120 seconds; Prometheus scrapes node exporters
-every 15 seconds. Expect roughly two minutes plus a scrape delay for a DB panel to
+Collectors execute on the DB VMs every 15 seconds; Prometheus scrapes node exporters
+every 15 seconds. Expect up to about 30 seconds (one collection plus one scrape) for a DB panel to
 reflect a new operation. Values are gauges of current persisted records, not request
 counters or exact selected-period increases. Snapshots older than 180 seconds, failed
 collectors and unreachable nodes are excluded from count panels. A failed collection
