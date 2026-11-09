@@ -194,12 +194,14 @@ erDiagram
 
 ![시스템 아키텍처](docs/images/banking_system_architecture.drawio.svg)
 
+상세 설명: [Wiki · 주요 프로시저](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/%EC%A3%BC%EC%9A%94-%ED%94%84%EB%A1%9C%EC%8B%9C%EC%A0%80)
+
 # 7. 수행결과(테스트/시연 페이지)
 
 - ### 서비스 이용 자동화
 <img src="docs/images/playwright.gif" width="800">
 
-Playwright로 가상 고객(페르소나)이 실제 브라우저에서 서비스를 이용하도록 자동화. 가입·로그인·입금·송금·카드 결제·대출 신청이 화면에서 실행되어 MariaDB와 MongoDB에 데이터가 쌓입니다. 전체 화면은 [사용자 매뉴얼](docs/user-manual.md)을 참고하세요.
+Playwright로 가상 고객(페르소나)이 실제 브라우저에서 서비스를 이용하도록 자동화. 가입·로그인·입금·송금·카드 결제·대출 신청이 화면에서 실행되어 MariaDB와 MongoDB에 데이터가 쌓입니다.
 
 - ### 초당 RPS
 <img src="docs/images/nginx-rps.gif">
@@ -210,11 +212,3 @@ Nginx 서버 모니터링 화면. 동시 접속자 200명이 요청을 보내 HT
 <img src="docs/images/mongodb.gif" width="800">
 
 MongoDB Compass 화면. `events_bronze` 컬렉션에 사용자 행동·금융 이벤트가 문서(JSON)로 저장되는 모습. 이벤트는 MariaDB 커밋이 성공한 뒤에만 기록하고, `event_id` 고유 인덱스로 중복을 막습니다.
-
-- ### 데이터 품질 검증
-  - **정확성**: 돈이 움직이는 요청은 한 트랜잭션으로 처리하고, 계좌 행을 `FOR UPDATE`로 잠근 뒤 계산합니다. 송금은 계좌 ID가 작은 쪽부터 잠가 교착을 막습니다.
-  - **정합성**: 일 마감 대사 배치가 계좌별 원장 합계와 잔액을 비교하고, 외래키·`CHECK` 제약으로 잘못된 값을 거부합니다.
-  - **유일성**: 전화번호·계좌번호·카드번호 등에 `UNIQUE`를 두고, MongoDB 이벤트는 `event_id`에 고유 인덱스를 둡니다.
-  - **완전성·일관성**: 이벤트는 커밋된 뒤에만 기록하고, 필드를 고정해 개인정보 키를 차단합니다.
-
-  자세한 방법과 근거는 [Wiki · 데이터 품질](https://github.com/encore-ai-campus/mlo-03-p1-team3/wiki/Data-Quality)에 있습니다.
