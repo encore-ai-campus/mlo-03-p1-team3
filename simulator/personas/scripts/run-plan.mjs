@@ -94,9 +94,20 @@ export function selectLoanProduct(products, params) {
 
 export function makeDriver({ browser, base, state, seed, profiles, report, reviewer }) {
   const customers = new Map(profiles.map(p => [p.sim_user_id, toCustomer(p)]))
+  // Demo only (SIMULATOR_TILE_WINDOWS): one fixed column per customer, last window kept open.
+  const tile = process.env.SIMULATOR_TILE_WINDOWS ? { slots: new Map(), kept: new Map() } : null
   async function newSession(profile, deviceId) {
     const customer = customers.get(profile.sim_user_id)
+    if (tile) await tile.kept.get(profile.sim_user_id)?.close().catch(() => {})
     const created = await createBrowserPage(browser, base, deviceId)
+    if (tile) {
+      if (!tile.slots.has(profile.sim_user_id)) tile.slots.set(profile.sim_user_id, tile.slots.size)
+      const cdp = await created.context.newCDPSession(created.page)
+      const { windowId } = await cdp.send('Browser.getWindowForTarget')
+      await cdp.send('Browser.setWindowBounds', { windowId, bounds: { left: 20 + tile.slots.get(profile.sim_user_id) * 620, top: 30, width: 500, height: 930 } })
+      const close = created.context.close.bind(created.context)
+      created.context.close = async () => { tile.kept.set(profile.sim_user_id, { close }) }
+    }
     return { ...created, customer, profile, closed: false }
   }
   async function logout(s) {
@@ -286,7 +297,7 @@ export async function main(args) {
       catch (e) { if (e.code !== 'ENOENT') throw e; state = { version: 1, customers: {}, plans: {} } }
       useStateFile(state, stateFile)
       const { chromium, request } = await import('playwright')
-      const browser = await chromium.launch({ headless: !o.headed })
+      const browser = await chromium.launch({ headless: !o.headed, slowMo: Number(process.env.SIMULATOR_SLOW_MO_MS) || 0 })
       try {
         const reviewer = credentials ? makeEmployeeReviewer({ request, base, credentials, report }) : null
         if (reviewer) await reviewer.verify()
@@ -294,7 +305,10 @@ export async function main(args) {
         const summary = await executePlan({ profiles, rows, concurrency: o.concurrency, state, save: saveState, report, driver, retryFailedReads: o.retryFailedReads, reusePrepared: o.reusePrepared, prepareOnly: o.prepareOnly })
         console.log(JSON.stringify({ phase: 'summary', ...summary }))
         if ((summary.outcomes.failed ?? 0) + (summary.outcomes.unknown ?? 0) > 0 || summary.prepared_users < profiles.length) process.exitCode = 1
-      } finally { await browser.close() }
+      } finally {
+        if (process.env.SIMULATOR_TILE_WINDOWS) await new Promise(r => setTimeout(r, Number(process.env.SIMULATOR_HOLD_MS) || 15000))
+        await browser.close()
+      }
     })
   } catch (e) {
     const known = e instanceof SimulatorError ? e.code : [
